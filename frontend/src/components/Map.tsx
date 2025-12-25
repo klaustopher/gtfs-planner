@@ -11,8 +11,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { GetStationDetails, SearchStations } from '../../wailsjs/go/main/App'
 import { models } from '../../wailsjs/go/models'
 import { useStops, Bounds } from './map/useStops'
-import { useRoutes } from './map/useRoutes'
-import { stopsToGeoJSON, routesToGeoJSON } from './map/geojson'
+import { stopsToGeoJSON, tripsToGeoJSON } from './map/geojson'
 import './Map.css'
 
 export interface MapViewState {
@@ -26,12 +25,17 @@ interface MapProps {
   onViewStateChange?: (viewState: MapViewState) => void
   onStationSelect?: (station: models.StationDetails | null) => void
   selectedStation?: models.StationDetails | null
+  tripsData?: models.UpcomingTripsData | null
+  selectedDate: string
+  selectedTime: string
+  onDateChange: (date: string) => void
+  onTimeChange: (time: string) => void
 }
 
 const INITIAL_VIEW_STATE = {
-  longitude: 10.4515,
-  latitude: 51.1657,
-  zoom: 6,
+  longitude: 8.193903437037271,
+  latitude: 50.896877167303444,
+  zoom: 12,
 }
 
 const ZOOM_THRESHOLD = 8
@@ -59,7 +63,16 @@ const stopsLayerStyle: CircleLayerSpecification = {
   },
 }
 
-export default function Map({ onViewStateChange, onStationSelect, selectedStation }: MapProps) {
+export default function Map({
+  onViewStateChange,
+  onStationSelect,
+  selectedStation,
+  tripsData,
+  selectedDate,
+  selectedTime,
+  onDateChange,
+  onTimeChange,
+}: MapProps) {
   const [viewState, setViewState] = useState(INITIAL_VIEW_STATE)
   const [isLoadingStation, setIsLoadingStation] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -71,9 +84,6 @@ export default function Map({ onViewStateChange, onStationSelect, selectedStatio
   const searchRequestIdRef = useRef(0)
   const lastSelectedStationIdRef = useRef<string | null>(null)
 
-  // Fetch routes when a station is selected
-  const routesData = useRoutes(selectedStation ?? null)
-
   // Fetch viewport stops when no station is selected
   const viewportStops = useStops({
     zoom: viewState.zoom,
@@ -82,14 +92,30 @@ export default function Map({ onViewStateChange, onStationSelect, selectedStatio
     enabled: !selectedStation,
   })
 
-  // Use route stations when a station is selected, otherwise use all stops in view
-  const displayStops = routesData?.stations ?? viewportStops
+  // Use trip stations when a station is selected, otherwise use all stops in view
+  const displayStops = tripsData?.stations ?? viewportStops
 
   const stopsGeojsonData = useMemo(() => stopsToGeoJSON(displayStops), [displayStops])
 
-  const routeLinesGeojsonData = useMemo(
-    () => routesToGeoJSON(routesData?.routes ?? [], { dashVariantCount: ROUTE_STYLE_VARIANTS.length }),
-    [routesData]
+  const tripLinesGeojsonData = useMemo(
+    () => tripsToGeoJSON(tripsData?.trips ?? [], { dashVariantCount: ROUTE_STYLE_VARIANTS.length }),
+    [tripsData]
+  )
+
+  // Handle date change
+  const handleDateChange = useCallback(
+    (evt: ChangeEvent<HTMLInputElement>) => {
+      onDateChange(evt.target.value)
+    },
+    [onDateChange]
+  )
+
+  // Handle time change
+  const handleTimeChange = useCallback(
+    (evt: ChangeEvent<HTMLInputElement>) => {
+      onTimeChange(evt.target.value)
+    },
+    [onTimeChange]
   )
 
   const selectStationById = useCallback(
@@ -315,6 +341,26 @@ export default function Map({ onViewStateChange, onStationSelect, selectedStatio
             {showEmptyState && <span className="map-search__status">Keine Station gefunden</span>}
           </div>
         )}
+        <div className="map-datetime">
+          <label className="map-datetime__label">
+            <span>Datum</span>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={handleDateChange}
+              className="map-datetime__input"
+            />
+          </label>
+          <label className="map-datetime__label">
+            <span>Zeit</span>
+            <input
+              type="time"
+              value={selectedTime}
+              onChange={handleTimeChange}
+              className="map-datetime__input"
+            />
+          </label>
+        </div>
         {showResults && (
           <ul className="map-search__results" role="listbox" aria-label="Stationsempfehlungen">
             {searchResults.map((stop, index) => {
@@ -362,13 +408,13 @@ export default function Map({ onViewStateChange, onStationSelect, selectedStatio
           ],
         }}
       >
-        {/* Route lines layer - only shown when a station is selected */}
-        {routesData && (
-          <Source id="route-lines" type="geojson" data={routeLinesGeojsonData}>
+        {/* Trip lines layer - only shown when a station is selected */}
+        {tripsData && (
+          <Source id="trip-lines" type="geojson" data={tripLinesGeojsonData}>
             {ROUTE_STYLE_VARIANTS.map((variant, index) => (
               <Layer
                 key={variant.id}
-                id={`route-lines-${variant.id}`}
+                id={`trip-lines-${variant.id}`}
                 type="line"
                 filter={['==', ['get', 'dash_variant'], index] as FilterSpecification}
                 layout={{
@@ -401,37 +447,7 @@ export default function Map({ onViewStateChange, onStationSelect, selectedStatio
             onClose={handleClosePopup}
             closeOnClick={false}
           >
-            <div style={{ maxWidth: 250 }}>
-              <strong>{selectedStation.stop_name}</strong>
-              {selectedStation.routes && selectedStation.routes.length > 0 && (
-                <div style={{ marginTop: 8, fontSize: 12 }}>
-                  <div style={{ fontWeight: 500, marginBottom: 4 }}>
-                    Routes ({selectedStation.routes.length}):
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {selectedStation.routes.slice(0, 10).map((route: models.Route) => (
-                      <span
-                        key={route.route_id}
-                        style={{
-                          padding: '2px 6px',
-                          borderRadius: 4,
-                          backgroundColor: route.route_color ? `#${route.route_color}` : '#666',
-                          color: '#fff',
-                          fontSize: 11,
-                        }}
-                      >
-                        {route.route_short_name || route.route_long_name}
-                      </span>
-                    ))}
-                    {selectedStation.routes.length > 10 && (
-                      <span style={{ fontSize: 11, color: '#666' }}>
-                        +{selectedStation.routes.length - 10} more
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            <strong>{selectedStation.stop_name}</strong>
           </Popup>
         )}
       </MapGL>

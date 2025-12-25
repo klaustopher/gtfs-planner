@@ -1,85 +1,31 @@
 import { MapViewState } from './Map'
 import { models } from '../../wailsjs/go/models'
+import { getTripColor } from './map/geojson'
 import './DebugSidebar.css'
 
 interface DebugSidebarProps {
   viewState: MapViewState | null
   selectedStation: models.StationDetails | null
+  tripsData: models.UpcomingTripsData | null
+  isLoadingTrips: boolean
 }
 
 function formatCoord(value: number, decimals = 4): string {
   return value.toFixed(decimals)
 }
 
-const ROUTE_TYPE_NAMES: Record<number, string> = {
-  0: 'Tram',
-  1: 'Subway',
-  2: 'Rail',
-  3: 'Bus',
-  4: 'Ferry',
-  5: 'Cable Tram',
-  6: 'Aerial Lift',
-  7: 'Funicular',
-  11: 'Trolleybus',
-  12: 'Monorail',
-}
-
-export default function DebugSidebar({ viewState, selectedStation }: DebugSidebarProps) {
+export default function DebugSidebar({
+  viewState,
+  selectedStation,
+  tripsData,
+  isLoadingTrips,
+}: DebugSidebarProps) {
   return (
     <div className="debug-sidebar">
-      <h3>Debug Info</h3>
+      <h3>Station Info</h3>
 
-      {viewState ? (
-        <>
-          <section>
-            <h4>Center</h4>
-            <div className="info-row">
-              <span className="label">Lat:</span>
-              <span className="value">{formatCoord(viewState.latitude)}</span>
-            </div>
-            <div className="info-row">
-              <span className="label">Lng:</span>
-              <span className="value">{formatCoord(viewState.longitude)}</span>
-            </div>
-          </section>
-
-          <section>
-            <h4>Zoom</h4>
-            <div className="info-row">
-              <span className="label">Level:</span>
-              <span className="value">{formatCoord(viewState.zoom, 2)}</span>
-            </div>
-          </section>
-
-          {viewState.bounds && (
-            <section>
-              <h4>Bounds</h4>
-              <div className="info-row">
-                <span className="label">North:</span>
-                <span className="value">{formatCoord(viewState.bounds.north)}</span>
-              </div>
-              <div className="info-row">
-                <span className="label">South:</span>
-                <span className="value">{formatCoord(viewState.bounds.south)}</span>
-              </div>
-              <div className="info-row">
-                <span className="label">East:</span>
-                <span className="value">{formatCoord(viewState.bounds.east)}</span>
-              </div>
-              <div className="info-row">
-                <span className="label">West:</span>
-                <span className="value">{formatCoord(viewState.bounds.west)}</span>
-              </div>
-            </section>
-          )}
-        </>
-      ) : (
-        <p>Loading map...</p>
-      )}
-
-      {selectedStation && (
+      {selectedStation ? (
         <section className="station-details">
-          <h4>Selected Station</h4>
           <div className="info-row">
             <span className="label">Name:</span>
             <span className="value">{selectedStation.stop_name}</span>
@@ -94,40 +40,67 @@ export default function DebugSidebar({ viewState, selectedStation }: DebugSideba
               {formatCoord(selectedStation.stop_lat)}, {formatCoord(selectedStation.stop_lon)}
             </span>
           </div>
+        </section>
+      ) : (
+        <p className="no-station-hint">Select a station to see upcoming departures</p>
+      )}
 
-          {selectedStation.routes && selectedStation.routes.length > 0 && (
-            <>
-              <h4>Routes ({selectedStation.routes.length})</h4>
-              <div className="routes-list">
-                {selectedStation.routes.map((route: models.Route) => (
-                  <div key={route.route_id} className="route-item">
-                    <span
-                      className="route-badge"
-                      style={{
-                        backgroundColor: route.route_color ? `#${route.route_color}` : '#666',
-                        color: route.route_text_color ? `#${route.route_text_color}` : '#fff',
-                      }}
-                    >
-                      {route.route_short_name || '?'}
-                    </span>
-                    <div className="route-info">
-                      <span className="route-name">
-                        {route.route_long_name || route.route_short_name}
-                      </span>
-                      <span className="route-type">
-                        {ROUTE_TYPE_NAMES[route.route_type] || `Type ${route.route_type}`}
-                      </span>
-                      {route.route_desc && (
-                        <span className="route-desc">{route.route_desc}</span>
+      {selectedStation && (
+        <section className="trips-section">
+          <h4>Upcoming Departures</h4>
+          {isLoadingTrips && <p className="loading-hint">Loading departures...</p>}
+          {!isLoadingTrips && tripsData && tripsData.trips && tripsData.trips.length > 0 && (
+            <div className="trips-list">
+              {tripsData.trips.map((trip: models.UpcomingTrip, index: number) => {
+                const tripColor = getTripColor(trip, index)
+                return (
+                  <div
+                    key={trip.trip_id}
+                    className="trip-item"
+                    style={{ borderLeftColor: tripColor }}
+                  >
+                    <span className="trip-time">{trip.departure_time.slice(0, 5)}</span>
+                    <div className="trip-details">
+                      {trip.display_name && (
+                        <span
+                          className="trip-route-badge"
+                          style={{ backgroundColor: tripColor }}
+                        >
+                          {trip.display_name}
+                        </span>
                       )}
+                      <span className="trip-destination">{trip.destination}</span>
                     </div>
                   </div>
-                ))}
-              </div>
-            </>
+                )
+              })}
+            </div>
+          )}
+          {!isLoadingTrips && tripsData && (!tripsData.trips || tripsData.trips.length === 0) && (
+            <p className="no-trips-hint">No upcoming departures found for this time</p>
           )}
         </section>
       )}
+
+      <section className="debug-section">
+        <h4>Debug</h4>
+        {viewState ? (
+          <>
+            <div className="info-row">
+              <span className="label">Center:</span>
+              <span className="value">
+                {formatCoord(viewState.latitude)}, {formatCoord(viewState.longitude)}
+              </span>
+            </div>
+            <div className="info-row">
+              <span className="label">Zoom:</span>
+              <span className="value">{formatCoord(viewState.zoom, 2)}</span>
+            </div>
+          </>
+        ) : (
+          <p>Loading map...</p>
+        )}
+      </section>
     </div>
   )
 }

@@ -353,3 +353,226 @@ func (db *DB) findLongestTrip(routeID string) (string, error) {
 	}
 	return tripID, nil
 }
+
+// GetUpcomingTrips returns the next N trips departing from a station at or after the given time.
+// The date parameter is in YYYYMMDD format, and time is in HH:MM:SS format.
+// Only stops after the selected station are included in the trip geometry.
+func (db *DB) GetUpcomingTrips(stopID string, date string, timeStr string, limit int) (*models.UpcomingTripsData, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 50 {
+		limit = 50
+	}
+
+	// Find the day of week for calendar filtering
+	// date is YYYYMMDD format, we need to determine the day of week
+	dayOfWeek, err := db.getDayOfWeek(date)
+	if err != nil {
+		return nil, fmt.Errorf("invalid date format: %w", err)
+	}
+
+	// Query to find upcoming trips from this station
+	// We need to handle times that might be >= 24:00:00 for trips that span midnight
+	query := `
+		WITH station_departures AS (
+			SELECT
+				t.trip_id,
+				t.route_id,
+				st.departure_time,
+				st.stop_sequence,
+				COALESCE(t.trip_headsign, '') as trip_headsign
+			FROM stop_times st
+			JOIN stops s ON s.stop_id = st.stop_id
+			JOIN trips t ON t.trip_id = st.trip_id
+			LEFT JOIN calendar c ON c.service_id = t.service_id
+			LEFT JOIN calendar_dates cd ON cd.service_id = t.service_id AND cd.date = ?
+			WHERE (s.parent_station = ? OR s.stop_id = ?)
+			  AND st.departure_time >= ?
+			  AND (
+			      -- Include if calendar_dates says this service runs on this date
+			      cd.exception_type = 1
+			      OR (
+			          -- Or if calendar says it runs on this day and no exception removes it
+			          cd.exception_type IS NULL
+			          AND c.start_date <= ?
+			          AND c.end_date >= ?
+			          AND ` + dayOfWeek + ` = 1
+			      )
+			  )
+			ORDER BY st.departure_time
+			LIMIT ?
+		)
+		SELECT
+			sd.trip_id,
+			sd.route_id,
+			COALESCE(r.route_short_name, '') as route_short_name,
+			COALESCE(r.route_long_name, '') as route_long_name,
+			COALESCE(r.route_color, '') as route_color,
+			sd.departure_time,
+			sd.trip_headsign,
+			sd.stop_sequence
+		FROM station_departures sd
+		JOIN routes r ON r.route_id = sd.route_id
+		ORDER BY sd.departure_time
+	`
+
+	rows, err := db.conn.Query(query, date, stopID, stopID, timeStr, date, date, limit)
+	if err != nil {
+		return nil, fmt.Errorf("upcoming trips query failed: %w", err)
+	}
+	defer rows.Close()
+
+	type tripInfo struct {
+		tripID        string
+		routeID       string
+		shortName     string
+		longName      string
+		color         string
+		departureTime string
+		headsign      string
+		stopSequence  int
+	}
+
+	var tripInfos []tripInfo
+	for rows.Next() {
+		var info tripInfo
+		if err := rows.Scan(
+			&info.tripID, &info.routeID, &info.shortName, &info.longName,
+			&info.color, &info.departureTime, &info.headsign, &info.stopSequence,
+		); err != nil {
+			return nil, fmt.Errorf("trip scan failed: %w", err)
+		}
+		tripInfos = append(tripInfos, info)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("trips rows error: %w", err)
+	}
+
+	result := &models.UpcomingTripsData{
+		Trips:    make([]models.UpcomingTrip, 0),
+		Stations: make([]models.Stop, 0),
+	}
+
+	stationSet := make(map[string]models.Stop)
+
+	// For each trip, get only the stops after the selected station
+	for _, info := range tripInfos {
+		trip, stations := db.getTripGeometryFromSequence(info.tripID, info.stopSequence, info.routeID, info.shortName, info.longName, info.color, info.departureTime, info.headsign)
+		if trip != nil {
+			result.Trips = append(result.Trips, *trip)
+		}
+		for _, station := range stations {
+			stationSet[station.StopID] = station
+		}
+	}
+
+	// Convert station set to slice
+	for _, station := range stationSet {
+		result.Stations = append(result.Stations, station)
+	}
+
+	return result, nil
+}
+
+// getDayOfWeek returns the calendar column name for the day of week corresponding to the given date.
+func (db *DB) getDayOfWeek(date string) (string, error) {
+	if len(date) != 8 {
+		return "", fmt.Errorf("date must be in YYYYMMDD format")
+	}
+
+	// Parse YYYYMMDD
+	year := date[0:4]
+	month := date[4:6]
+	day := date[6:8]
+
+	// Use SQLite to get the day of week
+	var dayNum int
+	err := db.conn.QueryRow(`SELECT strftime('%w', ? || '-' || ? || '-' || ?)`, year, month, day).Scan(&dayNum)
+	if err != nil {
+		return "", err
+	}
+
+	// SQLite %w returns 0=Sunday, 1=Monday, ..., 6=Saturday
+	days := []string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}
+	return days[dayNum], nil
+}
+
+// getTripGeometryFromSequence fetches the geometry for a trip starting from the given stop sequence.
+func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, routeID, shortName, longName, color, departureTime, headsign string) (*models.UpcomingTrip, []models.Stop) {
+	// Get stops for this trip starting from the given sequence
+	stopsQuery := `
+		SELECT s.stop_lat, s.stop_lon,
+			COALESCE(parent.stop_id, s.stop_id) as station_id,
+			COALESCE(parent.stop_name, s.stop_name) as station_name,
+			COALESCE(parent.stop_lat, s.stop_lat) as station_lat,
+			COALESCE(parent.stop_lon, s.stop_lon) as station_lon
+		FROM stop_times st
+		JOIN stops s ON s.stop_id = st.stop_id
+		LEFT JOIN stops parent ON parent.stop_id = s.parent_station AND parent.location_type = 1
+		WHERE st.trip_id = ?
+		  AND st.stop_sequence >= ?
+		ORDER BY st.stop_sequence
+	`
+
+	stopRows, err := db.conn.Query(stopsQuery, tripID, fromSequence)
+	if err != nil {
+		return nil, nil
+	}
+	defer stopRows.Close()
+
+	var coordinates []models.Coordinate
+	var stations []models.Stop
+	var lastStationName string
+
+	for stopRows.Next() {
+		var stopLat, stopLon float64
+		var stationIDVal, stationName string
+		var stationLat, stationLon float64
+
+		if err := stopRows.Scan(&stopLat, &stopLon, &stationIDVal, &stationName, &stationLat, &stationLon); err != nil {
+			continue
+		}
+
+		coordinates = append(coordinates, models.Coordinate{Lat: stopLat, Lon: stopLon})
+
+		// Always track the last station name we see
+		if stationName != "" {
+			lastStationName = stationName
+		}
+
+		if stationIDVal != "" {
+			stations = append(stations, models.Stop{
+				StopID:   stationIDVal,
+				StopName: stationName,
+				StopLat:  stationLat,
+				StopLon:  stationLon,
+			})
+		}
+	}
+
+	if len(coordinates) == 0 {
+		return nil, nil
+	}
+
+	// DisplayName: the short route name (e.g., "R27")
+	displayName := strings.TrimSpace(shortName)
+
+	// Destination: prefer route_long_name, fallback to final station name
+	destination := strings.TrimSpace(longName)
+	if destination == "" {
+		destination = strings.TrimSpace(lastStationName)
+	}
+
+	return &models.UpcomingTrip{
+		TripID:        tripID,
+		RouteID:       routeID,
+		RouteColor:    color,
+		DepartureTime: departureTime,
+		Headsign:      headsign,
+		DisplayName:   displayName,
+		Destination:   destination,
+		Coordinates:   coordinates,
+	}, stations
+}

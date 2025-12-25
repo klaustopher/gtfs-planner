@@ -49,3 +49,21 @@ type RoutesData struct {
 	Routes   []RouteGeometry `json:"routes"`
 	Stations []Stop          `json:"stations"`
 }
+
+// UpcomingTrip represents a single trip departing from a station
+type UpcomingTrip struct {
+	TripID        string       `json:"trip_id"`
+	RouteID       string       `json:"route_id"`
+	RouteColor    string       `json:"route_color"`
+	DepartureTime string       `json:"departure_time"`
+	Headsign      string       `json:"headsign"`
+	DisplayName   string       `json:"display_name"`
+	Destination   string       `json:"destination"`
+	Coordinates   []Coordinate `json:"coordinates"`
+}
+
+// UpcomingTripsData contains upcoming trips and all stations along those trips
+type UpcomingTripsData struct {
+	Trips    []UpcomingTrip `json:"trips"`
+	Stations []Stop         `json:"stations"`
+}

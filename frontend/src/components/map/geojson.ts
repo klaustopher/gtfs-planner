@@ -1,6 +1,6 @@
 import { models } from '../../../wailsjs/go/models'
 
-const FALLBACK_COLORS = [
+export const FALLBACK_COLORS = [
   '#F94144',
   '#F3722C',
   '#F8961E',
@@ -110,7 +110,7 @@ export function routesToGeoJSON(
   }
 }
 
-function normalizeColor(value?: string): string | null {
+export function normalizeColor(value?: string): string | null {
   if (!value) {
     return null
   }
@@ -119,4 +119,74 @@ function normalizeColor(value?: string): string | null {
     return null
   }
   return `#${hex.toUpperCase()}`
+}
+
+// Get the display color for a trip at a given index (matching the map line colors)
+export function getTripColor(trip: models.UpcomingTrip, index: number): string {
+  const normalized = normalizeColor(trip.route_color)
+  return normalized ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length]
+}
+
+export interface TripLinesGeoJSON {
+  type: 'FeatureCollection'
+  features: Array<{
+    type: 'Feature'
+    geometry: {
+      type: 'LineString'
+      coordinates: Array<[number, number]>
+    }
+    properties: {
+      trip_id: string
+      route_id: string
+      display_name: string
+      destination: string
+      route_color: string
+      departure_time: string
+      headsign: string
+      line_color: string
+      line_width: number
+      line_offset: number
+      dash_variant: number
+    }
+  }>
+}
+
+export function tripsToGeoJSON(
+  trips: models.UpcomingTrip[],
+  options: RouteLineStyleOptions = {}
+): TripLinesGeoJSON {
+  const { dashVariantCount = 3 } = options
+
+  return {
+    type: 'FeatureCollection',
+    features: trips.map((trip, index) => {
+      const normalizedColor = normalizeColor(trip.route_color)
+      const fallbackColor = FALLBACK_COLORS[index % FALLBACK_COLORS.length]
+      const lineColor = normalizedColor ?? fallbackColor
+      const lineWidth = LINE_WIDTH_STEPS[index % LINE_WIDTH_STEPS.length]
+      const lineOffset = LINE_OFFSETS[index % LINE_OFFSETS.length]
+      const dashVariant = dashVariantCount > 0 ? index % dashVariantCount : 0
+
+      return {
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: trip.coordinates.map((c: models.Coordinate) => [c.lon, c.lat] as [number, number]),
+        },
+        properties: {
+          trip_id: trip.trip_id,
+          route_id: trip.route_id,
+          display_name: trip.display_name,
+          destination: trip.destination,
+          route_color: lineColor,
+          departure_time: trip.departure_time,
+          headsign: trip.headsign,
+          line_color: lineColor,
+          line_width: lineWidth,
+          line_offset: lineOffset,
+          dash_variant: dashVariant,
+        },
+      }
+    }),
+  }
 }

@@ -1,5 +1,5 @@
 .debug-sidebar {
-  width: 250px;
+  width: 280px;
   background-color: rgba(27, 38, 54, 0.95);
   color: white;
   padding: 16px;
@@ -32,73 +32,99 @@
   justify-content: space-between;
   font-size: 13px;
   padding: 4px 0;
+  gap: 8px;
 }
 
 .debug-sidebar .label {
   color: rgba(255, 255, 255, 0.7);
+  flex-shrink: 0;
 }
 
 .debug-sidebar .value {
   font-family: monospace;
   color: #4ade80;
+  text-align: right;
+  word-break: break-all;
 }
 
 .debug-sidebar .station-details {
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  padding-top: 16px;
-  margin-top: 16px;
+  margin-bottom: 16px;
 }
 
-.debug-sidebar .routes-list {
-  max-height: 300px;
+.debug-sidebar .no-station-hint {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* Trips section */
+.debug-sidebar .trips-section {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding-top: 16px;
+}
+
+.debug-sidebar .trips-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
   overflow-y: auto;
 }
 
-.debug-sidebar .route-item {
+.debug-sidebar .trip-item {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 12px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  border-left: 4px solid #666;
 }
 
-.debug-sidebar .route-item:last-child {
-  border-bottom: none;
-}
-
-.debug-sidebar .route-badge {
-  min-width: 32px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: white;
+.debug-sidebar .trip-time {
+  font-size: 14px;
   font-weight: 600;
-  text-align: center;
-  font-size: 11px;
-  flex-shrink: 0;
+  font-family: monospace;
+  color: #4ade80;
+  min-width: 45px;
 }
 
-.debug-sidebar .route-info {
-  flex: 1;
-  min-width: 0;
+.debug-sidebar .trip-details {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
+  min-width: 0;
 }
 
-.debug-sidebar .route-name {
+.debug-sidebar .trip-route-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: white;
+  font-weight: 600;
+  font-size: 12px;
+  align-self: flex-start;
+}
+
+.debug-sidebar .trip-destination {
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.9);
-  word-wrap: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.debug-sidebar .route-type {
+.debug-sidebar .loading-hint,
+.debug-sidebar .no-trips-hint {
   color: rgba(255, 255, 255, 0.5);
-  font-size: 10px;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-style: italic;
 }
 
-.debug-sidebar .route-desc {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 11px;
-  font-style: italic;
+/* Debug section */
+.debug-sidebar .debug-section {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding-top: 16px;
+  margin-top: 16px;
 }

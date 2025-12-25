@@ -164,6 +164,83 @@ export namespace models {
 		    return a;
 		}
 	}
+	
+	export class UpcomingTrip {
+	    trip_id: string;
+	    route_id: string;
+	    route_color: string;
+	    departure_time: string;
+	    headsign: string;
+	    display_name: string;
+	    destination: string;
+	    coordinates: Coordinate[];
+	
+	    static createFrom(source: any = {}) {
+	        return new UpcomingTrip(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.trip_id = source["trip_id"];
+	        this.route_id = source["route_id"];
+	        this.route_color = source["route_color"];
+	        this.departure_time = source["departure_time"];
+	        this.headsign = source["headsign"];
+	        this.display_name = source["display_name"];
+	        this.destination = source["destination"];
+	        this.coordinates = this.convertValues(source["coordinates"], Coordinate);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class UpcomingTripsData {
+	    trips: UpcomingTrip[];
+	    stations: Stop[];
+	
+	    static createFrom(source: any = {}) {
+	        return new UpcomingTripsData(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.trips = this.convertValues(source["trips"], UpcomingTrip);
+	        this.stations = this.convertValues(source["stations"], Stop);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 
 }
 

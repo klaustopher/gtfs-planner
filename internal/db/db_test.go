@@ -266,3 +266,126 @@ func TestSearchStations(t *testing.T) {
 
 // RoutesData is a type alias for testing
 type RoutesData = models.RoutesData
+
+func TestGetUpcomingTrips(t *testing.T) {
+	db := skipIfNoDatabase(t)
+	defer db.Close()
+
+	// Use bounding box around the data's actual location (Siegen area, Germany)
+	stops, err := db.GetStops(51.0, 50.8, 8.4, 8.0)
+	if err != nil {
+		t.Fatalf("GetStops failed: %v", err)
+	}
+
+	if len(stops) == 0 {
+		t.Skip("No stations found to test with")
+	}
+
+	// Try to find a station with upcoming trips
+	// Use a date within the calendar range (Dec 2025 - Jan 2026)
+	date := "20251222" // A Monday in the calendar range
+	time := "08:00:00"
+	limit := 10
+
+	var tripsData *models.UpcomingTripsData
+	var testedStation string
+	for _, stop := range stops {
+		data, err := db.GetUpcomingTrips(stop.StopID, date, time, limit)
+		if err != nil {
+			continue
+		}
+		if len(data.Trips) > 0 {
+			tripsData = data
+			testedStation = stop.StopID
+			break
+		}
+	}
+
+	if tripsData == nil {
+		t.Skip("No stations with upcoming trips found to test with")
+	}
+
+	t.Logf("Station %s has %d upcoming trips", testedStation, len(tripsData.Trips))
+
+	// Verify trip data
+	for i, trip := range tripsData.Trips {
+		if trip.TripID == "" {
+			t.Errorf("Trip %d: TripID should not be empty", i)
+		}
+		if trip.RouteID == "" {
+			t.Errorf("Trip %d: RouteID should not be empty", i)
+		}
+		if trip.DepartureTime == "" {
+			t.Errorf("Trip %d: DepartureTime should not be empty", i)
+		}
+		if len(trip.Coordinates) == 0 {
+			t.Errorf("Trip %d: should have coordinates", i)
+		}
+
+		// DisplayName is the short route name (may be empty if route has no short name)
+		if trip.DisplayName != "" {
+			t.Logf("Trip %d: has DisplayName=%q", i, trip.DisplayName)
+		}
+
+		// Destination must not be empty (should be route_long_name or final station)
+		if trip.Destination == "" {
+			t.Errorf("Trip %d: Destination should not be empty", i)
+		}
+
+		t.Logf("Trip %d: DisplayName=%q, Destination=%q, DepartureTime=%s, Headsign=%q, Coordinates=%d",
+			i, trip.DisplayName, trip.Destination, trip.DepartureTime, trip.Headsign, len(trip.Coordinates))
+	}
+}
+
+func TestGetUpcomingTripsDisplayNameNotEmpty(t *testing.T) {
+	db := skipIfNoDatabase(t)
+	defer db.Close()
+
+	// Get stations in the actual data area (Siegen area, Germany)
+	stops, err := db.GetStops(51.0, 50.8, 8.4, 8.0)
+	if err != nil {
+		t.Fatalf("GetStops failed: %v", err)
+	}
+
+	if len(stops) == 0 {
+		t.Skip("No stations found to test with")
+	}
+
+	// Test dates within the calendar range (Dec 2025 - Jan 2026)
+	dates := []string{"20251222", "20251223", "20251229"} // Days in the calendar range
+	time := "08:00:00"
+
+	foundTripsWithName := false
+	for _, stop := range stops[:min(20, len(stops))] { // Test first 20 stations
+		for _, date := range dates {
+			data, err := db.GetUpcomingTrips(stop.StopID, date, time, 5)
+			if err != nil {
+				continue
+			}
+			for _, trip := range data.Trips {
+				if trip.Destination != "" {
+					foundTripsWithName = true
+					t.Logf("Found trip with DisplayName=%q, Destination=%q (route_id: %s)", trip.DisplayName, trip.Destination, trip.RouteID)
+					break
+				}
+			}
+			if foundTripsWithName {
+				break
+			}
+		}
+		if foundTripsWithName {
+			break
+		}
+	}
+
+	if !foundTripsWithName {
+		t.Error("Could not find any trip with a proper Destination")
+	}
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
