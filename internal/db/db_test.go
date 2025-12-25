@@ -416,3 +416,125 @@ func min(a, b int) int {
 	}
 	return b
 }
+
+// tripInResults checks if a specific trip ID is present in the trips data
+func tripInResults(trips *models.UpcomingTripsData, tripID string) bool {
+	for _, trip := range trips.Trips {
+		if trip.TripID == tripID {
+			return true
+		}
+	}
+	return false
+}
+
+// TestCalendarWeekdayFiltering tests that trips are correctly filtered based on weekday schedules.
+// Service 191 runs Mon-Fri only (saturday=0, sunday=0), valid 20260107-20260119.
+// Trip 1036941 departs from station 610626 at 08:34:00.
+func TestCalendarWeekdayFiltering(t *testing.T) {
+	db := skipIfNoDatabase(t)
+	defer db.Close()
+
+	stationID := "610626" // Haunstetten, Nord
+	tripID := "1036941"
+
+	// Test 1: Monday 20260113 should include the trip (monday=1)
+	t.Run("trip runs on Monday", func(t *testing.T) {
+		data, err := db.GetUpcomingTrips(stationID, "20260113", "08:00:00", 50)
+		if err != nil {
+			t.Fatalf("GetUpcomingTrips failed: %v", err)
+		}
+		if !tripInResults(data, tripID) {
+			t.Errorf("Expected trip %s to be returned on Monday 20260113, but it was not", tripID)
+		}
+	})
+
+	// Test 2: Saturday 20260110 should NOT include the trip (saturday=0)
+	t.Run("trip does not run on Saturday", func(t *testing.T) {
+		data, err := db.GetUpcomingTrips(stationID, "20260110", "08:00:00", 50)
+		if err != nil {
+			t.Fatalf("GetUpcomingTrips failed: %v", err)
+		}
+		if tripInResults(data, tripID) {
+			t.Errorf("Expected trip %s to NOT be returned on Saturday 20260110, but it was", tripID)
+		}
+	})
+
+	// Test 3: Sunday 20260111 should NOT include the trip (sunday=0)
+	t.Run("trip does not run on Sunday", func(t *testing.T) {
+		data, err := db.GetUpcomingTrips(stationID, "20260111", "08:00:00", 50)
+		if err != nil {
+			t.Fatalf("GetUpcomingTrips failed: %v", err)
+		}
+		if tripInResults(data, tripID) {
+			t.Errorf("Expected trip %s to NOT be returned on Sunday 20260111, but it was", tripID)
+		}
+	})
+}
+
+// TestCalendarDateExclusion tests that trips are correctly excluded based on calendar_dates exceptions.
+// Service 101 runs Tuesday and Friday (tuesday=1, friday=1), valid 20251223-20260116.
+// Exception: 20251226 (Friday) has exception_type=2 (service removed).
+// Trip 154627 departs from station 32830 at 08:27:00.
+func TestCalendarDateExclusion(t *testing.T) {
+	db := skipIfNoDatabase(t)
+	defer db.Close()
+
+	stationID := "32830" // Blumenthal, Schule
+	tripID := "154627"
+
+	// Test 1: Friday 20260109 (normal Friday) should include the trip
+	t.Run("trip runs on normal Friday", func(t *testing.T) {
+		data, err := db.GetUpcomingTrips(stationID, "20260109", "08:00:00", 50)
+		if err != nil {
+			t.Fatalf("GetUpcomingTrips failed: %v", err)
+		}
+		if !tripInResults(data, tripID) {
+			t.Errorf("Expected trip %s to be returned on Friday 20260109, but it was not", tripID)
+		}
+	})
+
+	// Test 2: Friday 20251226 (exception removes service) should NOT include the trip
+	t.Run("trip excluded on exception date", func(t *testing.T) {
+		data, err := db.GetUpcomingTrips(stationID, "20251226", "08:00:00", 50)
+		if err != nil {
+			t.Fatalf("GetUpcomingTrips failed: %v", err)
+		}
+		if tripInResults(data, tripID) {
+			t.Errorf("Expected trip %s to NOT be returned on Friday 20251226 (exception_type=2), but it was", tripID)
+		}
+	})
+}
+
+// TestCalendarDateAddition tests that trips are correctly added based on calendar_dates exceptions.
+// Service 1030 runs Thursday and Friday (thursday=1, friday=1), valid 20251225-20260105.
+// Exception: 20260105 (Monday) has exception_type=1 (service added).
+// Trip 991667 departs from station 278696 at 10:07:00.
+func TestCalendarDateAddition(t *testing.T) {
+	db := skipIfNoDatabase(t)
+	defer db.Close()
+
+	stationID := "278696" // Neustadt (b Coburg)
+	tripID := "991667"
+
+	// Test 1: Monday 20260105 (exception adds service) should include the trip
+	t.Run("trip added on exception date", func(t *testing.T) {
+		data, err := db.GetUpcomingTrips(stationID, "20260105", "10:00:00", 50)
+		if err != nil {
+			t.Fatalf("GetUpcomingTrips failed: %v", err)
+		}
+		if !tripInResults(data, tripID) {
+			t.Errorf("Expected trip %s to be returned on Monday 20260105 (exception_type=1), but it was not", tripID)
+		}
+	})
+
+	// Test 2: Monday 20251229 (normal Monday, no service) should NOT include the trip
+	t.Run("trip does not run on normal Monday", func(t *testing.T) {
+		data, err := db.GetUpcomingTrips(stationID, "20251229", "10:00:00", 50)
+		if err != nil {
+			t.Fatalf("GetUpcomingTrips failed: %v", err)
+		}
+		if tripInResults(data, tripID) {
+			t.Errorf("Expected trip %s to NOT be returned on Monday 20251229, but it was", tripID)
+		}
+	})
+}
