@@ -72,13 +72,13 @@ func (a *App) SearchStations(query string, limit int) ([]models.Stop, error) {
 	return a.db.SearchStations(query, limit)
 }
 
-// GetUpcomingTrips returns the next trips departing from a station at or after the given time.
-// date should be in YYYYMMDD format, time should be in HH:MM:SS format.
-func (a *App) GetUpcomingTrips(stopID string, date string, timeStr string, limit int) (*models.UpcomingTripsData, error) {
+// GetUpcomingTrips returns the next trips departing from a station at or after the given datetime.
+// datetime should be in ISO 8601 format: "2006-01-02T15:04:05".
+func (a *App) GetUpcomingTrips(stopID string, datetime string, limit int) (*models.UpcomingTripsData, error) {
 	if a.db == nil {
 		return nil, fmt.Errorf("database not connected")
 	}
-	return a.db.GetUpcomingTrips(stopID, date, timeStr, limit)
+	return a.db.GetUpcomingTrips(stopID, datetime, limit)
 }
 
 // Greet returns a greeting for the given name

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"bus-planning/internal/models"
+	"bus-planning/internal/timeutil"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -354,10 +355,10 @@ func (db *DB) findLongestTrip(routeID string) (string, error) {
 	return tripID, nil
 }
 
-// GetUpcomingTrips returns the next N trips departing from a station at or after the given time.
-// The date parameter is in YYYYMMDD format, and time is in HH:MM:SS format.
+// GetUpcomingTrips returns the next N trips departing from a station at or after the given datetime.
+// The datetime parameter is in ISO 8601 format: "2006-01-02T15:04:05".
 // Only stops after the selected station are included in the trip geometry.
-func (db *DB) GetUpcomingTrips(stopID string, date string, timeStr string, limit int) (*models.UpcomingTripsData, error) {
+func (db *DB) GetUpcomingTrips(stopID string, datetime string, limit int) (*models.UpcomingTripsData, error) {
 	if limit <= 0 {
 		limit = 10
 	}
@@ -365,8 +366,13 @@ func (db *DB) GetUpcomingTrips(stopID string, date string, timeStr string, limit
 		limit = 50
 	}
 
+	// Extract date and time from ISO 8601 datetime
+	date, timeStr, err := timeutil.ExtractDateAndTime(datetime)
+	if err != nil {
+		return nil, fmt.Errorf("invalid datetime format: %w", err)
+	}
+
 	// Find the day of week for calendar filtering
-	// date is YYYYMMDD format, we need to determine the day of week
 	dayOfWeek, err := db.getDayOfWeek(date)
 	if err != nil {
 		return nil, fmt.Errorf("invalid date format: %w", err)
@@ -459,7 +465,7 @@ func (db *DB) GetUpcomingTrips(stopID string, date string, timeStr string, limit
 
 	// For each trip, get only the stops after the selected station
 	for _, info := range tripInfos {
-		trip, stations := db.getTripGeometryFromSequence(info.tripID, info.stopSequence, info.routeID, info.shortName, info.longName, info.color, info.departureTime, info.headsign)
+		trip, stations := db.getTripGeometryFromSequence(info.tripID, info.stopSequence, info.routeID, info.shortName, info.longName, info.color, info.departureTime, info.headsign, date)
 		if trip != nil {
 			result.Trips = append(result.Trips, *trip)
 		}
@@ -500,7 +506,8 @@ func (db *DB) getDayOfWeek(date string) (string, error) {
 }
 
 // getTripGeometryFromSequence fetches the geometry for a trip starting from the given stop sequence.
-func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, routeID, shortName, longName, color, departureTime, headsign string) (*models.UpcomingTrip, []models.Stop) {
+// The serviceDate parameter (YYYYMMDD format) is used to normalize GTFS times to ISO 8601 datetimes.
+func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, routeID, shortName, longName, color, departureTime, headsign, serviceDate string) (*models.UpcomingTrip, []models.Stop) {
 	// Get stops for this trip starting from the given sequence, including arrival/departure times
 	stopsQuery := `
 		SELECT s.stop_lat, s.stop_lon,
@@ -565,14 +572,18 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 				StopLon:  stationLon,
 			})
 
+			// Normalize GTFS times to ISO 8601 datetimes
+			arrivalDateTime, _ := timeutil.NormalizeGTFSTime(arrivalTime, serviceDate)
+			departureDateTime, _ := timeutil.NormalizeGTFSTime(depTime, serviceDate)
+
 			stopTimes = append(stopTimes, models.StopTime{
-				StopID:        stationIDVal,
-				StopName:      stationName,
-				StopLat:       stationLat,
-				StopLon:       stationLon,
-				ArrivalTime:   arrivalTime,
-				DepartureTime: depTime,
-				StopSequence:  stopSequence,
+				StopID:            stationIDVal,
+				StopName:          stationName,
+				StopLat:           stationLat,
+				StopLon:           stationLon,
+				ArrivalDateTime:   arrivalDateTime,
+				DepartureDateTime: departureDateTime,
+				StopSequence:      stopSequence,
 			})
 		}
 	}
@@ -590,17 +601,20 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 		destination = strings.TrimSpace(lastStationName)
 	}
 
+	// Normalize departure time to ISO 8601
+	departureDateTime, _ := timeutil.NormalizeGTFSTime(departureTime, serviceDate)
+
 	return &models.UpcomingTrip{
-		TripID:           tripID,
-		RouteID:          routeID,
-		RouteColor:       color,
-		DepartureTime:    departureTime,
-		Headsign:         headsign,
-		DisplayName:      displayName,
-		Destination:      destination,
-		StartStationID:   startStationID,
-		StartStationName: startStationName,
-		Coordinates:      coordinates,
-		StopTimes:        stopTimes,
+		TripID:            tripID,
+		RouteID:           routeID,
+		RouteColor:        color,
+		DepartureDateTime: departureDateTime,
+		Headsign:          headsign,
+		DisplayName:       displayName,
+		Destination:       destination,
+		StartStationID:    startStationID,
+		StartStationName:  startStationName,
+		Coordinates:       coordinates,
+		StopTimes:         stopTimes,
 	}, stations
 }

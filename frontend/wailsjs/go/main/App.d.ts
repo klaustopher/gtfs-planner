@@ -8,7 +8,7 @@ export function GetStationDetails(arg1:string):Promise<models.StationDetails>;
 
 export function GetStops(arg1:number,arg2:number,arg3:number,arg4:number):Promise<Array<models.Stop>>;
 
-export function GetUpcomingTrips(arg1:string,arg2:string,arg3:string,arg4:number):Promise<models.UpcomingTripsData>;
+export function GetUpcomingTrips(arg1:string,arg2:string,arg3:number):Promise<models.UpcomingTripsData>;
 
 export function Greet(arg1:string):Promise<string>;
 

@@ -4,8 +4,7 @@ import { models } from '../../../wailsjs/go/models'
 
 export interface TripQueryParams {
   stopId: string
-  date: string // YYYYMMDD format
-  time: string // HH:MM:SS format
+  datetime: string // ISO 8601 format: "2006-01-02T15:04:05"
   limit?: number
 }
 
@@ -35,9 +34,9 @@ export function useTrips(params: TripQueryParams | null): UseTripsResult {
       return
     }
 
-    const { stopId, date, time, limit = DEFAULT_LIMIT } = params
+    const { stopId, datetime, limit = DEFAULT_LIMIT } = params
 
-    if (!stopId || !date || !time) {
+    if (!stopId || !datetime) {
       setTripsData(null)
       setError(null)
       return
@@ -46,7 +45,7 @@ export function useTrips(params: TripQueryParams | null): UseTripsResult {
     setIsLoading(true)
     setError(null)
 
-    GetUpcomingTrips(stopId, date, time, limit)
+    GetUpcomingTrips(stopId, datetime, limit)
       .then((data) => {
         setTripsData(data)
         setError(null)
@@ -59,7 +58,7 @@ export function useTrips(params: TripQueryParams | null): UseTripsResult {
       .finally(() => {
         setIsLoading(false)
       })
-  }, [params?.stopId, params?.date, params?.time, params?.limit, refetchTrigger])
+  }, [params?.stopId, params?.datetime, params?.limit, refetchTrigger])
 
   return { tripsData, isLoading, error, refetch }
 }

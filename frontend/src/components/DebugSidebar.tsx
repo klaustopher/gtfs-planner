@@ -18,6 +18,12 @@ function formatCoord(value: number, decimals = 4): string {
   return value.toFixed(decimals)
 }
 
+// Format ISO 8601 datetime to HH:MM display
+function formatTimeDisplay(isoDateTime: string): string {
+  const date = new Date(isoDateTime)
+  return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+}
+
 export default function DebugSidebar({
   viewState,
   selectedStation,
@@ -66,7 +72,7 @@ export default function DebugSidebar({
                     className="trip-item"
                     style={{ borderLeftColor: tripColor }}
                   >
-                    <span className="trip-time">{trip.departure_time.slice(0, 5)}</span>
+                    <span className="trip-time">{formatTimeDisplay(trip.departure_datetime)}</span>
                     <div className="trip-details">
                       {trip.display_name && (
                         <span
@@ -116,23 +122,25 @@ export default function DebugSidebar({
                   </div>
                   <div className="saved-trip-details">
                     <div className="saved-trip-leg">
-                      <span className="saved-trip-time">{trip.departureTime.slice(0, 5)}</span>
+                      <span className="saved-trip-time">{formatTimeDisplay(trip.departureDateTime)}</span>
                       <span className="saved-trip-station">{trip.startStationName}</span>
                     </div>
                     <div className="saved-trip-arrow">→</div>
                     <div className="saved-trip-leg">
-                      <span className="saved-trip-time">{trip.arrivalTime.slice(0, 5)}</span>
+                      <span className="saved-trip-time">{formatTimeDisplay(trip.arrivalDateTime)}</span>
                       <span className="saved-trip-station">{trip.endStationName}</span>
                     </div>
                   </div>
                 </div>
-                <button
-                  className="remove-trip-btn"
-                  onClick={() => onRemoveSavedTrip(trip.id)}
-                  title="Remove trip"
-                >
-                  ×
-                </button>
+                {index === savedTrips.length - 1 && (
+                  <button
+                    className="remove-trip-btn"
+                    onClick={() => onRemoveSavedTrip(trip.id)}
+                    title="Remove trip"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             ))}
           </div>

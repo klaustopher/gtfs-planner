@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import type { ChangeEvent, KeyboardEvent } from 'react'
-import MapGL, { ViewStateChangeEvent, Source, Layer, Popup } from 'react-map-gl/maplibre'
+import MapGL, { ViewStateChangeEvent, Source, Layer, Popup, MapRef } from 'react-map-gl/maplibre'
 import type {
   CircleLayerSpecification,
   MapLayerMouseEvent,
@@ -98,6 +98,7 @@ export default function Map({
   const [hoveredStation, setHoveredStation] = useState<HoveredStationInfo | null>(null)
   const hoverTimeoutRef = useRef<number | null>(null)
   const boundsRef = useRef<Bounds | undefined>(undefined)
+  const mapRef = useRef<MapRef | null>(null)
   const searchDebounceRef = useRef<number | null>(null)
   const searchRequestIdRef = useRef(0)
   const lastSelectedStationIdRef = useRef<string | null>(null)
@@ -185,6 +186,24 @@ export default function Map({
     },
     [onViewStateChange]
   )
+
+  // Handle initial map load - set bounds so stations load immediately
+  const handleLoad = useCallback(() => {
+    const map = mapRef.current?.getMap()
+    if (map) {
+      const bounds = map.getBounds()
+      if (bounds) {
+        boundsRef.current = {
+          north: bounds.getNorth(),
+          south: bounds.getSouth(),
+          east: bounds.getEast(),
+          west: bounds.getWest(),
+        }
+        // Trigger a re-render to fetch stops with the initial bounds
+        setViewState(prev => ({ ...prev }))
+      }
+    }
+  }, [])
 
   const handleClick = useCallback(
     (evt: MapLayerMouseEvent) => {
@@ -477,7 +496,9 @@ export default function Map({
         )}
       </div>
       <MapGL
+        ref={mapRef}
         {...viewState}
+        onLoad={handleLoad}
         onMove={handleMove}
         onClick={handleClick}
         onMouseEnter={handleMouseEnter}

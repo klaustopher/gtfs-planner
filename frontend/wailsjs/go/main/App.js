@@ -14,8 +14,8 @@ export function GetStops(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['GetStops'](arg1, arg2, arg3, arg4);
 }
 
-export function GetUpcomingTrips(arg1, arg2, arg3, arg4) {
-  return window['go']['main']['App']['GetUpcomingTrips'](arg1, arg2, arg3, arg4);
+export function GetUpcomingTrips(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetUpcomingTrips'](arg1, arg2, arg3);
 }
 
 export function Greet(arg1) {

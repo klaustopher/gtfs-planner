@@ -141,7 +141,7 @@ export interface TripLinesGeoJSON {
       display_name: string
       destination: string
       route_color: string
-      departure_time: string
+      departure_datetime: string
       headsign: string
       line_color: string
       line_width: number
@@ -179,7 +179,7 @@ export function tripsToGeoJSON(
           display_name: trip.display_name,
           destination: trip.destination,
           route_color: lineColor,
-          departure_time: trip.departure_time,
+          departure_datetime: trip.departure_datetime,
           headsign: trip.headsign,
           line_color: lineColor,
           line_width: lineWidth,

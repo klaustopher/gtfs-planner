@@ -52,28 +52,28 @@ type RoutesData struct {
 
 // StopTime represents arrival and departure times at a specific stop along a trip
 type StopTime struct {
-	StopID        string  `json:"stop_id"`
-	StopName      string  `json:"stop_name"`
-	StopLat       float64 `json:"stop_lat"`
-	StopLon       float64 `json:"stop_lon"`
-	ArrivalTime   string  `json:"arrival_time"`
-	DepartureTime string  `json:"departure_time"`
-	StopSequence  int     `json:"stop_sequence"`
+	StopID            string  `json:"stop_id"`
+	StopName          string  `json:"stop_name"`
+	StopLat           float64 `json:"stop_lat"`
+	StopLon           float64 `json:"stop_lon"`
+	ArrivalDateTime   string  `json:"arrival_datetime"`
+	DepartureDateTime string  `json:"departure_datetime"`
+	StopSequence      int     `json:"stop_sequence"`
 }
 
 // UpcomingTrip represents a single trip departing from a station
 type UpcomingTrip struct {
-	TripID           string       `json:"trip_id"`
-	RouteID          string       `json:"route_id"`
-	RouteColor       string       `json:"route_color"`
-	DepartureTime    string       `json:"departure_time"`
-	Headsign         string       `json:"headsign"`
-	DisplayName      string       `json:"display_name"`
-	Destination      string       `json:"destination"`
-	StartStationID   string       `json:"start_station_id"`
-	StartStationName string       `json:"start_station_name"`
-	Coordinates      []Coordinate `json:"coordinates"`
-	StopTimes        []StopTime   `json:"stop_times"`
+	TripID            string       `json:"trip_id"`
+	RouteID           string       `json:"route_id"`
+	RouteColor        string       `json:"route_color"`
+	DepartureDateTime string       `json:"departure_datetime"`
+	Headsign          string       `json:"headsign"`
+	DisplayName       string       `json:"display_name"`
+	Destination       string       `json:"destination"`
+	StartStationID    string       `json:"start_station_id"`
+	StartStationName  string       `json:"start_station_name"`
+	Coordinates       []Coordinate `json:"coordinates"`
+	StopTimes         []StopTime   `json:"stop_times"`
 }
 
 // UpcomingTripsData contains upcoming trips and all stations along those trips

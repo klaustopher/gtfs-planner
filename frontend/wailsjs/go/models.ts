@@ -170,8 +170,8 @@ export namespace models {
 	    stop_name: string;
 	    stop_lat: number;
 	    stop_lon: number;
-	    arrival_time: string;
-	    departure_time: string;
+	    arrival_datetime: string;
+	    departure_datetime: string;
 	    stop_sequence: number;
 	
 	    static createFrom(source: any = {}) {
@@ -184,8 +184,8 @@ export namespace models {
 	        this.stop_name = source["stop_name"];
 	        this.stop_lat = source["stop_lat"];
 	        this.stop_lon = source["stop_lon"];
-	        this.arrival_time = source["arrival_time"];
-	        this.departure_time = source["departure_time"];
+	        this.arrival_datetime = source["arrival_datetime"];
+	        this.departure_datetime = source["departure_datetime"];
 	        this.stop_sequence = source["stop_sequence"];
 	    }
 	}
@@ -193,7 +193,7 @@ export namespace models {
 	    trip_id: string;
 	    route_id: string;
 	    route_color: string;
-	    departure_time: string;
+	    departure_datetime: string;
 	    headsign: string;
 	    display_name: string;
 	    destination: string;
@@ -211,7 +211,7 @@ export namespace models {
 	        this.trip_id = source["trip_id"];
 	        this.route_id = source["route_id"];
 	        this.route_color = source["route_color"];
-	        this.departure_time = source["departure_time"];
+	        this.departure_datetime = source["departure_datetime"];
 	        this.headsign = source["headsign"];
 	        this.display_name = source["display_name"];
 	        this.destination = source["destination"];

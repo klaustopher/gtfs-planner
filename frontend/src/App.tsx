@@ -17,10 +17,10 @@ export interface SavedTrip {
   routeColor: string
   startStationId: string
   startStationName: string
-  departureTime: string
+  departureDateTime: string // ISO 8601 format
   endStationId: string
   endStationName: string
-  arrivalTime: string
+  arrivalDateTime: string // ISO 8601 format
 }
 
 // Helper to format date for input[type="date"] (YYYY-MM-DD)
@@ -38,25 +38,19 @@ function formatTimeForInput(date: Date): string {
   return `${hours}:${minutes}`
 }
 
-// Convert YYYY-MM-DD to YYYYMMDD
-function inputDateToYYYYMMDD(inputDate: string): string {
-  return inputDate.replace(/-/g, '')
+// Combine date and time inputs into ISO 8601 datetime string
+function combineToISO8601(date: string, time: string): string {
+  return `${date}T${time}:00`
 }
 
-// Convert HH:MM to HH:MM:SS
-function inputTimeToHHMMSS(inputTime: string): string {
-  return `${inputTime}:00`
-}
-
-// Add minutes to a time string (HH:MM or HH:MM:SS) and return HH:MM
-function addMinutesToTime(time: string, minutes: number): string {
-  const parts = time.split(':')
-  const hours = parseInt(parts[0], 10)
-  const mins = parseInt(parts[1], 10)
-  const totalMinutes = hours * 60 + mins + minutes
-  const newHours = Math.floor(totalMinutes / 60) % 24
-  const newMins = totalMinutes % 60
-  return `${String(newHours).padStart(2, '0')}:${String(newMins).padStart(2, '0')}`
+// Add minutes to an ISO 8601 datetime and return updated date and time
+function addMinutesToDateTime(isoDateTime: string, minutes: number): { date: string; time: string } {
+  const d = new Date(isoDateTime)
+  d.setMinutes(d.getMinutes() + minutes)
+  return {
+    date: formatDateForInput(d),
+    time: formatTimeForInput(d),
+  }
 }
 
 function App() {
@@ -77,8 +71,30 @@ function App() {
   }, [])
 
   // Handler to remove a trip from the saved list
-  const removeSavedTrip = useCallback((tripId: string) => {
-    setSavedTrips(prev => prev.filter(t => t.id !== tripId))
+  // When removing the last trip, reset to the arrival station of the remaining trips
+  const removeSavedTrip = useCallback(async (tripId: string) => {
+    setSavedTrips(prev => {
+      const newTrips = prev.filter(t => t.id !== tripId)
+
+      // If there are remaining trips, reset to the last trip's arrival station
+      if (newTrips.length > 0) {
+        const lastTrip = newTrips[newTrips.length - 1]
+        // Fetch station details and update state (async, outside of setState)
+        GetStationDetails(lastTrip.endStationId)
+          .then(stationDetails => {
+            setSelectedStation(stationDetails)
+          })
+          .catch(err => {
+            console.error('Failed to fetch station details:', err)
+          })
+        // Set date/time to arrival + 5 minutes
+        const { date, time } = addMinutesToDateTime(lastTrip.arrivalDateTime, 5)
+        setSelectedDate(date)
+        setSelectedTime(time)
+      }
+
+      return newTrips
+    })
   }, [])
 
   // Handler to clear all saved trips
@@ -92,7 +108,7 @@ function App() {
     trip: models.UpcomingTrip,
     destinationStopId: string,
     destinationStopName: string,
-    arrivalTime: string
+    arrivalDateTime: string
   ) => {
     // Create the saved trip
     const savedTrip: SavedTrip = {
@@ -103,10 +119,10 @@ function App() {
       routeColor: trip.route_color,
       startStationId: trip.start_station_id,
       startStationName: trip.start_station_name,
-      departureTime: trip.departure_time,
+      departureDateTime: trip.departure_datetime,
       endStationId: destinationStopId,
       endStationName: destinationStopName,
-      arrivalTime: arrivalTime,
+      arrivalDateTime: arrivalDateTime,
     }
     addSavedTrip(savedTrip)
 
@@ -118,9 +134,10 @@ function App() {
       console.error('Failed to fetch station details:', err)
     }
 
-    // Set time to arrival + 5 minutes
-    const newTime = addMinutesToTime(arrivalTime, 5)
-    setSelectedTime(newTime)
+    // Set date/time to arrival + 5 minutes
+    const { date, time } = addMinutesToDateTime(arrivalDateTime, 5)
+    setSelectedDate(date)
+    setSelectedTime(time)
   }, [addSavedTrip])
 
   // Build trip query params when station is selected
@@ -128,8 +145,7 @@ function App() {
     if (!selectedStation) return null
     return {
       stopId: selectedStation.stop_id,
-      date: inputDateToYYYYMMDD(selectedDate),
-      time: inputTimeToHHMMSS(selectedTime),
+      datetime: combineToISO8601(selectedDate, selectedTime),
       limit: UPCOMING_TRIPS_LIMIT,
     }
   }, [selectedStation, selectedDate, selectedTime])

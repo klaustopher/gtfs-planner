@@ -3,6 +3,12 @@ import { models } from '../../../wailsjs/go/models'
 import { getTripColor } from './geojson'
 import './StationHoverPanel.css'
 
+// Format ISO 8601 datetime to HH:MM display
+function formatTimeDisplay(isoDateTime: string): string {
+  const date = new Date(isoDateTime)
+  return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+}
+
 interface StationHoverPanelProps {
   stopId: string
   stopName: string
@@ -13,7 +19,7 @@ interface StationHoverPanelProps {
     trip: models.UpcomingTrip,
     destinationStopId: string,
     destinationStopName: string,
-    arrivalTime: string
+    arrivalDateTime: string
   ) => void
   onMouseEnter?: () => void
   onMouseLeave?: () => void
@@ -22,7 +28,7 @@ interface StationHoverPanelProps {
 interface TripToStation {
   trip: models.UpcomingTrip
   tripIndex: number
-  arrivalTime: string
+  arrivalDateTime: string
 }
 
 export default function StationHoverPanel({
@@ -35,7 +41,7 @@ export default function StationHoverPanel({
   onMouseEnter,
   onMouseLeave,
 }: StationHoverPanelProps) {
-  // Find trips that pass through this station and get their arrival times
+  // Find trips that pass through this station and get their arrival datetimes
   const tripsToStation = useMemo(() => {
     const result: TripToStation[] = []
 
@@ -46,7 +52,7 @@ export default function StationHoverPanel({
         result.push({
           trip,
           tripIndex,
-          arrivalTime: stopTime.arrival_time || stopTime.departure_time,
+          arrivalDateTime: stopTime.arrival_datetime || stopTime.departure_datetime,
         })
       }
     })
@@ -77,13 +83,13 @@ export default function StationHoverPanel({
         <span className="station-hover-panel__name">{stopName}</span>
       </div>
       <div className="station-hover-panel__trips">
-        {tripsToStation.map(({ trip, tripIndex, arrivalTime }) => {
+        {tripsToStation.map(({ trip, tripIndex, arrivalDateTime }) => {
           const tripColor = getTripColor(trip, tripIndex)
           return (
             <button
               key={`${trip.trip_id}-${stopId}`}
               className="station-hover-panel__trip-btn"
-              onClick={() => onTripSelect(trip, stopId, stopName, arrivalTime)}
+              onClick={() => onTripSelect(trip, stopId, stopName, arrivalDateTime)}
             >
               <span
                 className="station-hover-panel__badge"
@@ -93,11 +99,11 @@ export default function StationHoverPanel({
               </span>
               <span className="station-hover-panel__times">
                 <span className="station-hover-panel__dep">
-                  {trip.departure_time.slice(0, 5)}
+                  {formatTimeDisplay(trip.departure_datetime)}
                 </span>
                 <span className="station-hover-panel__arrow">→</span>
                 <span className="station-hover-panel__arr">
-                  {arrivalTime.slice(0, 5)}
+                  {formatTimeDisplay(arrivalDateTime)}
                 </span>
               </span>
             </button>
