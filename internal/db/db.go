@@ -501,9 +501,12 @@ func (db *DB) getDayOfWeek(date string) (string, error) {
 
 // getTripGeometryFromSequence fetches the geometry for a trip starting from the given stop sequence.
 func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, routeID, shortName, longName, color, departureTime, headsign string) (*models.UpcomingTrip, []models.Stop) {
-	// Get stops for this trip starting from the given sequence
+	// Get stops for this trip starting from the given sequence, including arrival/departure times
 	stopsQuery := `
 		SELECT s.stop_lat, s.stop_lon,
+			st.arrival_time,
+			st.departure_time,
+			st.stop_sequence,
 			COALESCE(parent.stop_id, s.stop_id) as station_id,
 			COALESCE(parent.stop_name, s.stop_name) as station_name,
 			COALESCE(parent.stop_lat, s.stop_lat) as station_lat,
@@ -524,18 +527,30 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 
 	var coordinates []models.Coordinate
 	var stations []models.Stop
+	var stopTimes []models.StopTime
 	var lastStationName string
+	var startStationID, startStationName string
+	isFirst := true
 
 	for stopRows.Next() {
 		var stopLat, stopLon float64
+		var arrivalTime, depTime string
+		var stopSequence int
 		var stationIDVal, stationName string
 		var stationLat, stationLon float64
 
-		if err := stopRows.Scan(&stopLat, &stopLon, &stationIDVal, &stationName, &stationLat, &stationLon); err != nil {
+		if err := stopRows.Scan(&stopLat, &stopLon, &arrivalTime, &depTime, &stopSequence, &stationIDVal, &stationName, &stationLat, &stationLon); err != nil {
 			continue
 		}
 
 		coordinates = append(coordinates, models.Coordinate{Lat: stopLat, Lon: stopLon})
+
+		// Track the first station as the start station
+		if isFirst && stationIDVal != "" {
+			startStationID = stationIDVal
+			startStationName = stationName
+			isFirst = false
+		}
 
 		// Always track the last station name we see
 		if stationName != "" {
@@ -548,6 +563,16 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 				StopName: stationName,
 				StopLat:  stationLat,
 				StopLon:  stationLon,
+			})
+
+			stopTimes = append(stopTimes, models.StopTime{
+				StopID:        stationIDVal,
+				StopName:      stationName,
+				StopLat:       stationLat,
+				StopLon:       stationLon,
+				ArrivalTime:   arrivalTime,
+				DepartureTime: depTime,
+				StopSequence:  stopSequence,
 			})
 		}
 	}
@@ -566,13 +591,16 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 	}
 
 	return &models.UpcomingTrip{
-		TripID:        tripID,
-		RouteID:       routeID,
-		RouteColor:    color,
-		DepartureTime: departureTime,
-		Headsign:      headsign,
-		DisplayName:   displayName,
-		Destination:   destination,
-		Coordinates:   coordinates,
+		TripID:           tripID,
+		RouteID:          routeID,
+		RouteColor:       color,
+		DepartureTime:    departureTime,
+		Headsign:         headsign,
+		DisplayName:      displayName,
+		Destination:      destination,
+		StartStationID:   startStationID,
+		StartStationName: startStationName,
+		Coordinates:      coordinates,
+		StopTimes:        stopTimes,
 	}, stations
 }

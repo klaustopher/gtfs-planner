@@ -165,6 +165,30 @@ export namespace models {
 		}
 	}
 	
+	export class StopTime {
+	    stop_id: string;
+	    stop_name: string;
+	    stop_lat: number;
+	    stop_lon: number;
+	    arrival_time: string;
+	    departure_time: string;
+	    stop_sequence: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new StopTime(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.stop_id = source["stop_id"];
+	        this.stop_name = source["stop_name"];
+	        this.stop_lat = source["stop_lat"];
+	        this.stop_lon = source["stop_lon"];
+	        this.arrival_time = source["arrival_time"];
+	        this.departure_time = source["departure_time"];
+	        this.stop_sequence = source["stop_sequence"];
+	    }
+	}
 	export class UpcomingTrip {
 	    trip_id: string;
 	    route_id: string;
@@ -173,7 +197,10 @@ export namespace models {
 	    headsign: string;
 	    display_name: string;
 	    destination: string;
+	    start_station_id: string;
+	    start_station_name: string;
 	    coordinates: Coordinate[];
+	    stop_times: StopTime[];
 	
 	    static createFrom(source: any = {}) {
 	        return new UpcomingTrip(source);
@@ -188,7 +215,10 @@ export namespace models {
 	        this.headsign = source["headsign"];
 	        this.display_name = source["display_name"];
 	        this.destination = source["destination"];
+	        this.start_station_id = source["start_station_id"];
+	        this.start_station_name = source["start_station_name"];
 	        this.coordinates = this.convertValues(source["coordinates"], Coordinate);
+	        this.stop_times = this.convertValues(source["stop_times"], StopTime);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

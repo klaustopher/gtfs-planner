@@ -12,6 +12,7 @@ import { GetStationDetails, SearchStations } from '../../wailsjs/go/main/App'
 import { models } from '../../wailsjs/go/models'
 import { useStops, Bounds } from './map/useStops'
 import { stopsToGeoJSON, tripsToGeoJSON } from './map/geojson'
+import StationHoverPanel from './map/StationHoverPanel'
 import './Map.css'
 
 export interface MapViewState {
@@ -19,6 +20,14 @@ export interface MapViewState {
   latitude: number
   zoom: number
   bounds?: Bounds
+}
+
+// Info about a hovered station for showing trip selection
+export interface HoveredStationInfo {
+  stopId: string
+  stopName: string
+  screenX: number
+  screenY: number
 }
 
 interface MapProps {
@@ -30,6 +39,12 @@ interface MapProps {
   selectedTime: string
   onDateChange: (date: string) => void
   onTimeChange: (time: string) => void
+  onTripSelection?: (
+    trip: models.UpcomingTrip,
+    destinationStopId: string,
+    destinationStopName: string,
+    arrivalTime: string
+  ) => void
 }
 
 const INITIAL_VIEW_STATE = {
@@ -72,6 +87,7 @@ export default function Map({
   selectedTime,
   onDateChange,
   onTimeChange,
+  onTripSelection,
 }: MapProps) {
   const [viewState, setViewState] = useState(INITIAL_VIEW_STATE)
   const [isLoadingStation, setIsLoadingStation] = useState(false)
@@ -79,6 +95,8 @@ export default function Map({
   const [searchResults, setSearchResults] = useState<models.Stop[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [activeResultIndex, setActiveResultIndex] = useState(-1)
+  const [hoveredStation, setHoveredStation] = useState<HoveredStationInfo | null>(null)
+  const hoverTimeoutRef = useRef<number | null>(null)
   const boundsRef = useRef<Bounds | undefined>(undefined)
   const searchDebounceRef = useRef<number | null>(null)
   const searchRequestIdRef = useRef(0)
@@ -174,12 +192,12 @@ export default function Map({
       if (features && features.length > 0) {
         const feature = features[0]
         const stopId = feature.properties?.stop_id
-        if (stopId) {
+        if (stopId && !selectedStation) {
           selectStationById(stopId)
         }
       }
     },
-    [selectStationById]
+    [selectStationById, selectedStation]
   )
 
   const handleClosePopup = useCallback(() => {
@@ -187,6 +205,82 @@ export default function Map({
       onStationSelect(null)
     }
   }, [onStationSelect])
+
+  // Handle mouse enter on stops layer - show hover panel for trip selection
+  const handleMouseEnter = useCallback(
+    (evt: MapLayerMouseEvent) => {
+      // Clear any pending hide timeout
+      if (hoverTimeoutRef.current !== null) {
+        window.clearTimeout(hoverTimeoutRef.current)
+        hoverTimeoutRef.current = null
+      }
+
+      // Only show hover panel when trips are loaded and a station is selected
+      if (!tripsData || !selectedStation) {
+        return
+      }
+      const features = evt.features
+      if (features && features.length > 0) {
+        const feature = features[0]
+        const stopId = feature.properties?.stop_id
+        const stopName = feature.properties?.stop_name
+        // Don't show hover panel for the currently selected station
+        if (stopId && stopId !== selectedStation.stop_id) {
+          // Only update if it's a different station (prevents flickering)
+          setHoveredStation(prev => {
+            if (prev?.stopId === stopId) {
+              return prev // Keep existing position to prevent flickering
+            }
+            return {
+              stopId,
+              stopName: stopName || stopId,
+              screenX: evt.point.x,
+              screenY: evt.point.y,
+            }
+          })
+        }
+      }
+    },
+    [tripsData, selectedStation]
+  )
+
+  // Handle mouse leave on stops layer - hide hover panel with delay
+  const handleMouseLeave = useCallback(() => {
+    // Delay hiding to allow mouse to move to the panel
+    hoverTimeoutRef.current = window.setTimeout(() => {
+      setHoveredStation(null)
+      hoverTimeoutRef.current = null
+    }, 300)
+  }, [])
+
+  // Cancel hide when mouse enters the hover panel
+  const handlePanelMouseEnter = useCallback(() => {
+    if (hoverTimeoutRef.current !== null) {
+      window.clearTimeout(hoverTimeoutRef.current)
+      hoverTimeoutRef.current = null
+    }
+  }, [])
+
+  // Hide panel when mouse leaves it
+  const handlePanelMouseLeave = useCallback(() => {
+    setHoveredStation(null)
+  }, [])
+
+  // Handle trip selection from hover panel
+  const handleHoverTripSelect = useCallback(
+    (
+      trip: models.UpcomingTrip,
+      destinationStopId: string,
+      destinationStopName: string,
+      arrivalTime: string
+    ) => {
+      setHoveredStation(null)
+      if (onTripSelection) {
+        onTripSelection(trip, destinationStopId, destinationStopName, arrivalTime)
+      }
+    },
+    [onTripSelection]
+  )
 
   useEffect(() => {
     if (searchDebounceRef.current !== null) {
@@ -386,8 +480,10 @@ export default function Map({
         {...viewState}
         onMove={handleMove}
         onClick={handleClick}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         interactiveLayerIds={['stops-layer']}
-        cursor={isLoadingStation ? 'wait' : 'auto'}
+        cursor={isLoadingStation ? 'wait' : hoveredStation ? 'pointer' : 'auto'}
         style={{ width: '100%', height: '100%' }}
         mapStyle={{
           version: 8,
@@ -451,6 +547,20 @@ export default function Map({
           </Popup>
         )}
       </MapGL>
+
+      {/* Hover panel for trip selection */}
+      {hoveredStation && tripsData?.trips && (
+        <StationHoverPanel
+          stopId={hoveredStation.stopId}
+          stopName={hoveredStation.stopName}
+          screenX={hoveredStation.screenX}
+          screenY={hoveredStation.screenY}
+          trips={tripsData.trips}
+          onTripSelect={handleHoverTripSelect}
+          onMouseEnter={handlePanelMouseEnter}
+          onMouseLeave={handlePanelMouseLeave}
+        />
+      )}
     </div>
   )
 }

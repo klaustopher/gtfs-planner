@@ -332,8 +332,35 @@ func TestGetUpcomingTrips(t *testing.T) {
 			t.Errorf("Trip %d: Destination should not be empty", i)
 		}
 
-		t.Logf("Trip %d: DisplayName=%q, Destination=%q, DepartureTime=%s, Headsign=%q, Coordinates=%d",
-			i, trip.DisplayName, trip.Destination, trip.DepartureTime, trip.Headsign, len(trip.Coordinates))
+		// StartStation fields should be populated
+		if trip.StartStationID == "" {
+			t.Errorf("Trip %d: StartStationID should not be empty", i)
+		}
+		if trip.StartStationName == "" {
+			t.Errorf("Trip %d: StartStationName should not be empty", i)
+		}
+
+		// StopTimes should be populated with timing data
+		if len(trip.StopTimes) == 0 {
+			t.Errorf("Trip %d: StopTimes should not be empty", i)
+		}
+
+		// Verify first and last stop times have valid data
+		if len(trip.StopTimes) > 0 {
+			first := trip.StopTimes[0]
+			last := trip.StopTimes[len(trip.StopTimes)-1]
+			if first.ArrivalTime == "" && first.DepartureTime == "" {
+				t.Errorf("Trip %d: first stop should have arrival or departure time", i)
+			}
+			if last.ArrivalTime == "" && last.DepartureTime == "" {
+				t.Errorf("Trip %d: last stop should have arrival or departure time", i)
+			}
+			t.Logf("Trip %d: %d stops, first=%s dep=%s, last=%s arr=%s",
+				i, len(trip.StopTimes), first.StopName, first.DepartureTime, last.StopName, last.ArrivalTime)
+		}
+
+		t.Logf("Trip %d: DisplayName=%q, Destination=%q, DepartureTime=%s, StartStation=%q",
+			i, trip.DisplayName, trip.Destination, trip.DepartureTime, trip.StartStationName)
 	}
 }
 

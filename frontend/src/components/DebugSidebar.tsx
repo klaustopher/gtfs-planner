@@ -1,6 +1,7 @@
 import { MapViewState } from './Map'
 import { models } from '../../wailsjs/go/models'
 import { getTripColor } from './map/geojson'
+import { SavedTrip } from '../App'
 import './DebugSidebar.css'
 
 interface DebugSidebarProps {
@@ -8,6 +9,9 @@ interface DebugSidebarProps {
   selectedStation: models.StationDetails | null
   tripsData: models.UpcomingTripsData | null
   isLoadingTrips: boolean
+  savedTrips: SavedTrip[]
+  onRemoveSavedTrip: (tripId: string) => void
+  onClearSavedTrips: () => void
 }
 
 function formatCoord(value: number, decimals = 4): string {
@@ -19,6 +23,9 @@ export default function DebugSidebar({
   selectedStation,
   tripsData,
   isLoadingTrips,
+  savedTrips,
+  onRemoveSavedTrip,
+  onClearSavedTrips,
 }: DebugSidebarProps) {
   return (
     <div className="debug-sidebar">
@@ -79,6 +86,56 @@ export default function DebugSidebar({
           {!isLoadingTrips && tripsData && (!tripsData.trips || tripsData.trips.length === 0) && (
             <p className="no-trips-hint">No upcoming departures found for this time</p>
           )}
+        </section>
+      )}
+
+      {savedTrips.length > 0 && (
+        <section className="saved-trips-section">
+          <div className="saved-trips-header">
+            <h4>Planned Journey</h4>
+            <button className="clear-trips-btn" onClick={onClearSavedTrips}>
+              Clear All
+            </button>
+          </div>
+          <div className="saved-trips-list">
+            {savedTrips.map((trip, index) => (
+              <div
+                key={trip.id}
+                className="saved-trip-item"
+                style={{ borderLeftColor: trip.routeColor ? `#${trip.routeColor}` : '#666' }}
+              >
+                <div className="saved-trip-number">{index + 1}</div>
+                <div className="saved-trip-content">
+                  <div className="saved-trip-route">
+                    <span
+                      className="trip-route-badge"
+                      style={{ backgroundColor: trip.routeColor ? `#${trip.routeColor}` : '#666' }}
+                    >
+                      {trip.routeShortName || '?'}
+                    </span>
+                  </div>
+                  <div className="saved-trip-details">
+                    <div className="saved-trip-leg">
+                      <span className="saved-trip-time">{trip.departureTime.slice(0, 5)}</span>
+                      <span className="saved-trip-station">{trip.startStationName}</span>
+                    </div>
+                    <div className="saved-trip-arrow">→</div>
+                    <div className="saved-trip-leg">
+                      <span className="saved-trip-time">{trip.arrivalTime.slice(0, 5)}</span>
+                      <span className="saved-trip-station">{trip.endStationName}</span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  className="remove-trip-btn"
+                  onClick={() => onRemoveSavedTrip(trip.id)}
+                  title="Remove trip"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
