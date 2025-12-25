@@ -1,0 +1,168 @@
+.trip-detail-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.trip-detail-modal {
+  background: rgba(27, 38, 54, 0.98);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  max-width: 400px;
+  width: 90%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  color: white;
+}
+
+.trip-detail-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.trip-detail-modal__title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.trip-detail-modal__badge {
+  padding: 4px 12px;
+  border-radius: 6px;
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.trip-detail-modal__destination {
+  font-size: 16px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-detail-modal__close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.trip-detail-modal__close:hover {
+  color: white;
+}
+
+.trip-detail-modal__stops {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.trip-detail-modal__loading,
+.trip-detail-modal__error {
+  text-align: center;
+  padding: 20px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+}
+
+.trip-detail-modal__error {
+  color: #ff6b6b;
+}
+
+.trip-detail-modal__stop {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 40px;
+}
+
+.trip-detail-modal__stop--selected {
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0 -12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.trip-detail-modal__stop-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.trip-detail-modal__stop-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 3px solid;
+  background: rgba(27, 38, 54, 1);
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.trip-detail-modal__stop-dot--first,
+.trip-detail-modal__stop-dot--last {
+  width: 14px;
+  height: 14px;
+}
+
+.trip-detail-modal__stop-line {
+  width: 3px;
+  flex: 1;
+  min-height: 24px;
+  margin-top: -2px;
+}
+
+.trip-detail-modal__stop-times {
+  display: flex;
+  flex-direction: column;
+  min-width: 40px;
+  font-family: monospace;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.trip-detail-modal__stop-arr {
+  color: rgba(255, 255, 255, 0.5);
+  height: 18px;
+}
+
+.trip-detail-modal__stop-dep {
+  color: #4ade80;
+  font-weight: 600;
+  height: 18px;
+}
+
+.trip-detail-modal__stop-name {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  padding-top: 2px;
+  flex: 1;
+}
+
+.trip-detail-modal__stop--selected .trip-detail-modal__stop-name {
+  font-weight: 600;
+  color: white;
+}

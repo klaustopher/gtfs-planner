@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import Map, { MapViewState } from './components/Map'
 import DebugSidebar from './components/DebugSidebar'
+import TripDetailModal from './components/TripDetailModal'
 import { models } from '../wailsjs/go/models'
 import { GetStationDetails } from '../wailsjs/go/main/App'
 import { useTrips, TripQueryParams } from './components/map/useTrips'
@@ -65,6 +66,12 @@ function App() {
   // Saved trips for journey planner
   const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([])
 
+  // Modal state for trip details
+  const [tripModalData, setTripModalData] = useState<{
+    trip: models.UpcomingTrip
+    tripIndex: number
+  } | null>(null)
+
   // Handler to add a trip to the saved list
   const addSavedTrip = useCallback((trip: SavedTrip) => {
     setSavedTrips(prev => [...prev, trip])
@@ -100,6 +107,16 @@ function App() {
   // Handler to clear all saved trips
   const clearSavedTrips = useCallback(() => {
     setSavedTrips([])
+  }, [])
+
+  // Handler to open trip detail modal
+  const handleTripClick = useCallback((trip: models.UpcomingTrip, tripIndex: number) => {
+    setTripModalData({ trip, tripIndex })
+  }, [])
+
+  // Handler to close trip detail modal
+  const closeTripModal = useCallback(() => {
+    setTripModalData(null)
   }, [])
 
   // Handler when user selects a trip from the hover panel
@@ -176,7 +193,17 @@ function App() {
         savedTrips={savedTrips}
         onRemoveSavedTrip={removeSavedTrip}
         onClearSavedTrips={clearSavedTrips}
+        onTripClick={handleTripClick}
       />
+      {tripModalData && selectedStation && (
+        <TripDetailModal
+          trip={tripModalData.trip}
+          tripIndex={tripModalData.tripIndex}
+          selectedStationId={selectedStation.stop_id}
+          serviceDate={selectedDate.replace(/-/g, '')}
+          onClose={closeTripModal}
+        />
+      )}
     </div>
   )
 }

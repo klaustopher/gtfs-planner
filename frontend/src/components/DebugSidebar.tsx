@@ -12,6 +12,7 @@ interface DebugSidebarProps {
   savedTrips: SavedTrip[]
   onRemoveSavedTrip: (tripId: string) => void
   onClearSavedTrips: () => void
+  onTripClick: (trip: models.UpcomingTrip, tripIndex: number) => void
 }
 
 function formatCoord(value: number, decimals = 4): string {
@@ -32,6 +33,7 @@ export default function DebugSidebar({
   savedTrips,
   onRemoveSavedTrip,
   onClearSavedTrips,
+  onTripClick,
 }: DebugSidebarProps) {
   return (
     <div className="debug-sidebar">
@@ -67,10 +69,11 @@ export default function DebugSidebar({
               {tripsData.trips.map((trip: models.UpcomingTrip, index: number) => {
                 const tripColor = getTripColor(trip, index)
                 return (
-                  <div
+                  <button
                     key={trip.trip_id}
-                    className="trip-item"
+                    className="trip-item trip-item--clickable"
                     style={{ borderLeftColor: tripColor }}
+                    onClick={() => onTripClick(trip, index)}
                   >
                     <span className="trip-time">{formatTimeDisplay(trip.departure_datetime)}</span>
                     <div className="trip-details">
@@ -84,7 +87,7 @@ export default function DebugSidebar({
                       )}
                       <span className="trip-destination">{trip.destination}</span>
                     </div>
-                  </div>
+                  </button>
                 )
               })}
             </div>

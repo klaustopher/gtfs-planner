@@ -692,3 +692,103 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 		StopTimes:         stopTimes,
 	}, stations
 }
+
+// GetTripDetails returns the full details of a trip including all stops.
+// The serviceDate parameter (YYYYMMDD format) is used to normalize GTFS times to ISO 8601 datetimes.
+func (db *DB) GetTripDetails(tripID string, serviceDate string) (*models.TripDetails, error) {
+	// Get route info for this trip
+	var routeID, routeShortName, routeLongName, routeColor, headsign string
+	err := db.conn.QueryRow(`
+		SELECT t.route_id,
+			COALESCE(r.route_short_name, '') as route_short_name,
+			COALESCE(r.route_long_name, '') as route_long_name,
+			COALESCE(r.route_color, '') as route_color,
+			COALESCE(t.trip_headsign, '') as trip_headsign
+		FROM trips t
+		JOIN routes r ON r.route_id = t.route_id
+		WHERE t.trip_id = ?
+	`, tripID).Scan(&routeID, &routeShortName, &routeLongName, &routeColor, &headsign)
+	if err != nil {
+		return nil, fmt.Errorf("trip not found: %w", err)
+	}
+
+	// Get all stops for this trip in sequence order
+	stopsQuery := `
+		SELECT
+			st.arrival_time,
+			st.departure_time,
+			st.stop_sequence,
+			COALESCE(parent.stop_id, s.stop_id) as station_id,
+			COALESCE(parent.stop_name, s.stop_name) as station_name,
+			COALESCE(parent.stop_lat, s.stop_lat) as station_lat,
+			COALESCE(parent.stop_lon, s.stop_lon) as station_lon
+		FROM stop_times st
+		JOIN stops s ON s.stop_id = st.stop_id
+		LEFT JOIN stops parent ON parent.stop_id = s.parent_station AND parent.location_type = 1
+		WHERE st.trip_id = ?
+		ORDER BY st.stop_sequence
+	`
+
+	rows, err := db.conn.Query(stopsQuery, tripID)
+	if err != nil {
+		return nil, fmt.Errorf("stops query failed: %w", err)
+	}
+	defer rows.Close()
+
+	var stopTimes []models.StopTime
+	var lastStationName string
+
+	for rows.Next() {
+		var arrivalTime, depTime string
+		var stopSequence int
+		var stationIDVal, stationName string
+		var stationLat, stationLon float64
+
+		if err := rows.Scan(&arrivalTime, &depTime, &stopSequence, &stationIDVal, &stationName, &stationLat, &stationLon); err != nil {
+			continue
+		}
+
+		if stationName != "" {
+			lastStationName = stationName
+		}
+
+		if stationIDVal != "" {
+			// Normalize GTFS times to ISO 8601 datetimes
+			arrivalDateTime, _ := timeutil.NormalizeGTFSTime(arrivalTime, serviceDate)
+			departureDateTime, _ := timeutil.NormalizeGTFSTime(depTime, serviceDate)
+
+			stopTimes = append(stopTimes, models.StopTime{
+				StopID:            stationIDVal,
+				StopName:          stationName,
+				StopLat:           stationLat,
+				StopLon:           stationLon,
+				ArrivalDateTime:   arrivalDateTime,
+				DepartureDateTime: departureDateTime,
+				StopSequence:      stopSequence,
+			})
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
+	}
+
+	// DisplayName: the short route name
+	displayName := strings.TrimSpace(routeShortName)
+
+	// Destination: prefer route_long_name, fallback to final station name
+	destination := strings.TrimSpace(routeLongName)
+	if destination == "" {
+		destination = strings.TrimSpace(lastStationName)
+	}
+
+	return &models.TripDetails{
+		TripID:      tripID,
+		RouteID:     routeID,
+		RouteColor:  routeColor,
+		DisplayName: displayName,
+		Destination: destination,
+		Headsign:    headsign,
+		StopTimes:   stopTimes,
+	}, nil
+}

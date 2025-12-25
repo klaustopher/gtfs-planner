@@ -81,6 +81,15 @@ func (a *App) GetUpcomingTrips(stopID string, datetime string, limit int) (*mode
 	return a.db.GetUpcomingTrips(stopID, datetime, limit)
 }
 
+// GetTripDetails returns the full details of a trip including all stops.
+// tripID is the GTFS trip_id and serviceDate should be in YYYYMMDD format.
+func (a *App) GetTripDetails(tripID string, serviceDate string) (*models.TripDetails, error) {
+	if a.db == nil {
+		return nil, fmt.Errorf("database not connected")
+	}
+	return a.db.GetTripDetails(tripID, serviceDate)
+}
+
 // Greet returns a greeting for the given name
 func (a *App) Greet(name string) string {
 	return fmt.Sprintf("Hello %s, It's show time!", name)

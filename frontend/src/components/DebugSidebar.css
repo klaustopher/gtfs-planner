@@ -79,6 +79,22 @@
   background: rgba(255, 255, 255, 0.05);
   border-radius: 6px;
   border-left: 4px solid #666;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+}
+
+.debug-sidebar .trip-item--clickable {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.debug-sidebar .trip-item--clickable:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .debug-sidebar .trip-time {

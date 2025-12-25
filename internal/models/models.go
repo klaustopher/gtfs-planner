@@ -81,3 +81,14 @@ type UpcomingTripsData struct {
 	Trips    []UpcomingTrip `json:"trips"`
 	Stations []Stop         `json:"stations"`
 }
+
+// TripDetails contains the full details of a trip including all stops
+type TripDetails struct {
+	TripID      string     `json:"trip_id"`
+	RouteID     string     `json:"route_id"`
+	RouteColor  string     `json:"route_color"`
+	DisplayName string     `json:"display_name"`
+	Destination string     `json:"destination"`
+	Headsign    string     `json:"headsign"`
+	StopTimes   []StopTime `json:"stop_times"`
+}
