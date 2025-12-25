@@ -1,0 +1,10 @@
+.app-container {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+}
+
+.map-container {
+  flex: 1;
+  position: relative;
+}
