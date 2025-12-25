@@ -1,10 +1,10 @@
 import { MapViewState } from './Map'
-import { main } from '../../wailsjs/go/models'
+import { models } from '../../wailsjs/go/models'
 import './DebugSidebar.css'
 
 interface DebugSidebarProps {
   viewState: MapViewState | null
-  selectedStation: main.StationDetails | null
+  selectedStation: models.StationDetails | null
 }
 
 function formatCoord(value: number, decimals = 4): string {
@@ -99,7 +99,7 @@ export default function DebugSidebar({ viewState, selectedStation }: DebugSideba
             <>
               <h4>Routes ({selectedStation.routes.length})</h4>
               <div className="routes-list">
-                {selectedStation.routes.map((route) => (
+                {selectedStation.routes.map((route: models.Route) => (
                   <div key={route.route_id} className="route-item">
                     <span
                       className="route-badge"

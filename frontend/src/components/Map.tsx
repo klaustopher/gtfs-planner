@@ -1,26 +1,29 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { useState, useCallback, useMemo, useRef } from 'react'
 import MapGL, { ViewStateChangeEvent, Source, Layer, Popup } from 'react-map-gl/maplibre'
-import type { CircleLayerSpecification, MapLayerMouseEvent } from 'maplibre-gl'
+import type {
+  CircleLayerSpecification,
+  MapLayerMouseEvent,
+  ExpressionSpecification,
+  FilterSpecification,
+} from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { GetStops, GetStationDetails } from '../../wailsjs/go/main/App'
-import { main } from '../../wailsjs/go/models'
+import { GetStationDetails } from '../../wailsjs/go/main/App'
+import { models } from '../../wailsjs/go/models'
+import { useStops, Bounds } from './map/useStops'
+import { useRoutes } from './map/useRoutes'
+import { stopsToGeoJSON, routesToGeoJSON } from './map/geojson'
 
 export interface MapViewState {
   longitude: number
   latitude: number
   zoom: number
-  bounds?: {
-    north: number
-    south: number
-    east: number
-    west: number
-  }
+  bounds?: Bounds
 }
 
 interface MapProps {
   onViewStateChange?: (viewState: MapViewState) => void
-  onStationSelect?: (station: main.StationDetails | null) => void
-  selectedStation?: main.StationDetails | null
+  onStationSelect?: (station: models.StationDetails | null) => void
+  selectedStation?: models.StationDetails | null
 }
 
 const INITIAL_VIEW_STATE = {
@@ -30,7 +33,13 @@ const INITIAL_VIEW_STATE = {
 }
 
 const ZOOM_THRESHOLD = 8
-const DEBOUNCE_MS = 300
+const ROUTE_LINE_OPACITY = 0.8
+const ROUTE_STYLE_VARIANTS = [
+  { id: 'solid', dashArray: undefined },
+  { id: 'dash', dashArray: [2.5, 1.5] },
+  { id: 'dot', dashArray: [0.4, 1.2] },
+  { id: 'longdash', dashArray: [4, 2, 1, 2] },
+] as const
 
 const stopsLayerStyle: CircleLayerSpecification = {
   id: 'stops-layer',
@@ -46,68 +55,29 @@ const stopsLayerStyle: CircleLayerSpecification = {
 
 export default function Map({ onViewStateChange, onStationSelect, selectedStation }: MapProps) {
   const [viewState, setViewState] = useState(INITIAL_VIEW_STATE)
-  const [stops, setStops] = useState<main.Stop[]>([])
-  const boundsRef = useRef<MapViewState['bounds']>(undefined)
-  const debounceTimerRef = useRef<number | null>(null)
-  const requestIdRef = useRef(0)
   const [isLoadingStation, setIsLoadingStation] = useState(false)
+  const boundsRef = useRef<Bounds | undefined>(undefined)
 
-  const geojsonData = useMemo(
-    () => ({
-      type: 'FeatureCollection' as const,
-      features: stops.map((stop) => ({
-        type: 'Feature' as const,
-        geometry: {
-          type: 'Point' as const,
-          coordinates: [stop.stop_lon, stop.stop_lat],
-        },
-        properties: {
-          stop_id: stop.stop_id,
-          stop_name: stop.stop_name,
-        },
-      })),
-    }),
-    [stops]
+  // Fetch routes when a station is selected
+  const routesData = useRoutes(selectedStation ?? null)
+
+  // Fetch viewport stops when no station is selected
+  const viewportStops = useStops({
+    zoom: viewState.zoom,
+    bounds: boundsRef.current,
+    zoomThreshold: ZOOM_THRESHOLD,
+    enabled: !selectedStation,
+  })
+
+  // Use route stations when a station is selected, otherwise use all stops in view
+  const displayStops = routesData?.stations ?? viewportStops
+
+  const stopsGeojsonData = useMemo(() => stopsToGeoJSON(displayStops), [displayStops])
+
+  const routeLinesGeojsonData = useMemo(
+    () => routesToGeoJSON(routesData?.routes ?? [], { dashVariantCount: ROUTE_STYLE_VARIANTS.length }),
+    [routesData]
   )
-
-  useEffect(() => {
-    // Clear any pending debounce timer
-    if (debounceTimerRef.current !== null) {
-      window.clearTimeout(debounceTimerRef.current)
-    }
-
-    if (viewState.zoom >= ZOOM_THRESHOLD && boundsRef.current) {
-      const { north, south, east, west } = boundsRef.current
-
-      // Debounce the fetch request
-      debounceTimerRef.current = window.setTimeout(() => {
-        // Increment request ID to track the latest request
-        const currentRequestId = ++requestIdRef.current
-
-        GetStops(north, south, east, west)
-          .then((fetchedStops) => {
-            // Only update if this is still the latest request
-            if (currentRequestId === requestIdRef.current) {
-              setStops(fetchedStops || [])
-            }
-          })
-          .catch((err) => {
-            if (currentRequestId === requestIdRef.current) {
-              console.error('Failed to fetch stops:', err)
-            }
-          })
-      }, DEBOUNCE_MS)
-    } else {
-      setStops([])
-    }
-
-    // Cleanup on unmount or before next effect
-    return () => {
-      if (debounceTimerRef.current !== null) {
-        window.clearTimeout(debounceTimerRef.current)
-      }
-    }
-  }, [viewState.zoom, viewState.longitude, viewState.latitude])
 
   const handleMove = useCallback(
     (evt: ViewStateChangeEvent) => {
@@ -196,7 +166,34 @@ export default function Map({ onViewStateChange, onStationSelect, selectedStatio
         ],
       }}
     >
-      <Source id="stops" type="geojson" data={geojsonData}>
+      {/* Route lines layer - only shown when a station is selected */}
+      {routesData && (
+        <Source id="route-lines" type="geojson" data={routeLinesGeojsonData}>
+          {ROUTE_STYLE_VARIANTS.map((variant, index) => (
+            <Layer
+              key={variant.id}
+              id={`route-lines-${variant.id}`}
+              type="line"
+              filter={['==', ['get', 'dash_variant'], index] as FilterSpecification}
+              layout={{
+                'line-cap': 'round',
+                'line-join': 'round',
+              }}
+              paint={{
+                'line-color': ['get', 'line_color'],
+                'line-width': ['get', 'line_width'],
+                'line-opacity': ROUTE_LINE_OPACITY,
+                'line-offset': ['get', 'line_offset'],
+                ...(variant.dashArray
+                  ? { 'line-dasharray': ['literal', variant.dashArray] as ExpressionSpecification }
+                  : {}),
+              }}
+            />
+          ))}
+        </Source>
+      )}
+
+      <Source id="stops" type="geojson" data={stopsGeojsonData}>
         <Layer {...stopsLayerStyle} />
       </Source>
 
@@ -216,7 +213,7 @@ export default function Map({ onViewStateChange, onStationSelect, selectedStatio
                   Routes ({selectedStation.routes.length}):
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                  {selectedStation.routes.slice(0, 10).map((route) => (
+                  {selectedStation.routes.slice(0, 10).map((route: models.Route) => (
                     <span
                       key={route.route_id}
                       style={{

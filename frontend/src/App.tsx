@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import Map, { MapViewState } from './components/Map'
 import DebugSidebar from './components/DebugSidebar'
-import { main } from '../wailsjs/go/models'
+import { models } from '../wailsjs/go/models'
 import './App.css'
 
 function App() {
   const [viewState, setViewState] = useState<MapViewState | null>(null)
-  const [selectedStation, setSelectedStation] = useState<main.StationDetails | null>(null)
+  const [selectedStation, setSelectedStation] = useState<models.StationDetails | null>(null)
 
   return (
     <div className="app-container">

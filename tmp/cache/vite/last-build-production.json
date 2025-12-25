@@ -1,0 +1,7 @@
+{
+  "success": false,
+  "errors": "(node:12978) ExperimentalWarning: CommonJS module /Users/klaustopher/.nvm/versions/node/v23.1.0/lib/node_modules/npm/node_modules/debug/src/node.js is loading ES Module /Users/klaustopher/.nvm/versions/node/v23.1.0/lib/node_modules/npm/node_modules/supports-color/index.js using require().\nSupport for loading ES Module in require() is an experimental feature and might change at any time\n(Use `node --trace-warnings ...` to show where the warning was created)\nnpm warn exec The following package was not found and will be installed: vite@7.3.0\n✗ Build failed in 7ms\nerror during build:\nCould not resolve entry module \"index.html\".\n    at getRollupError (file:///Users/klaustopher/.npm/_npx/9ed06546b0653f96/node_modules/rollup/dist/es/shared/parseAst.js:401:41)\n    at error (file:///Users/klaustopher/.npm/_npx/9ed06546b0653f96/node_modules/rollup/dist/es/shared/parseAst.js:397:42)\n    at ModuleLoader.loadEntryModule (file:///Users/klaustopher/.npm/_npx/9ed06546b0653f96/node_modules/rollup/dist/es/shared/node-entry.js:21682:20)\n    at async Promise.all (index 0)\n",
+  "timestamp": "2025-12-25 14:20:45",
+  "vite_ruby": "3.9.2",
+  "digest": "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+}
