@@ -660,6 +660,12 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 		return nil, nil
 	}
 
+	// If only 1 stop remains, this station is the final destination - exclude it
+	// A departure board should only show trips that have somewhere to go
+	if len(stopTimes) <= 1 {
+		return nil, nil
+	}
+
 	// DisplayName: the short route name (e.g., "R27")
 	displayName := strings.TrimSpace(shortName)
 

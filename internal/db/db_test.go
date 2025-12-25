@@ -599,3 +599,44 @@ func TestOvernightTrips(t *testing.T) {
 		}
 	})
 }
+
+// TestExcludeTripsEndingAtStation tests that trips where the queried station is the
+// final destination are excluded from results. These trips have no further stops,
+// so they shouldn't appear on a departure board.
+//
+// Station 419232 (Siegen ZOB) is used as it's a common final destination.
+// - Trip 1014198 (SB4): Ends at Siegen ZOB (stop_sequence 19 of 19) - should be EXCLUDED
+// - Trip 1493872 (C105): Starts at Siegen ZOB (stop_sequence 0 of 24) - should be INCLUDED
+//
+// Service 191 runs Mon-Fri, valid 2026-01-07 to 2026-01-19.
+func TestExcludeTripsEndingAtStation(t *testing.T) {
+	db := skipIfNoDatabase(t)
+	defer db.Close()
+
+	stationID := "419232" // Siegen ZOB
+
+	// Query at 10:30 on Monday 2026-01-12
+	// Trip 1014198 (SB4) departs at 10:39 but Siegen ZOB is its FINAL stop
+	// Trip 1493872 (C105) departs at 10:24 and Siegen ZOB is its FIRST stop
+	t.Run("excludes trips ending at station", func(t *testing.T) {
+		data, err := db.GetUpcomingTrips(stationID, "2026-01-12T10:00:00", 50)
+		if err != nil {
+			t.Fatalf("GetUpcomingTrips failed: %v", err)
+		}
+
+		// No trip should have only 1 stop - that means the station is the final destination
+		// and there's nowhere to go from there
+		for _, trip := range data.Trips {
+			if len(trip.StopTimes) <= 1 {
+				t.Errorf("Trip %s (%s) has only %d stop(s) - this means station %s is its final destination and should be excluded",
+					trip.TripID, trip.DisplayName, len(trip.StopTimes), stationID)
+			}
+		}
+
+		// Trip 1493872 should be in results (starts at Siegen ZOB, has 24 more stops)
+		tripStartingHere := "1493872"
+		if !tripInResults(data, tripStartingHere) {
+			t.Errorf("Trip %s starts at station %s and should be returned, but it was not", tripStartingHere, stationID)
+		}
+	})
+}
