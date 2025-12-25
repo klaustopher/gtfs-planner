@@ -358,6 +358,10 @@ func (db *DB) findLongestTrip(routeID string) (string, error) {
 // GetUpcomingTrips returns the next N trips departing from a station at or after the given datetime.
 // The datetime parameter is in ISO 8601 format: "2006-01-02T15:04:05".
 // Only stops after the selected station are included in the trip geometry.
+//
+// This function handles overnight trips by querying both:
+// 1. Current day's service with times >= query time (e.g., "01:45:00")
+// 2. Previous day's service with times >= overnight equivalent (e.g., "25:45:00")
 func (db *DB) GetUpcomingTrips(stopID string, datetime string, limit int) (*models.UpcomingTripsData, error) {
 	if limit <= 0 {
 		limit = 10
@@ -372,14 +376,99 @@ func (db *DB) GetUpcomingTrips(stopID string, datetime string, limit int) (*mode
 		return nil, fmt.Errorf("invalid datetime format: %w", err)
 	}
 
-	// Find the day of week for calendar filtering
+	// Get previous day parameters for overnight trips
+	prevDate, overnightTime, err := timeutil.GetPreviousDayOvernightParams(datetime)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get overnight params: %w", err)
+	}
+
+	// Find the day of week for calendar filtering (for both dates)
 	dayOfWeek, err := db.getDayOfWeek(date)
 	if err != nil {
 		return nil, fmt.Errorf("invalid date format: %w", err)
 	}
+	prevDayOfWeek, err := db.getDayOfWeek(prevDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid previous date format: %w", err)
+	}
 
-	// Query to find upcoming trips from this station
-	// We need to handle times that might be >= 24:00:00 for trips that span midnight
+	// Query trips from both current day and previous day (for overnight services)
+	tripInfos, err := db.queryTripsForDate(stopID, date, timeStr, dayOfWeek, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	// Also query previous day's overnight trips (times >= 24:00)
+	overnightTripInfos, err := db.queryTripsForDate(stopID, prevDate, overnightTime, prevDayOfWeek, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	// Combine and deduplicate trips (same trip could theoretically appear in both)
+	seenTrips := make(map[string]bool)
+	var allTripInfos []tripInfo
+	for _, info := range tripInfos {
+		if !seenTrips[info.tripID] {
+			seenTrips[info.tripID] = true
+			allTripInfos = append(allTripInfos, info)
+		}
+	}
+	for _, info := range overnightTripInfos {
+		if !seenTrips[info.tripID] {
+			seenTrips[info.tripID] = true
+			allTripInfos = append(allTripInfos, info)
+		}
+	}
+
+	result := &models.UpcomingTripsData{
+		Trips:    make([]models.UpcomingTrip, 0),
+		Stations: make([]models.Stop, 0),
+	}
+
+	stationSet := make(map[string]models.Stop)
+
+	// For each trip, get only the stops after the selected station
+	for _, info := range allTripInfos {
+		trip, stations := db.getTripGeometryFromSequence(info.tripID, info.stopSequence, info.routeID, info.shortName, info.longName, info.color, info.departureTime, info.headsign, info.serviceDate)
+		if trip != nil {
+			result.Trips = append(result.Trips, *trip)
+		}
+		for _, station := range stations {
+			stationSet[station.StopID] = station
+		}
+	}
+
+	// Sort trips by their normalized departure datetime
+	sortTripsByDepartureDateTime(result.Trips)
+
+	// Limit the final result
+	if len(result.Trips) > limit {
+		result.Trips = result.Trips[:limit]
+	}
+
+	// Convert station set to slice
+	for _, station := range stationSet {
+		result.Stations = append(result.Stations, station)
+	}
+
+	return result, nil
+}
+
+// tripInfo holds intermediate trip data from queries
+type tripInfo struct {
+	tripID        string
+	routeID       string
+	shortName     string
+	longName      string
+	color         string
+	departureTime string
+	headsign      string
+	stopSequence  int
+	serviceDate   string // The service date (YYYYMMDD) this trip belongs to
+}
+
+// queryTripsForDate queries trips departing from a station on a specific service date
+func (db *DB) queryTripsForDate(stopID, date, minTime, dayOfWeek string, limit int) ([]tripInfo, error) {
 	query := `
 		WITH station_departures AS (
 			SELECT
@@ -423,26 +512,16 @@ func (db *DB) GetUpcomingTrips(stopID string, datetime string, limit int) (*mode
 		ORDER BY sd.departure_time
 	`
 
-	rows, err := db.conn.Query(query, date, stopID, stopID, timeStr, date, date, limit)
+	rows, err := db.conn.Query(query, date, stopID, stopID, minTime, date, date, limit)
 	if err != nil {
-		return nil, fmt.Errorf("upcoming trips query failed: %w", err)
+		return nil, fmt.Errorf("trips query failed: %w", err)
 	}
 	defer rows.Close()
-
-	type tripInfo struct {
-		tripID        string
-		routeID       string
-		shortName     string
-		longName      string
-		color         string
-		departureTime string
-		headsign      string
-		stopSequence  int
-	}
 
 	var tripInfos []tripInfo
 	for rows.Next() {
 		var info tripInfo
+		info.serviceDate = date
 		if err := rows.Scan(
 			&info.tripID, &info.routeID, &info.shortName, &info.longName,
 			&info.color, &info.departureTime, &info.headsign, &info.stopSequence,
@@ -456,30 +535,19 @@ func (db *DB) GetUpcomingTrips(stopID string, datetime string, limit int) (*mode
 		return nil, fmt.Errorf("trips rows error: %w", err)
 	}
 
-	result := &models.UpcomingTripsData{
-		Trips:    make([]models.UpcomingTrip, 0),
-		Stations: make([]models.Stop, 0),
-	}
+	return tripInfos, nil
+}
 
-	stationSet := make(map[string]models.Stop)
-
-	// For each trip, get only the stops after the selected station
-	for _, info := range tripInfos {
-		trip, stations := db.getTripGeometryFromSequence(info.tripID, info.stopSequence, info.routeID, info.shortName, info.longName, info.color, info.departureTime, info.headsign, date)
-		if trip != nil {
-			result.Trips = append(result.Trips, *trip)
-		}
-		for _, station := range stations {
-			stationSet[station.StopID] = station
+// sortTripsByDepartureDateTime sorts trips by their departure datetime (already in ISO 8601 format)
+func sortTripsByDepartureDateTime(trips []models.UpcomingTrip) {
+	// Simple bubble sort since we typically have few trips
+	for i := 0; i < len(trips); i++ {
+		for j := i + 1; j < len(trips); j++ {
+			if trips[j].DepartureDateTime < trips[i].DepartureDateTime {
+				trips[i], trips[j] = trips[j], trips[i]
+			}
 		}
 	}
-
-	// Convert station set to slice
-	for _, station := range stationSet {
-		result.Stations = append(result.Stations, station)
-	}
-
-	return result, nil
 }
 
 // getDayOfWeek returns the calendar column name for the day of week corresponding to the given date.

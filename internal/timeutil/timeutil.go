@@ -85,3 +85,31 @@ func ExtractDateAndTime(datetime string) (date string, timeStr string, err error
 	timeStr = t.Format("15:04:05")
 	return date, timeStr, nil
 }
+
+// GetPreviousDayOvernightParams returns the previous day's date and the equivalent
+// overnight time threshold for querying GTFS trips that span midnight.
+//
+// For example, if querying at 00:05:00 on 2025-12-22:
+// - prevDate = "20251221"
+// - overnightTime = "24:05:00"
+//
+// This allows finding trips from the previous day's service that have departure
+// times >= 24:00:00 (which represent early morning times the next calendar day).
+func GetPreviousDayOvernightParams(datetime string) (prevDate string, overnightTime string, err error) {
+	t, err := ParseISO8601(datetime)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Get previous day
+	prevDay := t.AddDate(0, 0, -1)
+	prevDate = prevDay.Format("20060102")
+
+	// Calculate overnight time: add 24 hours to current time
+	hours := t.Hour() + 24
+	minutes := t.Minute()
+	seconds := t.Second()
+	overnightTime = fmt.Sprintf("%02d:%02d:%02d", hours, minutes, seconds)
+
+	return prevDate, overnightTime, nil
+}

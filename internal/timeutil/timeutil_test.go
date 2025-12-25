@@ -160,3 +160,65 @@ func TestParseAndFormatISO8601(t *testing.T) {
 		t.Errorf("FormatISO8601() = %v, want %v", formatted, original)
 	}
 }
+
+func TestGetPreviousDayOvernightParams(t *testing.T) {
+	tests := []struct {
+		name             string
+		datetime         string
+		wantPrevDate     string
+		wantOvernightTime string
+		wantErr          bool
+	}{
+		{
+			name:             "early morning",
+			datetime:         "2025-12-22T00:05:00",
+			wantPrevDate:     "20251221",
+			wantOvernightTime: "24:05:00",
+			wantErr:          false,
+		},
+		{
+			name:             "midnight",
+			datetime:         "2025-12-22T00:00:00",
+			wantPrevDate:     "20251221",
+			wantOvernightTime: "24:00:00",
+			wantErr:          false,
+		},
+		{
+			name:             "1am",
+			datetime:         "2025-12-22T01:30:45",
+			wantPrevDate:     "20251221",
+			wantOvernightTime: "25:30:45",
+			wantErr:          false,
+		},
+		{
+			name:             "crossing year boundary",
+			datetime:         "2026-01-01T00:15:00",
+			wantPrevDate:     "20251231",
+			wantOvernightTime: "24:15:00",
+			wantErr:          false,
+		},
+		{
+			name:             "invalid format",
+			datetime:         "2025-12-22 00:05:00",
+			wantPrevDate:     "",
+			wantOvernightTime: "",
+			wantErr:          true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			prevDate, overnightTime, err := GetPreviousDayOvernightParams(tt.datetime)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetPreviousDayOvernightParams() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if prevDate != tt.wantPrevDate {
+				t.Errorf("GetPreviousDayOvernightParams() prevDate = %v, want %v", prevDate, tt.wantPrevDate)
+			}
+			if overnightTime != tt.wantOvernightTime {
+				t.Errorf("GetPreviousDayOvernightParams() overnightTime = %v, want %v", overnightTime, tt.wantOvernightTime)
+			}
+		})
+	}
+}

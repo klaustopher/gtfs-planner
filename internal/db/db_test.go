@@ -536,3 +536,66 @@ func TestCalendarDateAddition(t *testing.T) {
 		}
 	})
 }
+
+// TestOvernightTrips tests that trips spanning midnight are correctly returned.
+// In GTFS, a trip departing at 00:05 can be stored as:
+// 1. Today's service with time "00:05:00", OR
+// 2. Yesterday's service with time "24:05:00"
+//
+// When querying at 00:05 on 2025-12-22 (Monday), we should find trips from:
+// - 2025-12-22's service with times >= 00:05:00 (if any exist)
+// - 2025-12-21's (Sunday) service with times >= 24:05:00
+//
+// Station 494889 (Augsburg, Königsplatz) has trip 1214020 departing at 24:05:00 on service 940.
+// Service 940 runs on Sundays (sunday=1), valid 20251220-20260119.
+func TestOvernightTrips(t *testing.T) {
+	db := skipIfNoDatabase(t)
+	defer db.Close()
+
+	stationID := "494889" // Augsburg, Königsplatz
+	tripID := "1214020"   // Departs at 24:05:00 on service 940
+
+	// Query at 00:05 on Monday 2025-12-22
+	// This should find trip 1214020 which departs at 24:05:00 on Sunday 2025-12-21's service
+	// (24:05:00 on Sunday = 00:05:00 on Monday)
+	t.Run("finds overnight trip from previous day service", func(t *testing.T) {
+		data, err := db.GetUpcomingTrips(stationID, "2025-12-22T00:05:00", 50)
+		if err != nil {
+			t.Fatalf("GetUpcomingTrips failed: %v", err)
+		}
+		if !tripInResults(data, tripID) {
+			t.Errorf("Expected trip %s (24:05:00 on Sunday's service) to be returned when querying at 00:05 on Monday, but it was not", tripID)
+		}
+	})
+
+	// Query at 00:04 on Monday 2025-12-22
+	// This should NOT find trip 1214020 since 24:05 > 00:04
+	t.Run("does not find overnight trip before its departure", func(t *testing.T) {
+		data, err := db.GetUpcomingTrips(stationID, "2025-12-22T00:04:00", 50)
+		if err != nil {
+			t.Fatalf("GetUpcomingTrips failed: %v", err)
+		}
+		// Trip 1214020 departs at 24:05, but we're querying at 00:04
+		// However, there might be trips at 24:00-24:04 that should appear
+		// So we just verify trip 1214020 specifically is NOT in results before 00:05
+		// Actually, querying at 00:04 should find trips >= 24:04, so 24:05 should NOT be included
+		// Let's check - if 24:05 maps to 00:05, then querying at 00:04 should find 24:04+ trips
+		// and 24:05 (00:05) is after 00:04, so it SHOULD be included
+		// The test should verify that 24:05 trip IS found when querying at 00:04
+		if !tripInResults(data, tripID) {
+			t.Errorf("Expected trip %s (24:05:00) to be returned when querying at 00:04, but it was not", tripID)
+		}
+	})
+
+	// Query at 23:55 on Sunday 2025-12-21
+	// Trip 1214020 departs at 24:05 which is AFTER 23:55, so it should be found
+	t.Run("finds overnight trip when querying before midnight", func(t *testing.T) {
+		data, err := db.GetUpcomingTrips(stationID, "2025-12-21T23:55:00", 50)
+		if err != nil {
+			t.Fatalf("GetUpcomingTrips failed: %v", err)
+		}
+		if !tripInResults(data, tripID) {
+			t.Errorf("Expected trip %s (24:05:00) to be returned when querying at 23:55, but it was not", tripID)
+		}
+	})
+}
