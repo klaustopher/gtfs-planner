@@ -232,5 +232,37 @@ func TestGetRoutesForStationInvalidID(t *testing.T) {
 	}
 }
 
+func TestSearchStations(t *testing.T) {
+	db := skipIfNoDatabase(t)
+	defer db.Close()
+
+	stops, err := db.GetStops(52.6, 52.4, 13.5, 13.3)
+	if err != nil {
+		t.Fatalf("GetStops failed: %v", err)
+	}
+	if len(stops) == 0 {
+		t.Skip("No stations available to test search")
+	}
+
+	name := stops[0].StopName
+	if len(name) > 6 {
+		name = name[:6]
+	}
+
+	results, err := db.SearchStations(name, 5)
+	if err != nil {
+		t.Fatalf("SearchStations failed: %v", err)
+	}
+	if len(results) == 0 {
+		t.Fatalf("Expected search results for query %q", name)
+	}
+
+	for i, stop := range results {
+		if stop.StopID == "" || stop.StopName == "" {
+			t.Errorf("Result %d missing basic data", i)
+		}
+	}
+}
+
 // RoutesData is a type alias for testing
 type RoutesData = models.RoutesData

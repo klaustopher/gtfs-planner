@@ -64,6 +64,14 @@ func (a *App) GetRoutesForStation(stopID string) (*models.RoutesData, error) {
 	return a.db.GetRoutesForStation(stopID)
 }
 
+// SearchStations returns stations that loosely match the provided query text.
+func (a *App) SearchStations(query string, limit int) ([]models.Stop, error) {
+	if a.db == nil {
+		return nil, fmt.Errorf("database not connected")
+	}
+	return a.db.SearchStations(query, limit)
+}
+
 // Greet returns a greeting for the given name
 func (a *App) Greet(name string) string {
 	return fmt.Sprintf("Hello %s, It's show time!", name)

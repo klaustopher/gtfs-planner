@@ -4,6 +4,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"bus-planning/internal/models"
 
@@ -184,6 +185,50 @@ func (db *DB) GetRoutesForStation(stopID string) (*models.RoutesData, error) {
 	}
 
 	return result, nil
+}
+
+// SearchStations returns stations whose names loosely match the provided query text.
+func (db *DB) SearchStations(query string, limit int) ([]models.Stop, error) {
+	trimmed := strings.TrimSpace(query)
+	if trimmed == "" {
+		return []models.Stop{}, nil
+	}
+
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 50 {
+		limit = 50
+	}
+
+	searchTerm := "%" + trimmed + "%"
+	rows, err := db.conn.Query(`
+		SELECT stop_id, stop_name, stop_lat, stop_lon
+		FROM stops
+		WHERE location_type = 1
+		  AND UPPER(stop_name) LIKE UPPER(?)
+		ORDER BY stop_name
+		LIMIT ?
+	`, searchTerm, limit)
+	if err != nil {
+		return nil, fmt.Errorf("station search failed: %w", err)
+	}
+	defer rows.Close()
+
+	var results []models.Stop
+	for rows.Next() {
+		var stop models.Stop
+		if err := rows.Scan(&stop.StopID, &stop.StopName, &stop.StopLat, &stop.StopLon); err != nil {
+			return nil, fmt.Errorf("search scan failed: %w", err)
+		}
+		results = append(results, stop)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("search rows error: %w", err)
+	}
+
+	return results, nil
 }
 
 // getRouteGeometry fetches the geometry for a single route, preferring a trip that serves the

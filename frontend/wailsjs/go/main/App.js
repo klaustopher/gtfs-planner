@@ -17,3 +17,7 @@ export function GetStops(arg1, arg2, arg3, arg4) {
 export function Greet(arg1) {
   return window['go']['main']['App']['Greet'](arg1);
 }
+
+export function SearchStations(arg1, arg2) {
+  return window['go']['main']['App']['SearchStations'](arg1, arg2);
+}
