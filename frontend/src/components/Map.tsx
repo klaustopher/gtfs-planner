@@ -75,6 +75,7 @@ const stopsLayerStyle: CircleLayerSpecification = {
     'circle-color': '#e74c3c',
     'circle-stroke-width': 2,
     'circle-stroke-color': '#ffffff',
+    'circle-opacity': 0.7,
   },
 }
 
