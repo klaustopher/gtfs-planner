@@ -1,0 +1,93 @@
+{
+  "common": {
+    "language": {
+      "label": "Language",
+      "ariaLabel": "Select interface language",
+      "options": {
+        "de": "German",
+        "en": "English"
+      }
+    }
+  },
+  "journey": {
+    "title": "Journey Planning",
+    "actions": {
+      "new": "New",
+      "newTooltip": "Start a new journey",
+      "load": "Load",
+      "loadTooltip": "Load a saved journey",
+      "save": "Save",
+      "saveTooltip": "Save the current journey"
+    },
+    "plannedTitle": "Planned Journey",
+    "clearSaved": "Clear",
+    "removeTrip": "Remove connection",
+    "unsaved": {
+      "title": "Unsaved changes",
+      "message": "There are unsaved changes. Do you want to continue and discard them?"
+    }
+  },
+  "stationSection": {
+    "selectPrompt": "Select a station",
+    "hint": "Click any station on the map to view departures",
+    "loading": "Loading departures...",
+    "empty": "No departures found for this time"
+  },
+  "map": {
+    "search": {
+      "label": "Search station",
+      "placeholder": "Search station...",
+      "status": {
+        "searching": "Searching...",
+        "empty": "No stations found"
+      },
+      "resultsAria": "Station suggestions"
+    },
+    "datetime": {
+      "date": "Date",
+      "time": "Time"
+    }
+  },
+  "tripModal": {
+    "loading": "Loading trip details...",
+    "error": "Failed to load trip details",
+    "close": "Close dialog"
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Tweak how the planner behaves",
+    "languageLabel": "Interface language",
+    "languageHint": "Choose which language the interface should use.",
+    "openButton": "Settings",
+    "openButtonTooltip": "Open app settings",
+    "close": "Close settings"
+  },
+  "transportType": {
+    "short": {
+      "tram": "Tram",
+      "subway": "Metro",
+      "rail": "Rail",
+      "bus": "Bus",
+      "ferry": "Ferry",
+      "cableTram": "Cable tram",
+      "aerialLift": "Gondola",
+      "funicular": "Funicular",
+      "trolleybus": "Trolleybus",
+      "monorail": "Monorail",
+      "unknown": "?"
+    },
+    "name": {
+      "tram": "Tram / Light rail",
+      "subway": "Subway / Metro",
+      "rail": "Rail",
+      "bus": "Bus",
+      "ferry": "Ferry",
+      "cableTram": "Cable tram",
+      "aerialLift": "Aerial lift / Gondola",
+      "funicular": "Funicular",
+      "trolleybus": "Trolleybus",
+      "monorail": "Monorail",
+      "unknown": "Unknown ({{routeType}})"
+    }
+  }
+}

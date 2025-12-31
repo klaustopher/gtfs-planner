@@ -5,6 +5,7 @@ import TripDetailModal from './components/TripDetailModal'
 import { models } from '../wailsjs/go/models'
 import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, ShowConfirmDialog } from '../wailsjs/go/main/App'
 import { useTrips, TripQueryParams } from './components/map/useTrips'
+import { useTranslation } from 'react-i18next'
 import './App.css'
 
 const UPCOMING_TRIPS_LIMIT = 10
@@ -56,6 +57,7 @@ function addMinutesToDateTime(isoDateTime: string, minutes: number): { date: str
 }
 
 function App() {
+  const { t } = useTranslation()
   const [viewState, setViewState] = useState<MapViewState | null>(null)
   const [selectedStation, setSelectedStation] = useState<models.StationDetails | null>(null)
 
@@ -204,8 +206,8 @@ function App() {
     // Warn about unsaved changes
     if (hasUnsavedChanges) {
       const confirmed = await ShowConfirmDialog(
-        'Ungespeicherte Änderungen',
-        'Es gibt ungespeicherte Änderungen. Möchten Sie fortfahren und diese verwerfen?'
+        t('journey.unsaved.title'),
+        t('journey.unsaved.message')
       )
       if (!confirmed) {
         return
@@ -273,15 +275,15 @@ function App() {
     } catch (err) {
       console.error('Failed to load journey:', err)
     }
-  }, [hasUnsavedChanges])
+  }, [hasUnsavedChanges, t])
 
   // Start new journey
   const handleNewJourney = useCallback(async () => {
     // Warn about unsaved changes
     if (hasUnsavedChanges) {
       const confirmed = await ShowConfirmDialog(
-        'Ungespeicherte Änderungen',
-        'Es gibt ungespeicherte Änderungen. Möchten Sie fortfahren und diese verwerfen?'
+        t('journey.unsaved.title'),
+        t('journey.unsaved.message')
       )
       if (!confirmed) {
         return
@@ -296,7 +298,7 @@ function App() {
     setSelectedTime(formatTimeForInput(now))
     setCurrentFilePath(null)
     setHasUnsavedChanges(false)
-  }, [hasUnsavedChanges])
+  }, [hasUnsavedChanges, t])
 
   // Build trip query params when station is selected
   const tripQueryParams: TripQueryParams | null = useMemo(() => {
@@ -319,6 +321,7 @@ function App() {
           onStationSelect={setSelectedStation}
           selectedStation={selectedStation}
           tripsData={tripsData}
+          savedTrips={savedTrips}
           selectedDate={selectedDate}
           selectedTime={selectedTime}
           onDateChange={setSelectedDate}

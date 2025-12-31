@@ -48,6 +48,49 @@
   max-width: 120px;
 }
 
+.sidebar-footer {
+  margin-top: auto;
+}
+
+.settings-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-btn:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.settings-btn__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.settings-btn__label {
+  flex: 1;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+}
+
 /* Hint text */
 .sidebar-hint {
   color: rgba(255, 255, 255, 0.5);

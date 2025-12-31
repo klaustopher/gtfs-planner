@@ -1,42 +1,51 @@
-// GTFS route type mapping to human-readable names and short labels
+// GTFS route type mapping to translation keys for human-readable names
 // Based on GTFS specification: https://gtfs.org/schedule/reference/#routestxt
 
+import type { TFunction } from 'i18next'
+
 export interface TransportTypeInfo {
-  name: string      // Full name (e.g., "Tram/Streetcar")
-  short: string     // Short label for badges (e.g., "Tram")
-  icon?: string     // Optional emoji/icon
+  nameKey: string      // Translation key for full name (e.g., "transportType.name.tram")
+  shortKey: string     // Translation key for short badge label
+  icon?: string        // Optional emoji/icon
 }
 
 const TRANSPORT_TYPES: Record<number, TransportTypeInfo> = {
-  0: { name: 'Tram/Streetcar/Light rail', short: 'Tram' },
-  1: { name: 'Subway/Metro', short: 'U-Bahn' },
-  2: { name: 'Rail', short: 'Zug' },
-  3: { name: 'Bus', short: 'Bus' },
-  4: { name: 'Ferry', short: 'Fähre' },
-  5: { name: 'Cable tram', short: 'Seilbahn' },
-  6: { name: 'Aerial lift/Gondola', short: 'Gondel' },
-  7: { name: 'Funicular', short: 'Standseilbahn' },
-  11: { name: 'Trolleybus', short: 'O-Bus' },
-  12: { name: 'Monorail', short: 'Monorail' },
+  0: { nameKey: 'transportType.name.tram', shortKey: 'transportType.short.tram' },
+  1: { nameKey: 'transportType.name.subway', shortKey: 'transportType.short.subway' },
+  2: { nameKey: 'transportType.name.rail', shortKey: 'transportType.short.rail' },
+  3: { nameKey: 'transportType.name.bus', shortKey: 'transportType.short.bus' },
+  4: { nameKey: 'transportType.name.ferry', shortKey: 'transportType.short.ferry' },
+  5: { nameKey: 'transportType.name.cableTram', shortKey: 'transportType.short.cableTram' },
+  6: { nameKey: 'transportType.name.aerialLift', shortKey: 'transportType.short.aerialLift' },
+  7: { nameKey: 'transportType.name.funicular', shortKey: 'transportType.short.funicular' },
+  11: { nameKey: 'transportType.name.trolleybus', shortKey: 'transportType.short.trolleybus' },
+  12: { nameKey: 'transportType.name.monorail', shortKey: 'transportType.short.monorail' },
+}
+
+const UNKNOWN_TYPE: TransportTypeInfo = {
+  nameKey: 'transportType.name.unknown',
+  shortKey: 'transportType.short.unknown',
 }
 
 /**
  * Get transport type information for a GTFS route type
  */
 export function getTransportTypeInfo(routeType: number): TransportTypeInfo {
-  return TRANSPORT_TYPES[routeType] ?? { name: `Unknown (${routeType})`, short: '?' }
+  return TRANSPORT_TYPES[routeType] ?? UNKNOWN_TYPE
 }
 
 /**
  * Get the short label for a GTFS route type (for badges)
  */
-export function getTransportTypeLabel(routeType: number): string {
-  return getTransportTypeInfo(routeType).short
+export function getTransportTypeLabel(routeType: number, t: TFunction): string {
+  const info = getTransportTypeInfo(routeType)
+  return t(info.shortKey, { routeType })
 }
 
 /**
  * Get the full name for a GTFS route type
  */
-export function getTransportTypeName(routeType: number): string {
-  return getTransportTypeInfo(routeType).name
+export function getTransportTypeName(routeType: number, t: TFunction): string {
+  const info = getTransportTypeInfo(routeType)
+  return t(info.nameKey, { routeType })
 }

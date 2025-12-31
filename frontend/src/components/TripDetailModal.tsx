@@ -3,6 +3,7 @@ import { models } from '../../wailsjs/go/models'
 import { GetTripDetails } from '../../wailsjs/go/main/App'
 import { normalizeColor, FALLBACK_COLORS } from './map/geojson'
 import { getTransportTypeLabel } from '../utils/transportType'
+import { useTranslation } from 'react-i18next'
 import './TripDetailModal.css'
 
 interface TripDetailModalProps {
@@ -14,9 +15,9 @@ interface TripDetailModalProps {
 }
 
 // Format ISO 8601 datetime to HH:MM display
-function formatTimeDisplay(isoDateTime: string): string {
+function formatTimeDisplay(isoDateTime: string, locale: string): string {
   const date = new Date(isoDateTime)
-  return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+  return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
 export default function TripDetailModal({
@@ -28,7 +29,9 @@ export default function TripDetailModal({
 }: TripDetailModalProps) {
   const [tripDetails, setTripDetails] = useState<models.TripDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [hasError, setHasError] = useState(false)
+  const { t, i18n } = useTranslation()
+  const resolvedLanguage = i18n.language || i18n.resolvedLanguage || 'en'
 
   const normalizedColor = normalizeColor(trip.route_color)
   const tripColor = normalizedColor ?? FALLBACK_COLORS[tripIndex % FALLBACK_COLORS.length]
@@ -36,7 +39,7 @@ export default function TripDetailModal({
   // Fetch full trip details when modal opens
   useEffect(() => {
     setIsLoading(true)
-    setError(null)
+    setHasError(false)
 
     GetTripDetails(trip.trip_id, serviceDate)
       .then((details) => {
@@ -45,7 +48,7 @@ export default function TripDetailModal({
       })
       .catch((err) => {
         console.error('Failed to fetch trip details:', err)
-        setError('Failed to load trip details')
+        setHasError(true)
         setIsLoading(false)
       })
   }, [trip.trip_id, serviceDate])
@@ -80,7 +83,7 @@ export default function TripDetailModal({
         <div className="trip-detail-modal__header">
           <div className="trip-detail-modal__title">
             <span className="trip-detail-modal__type-badge">
-              {getTransportTypeLabel(trip.route_type)}
+              {getTransportTypeLabel(trip.route_type, t)}
             </span>
             <span
               className="trip-detail-modal__badge"
@@ -90,19 +93,19 @@ export default function TripDetailModal({
             </span>
             <span className="trip-detail-modal__destination">{destination}</span>
           </div>
-          <button className="trip-detail-modal__close" onClick={onClose}>
+          <button className="trip-detail-modal__close" onClick={onClose} aria-label={t('tripModal.close')}>
             ×
           </button>
         </div>
 
         <div className="trip-detail-modal__stops">
           {isLoading && (
-            <div className="trip-detail-modal__loading">Loading trip details...</div>
+            <div className="trip-detail-modal__loading">{t('tripModal.loading')}</div>
           )}
-          {error && (
-            <div className="trip-detail-modal__error">{error}</div>
+          {hasError && (
+            <div className="trip-detail-modal__error">{t('tripModal.error')}</div>
           )}
-          {!isLoading && !error && stopTimes.map((stopTime, index) => {
+          {!isLoading && !hasError && stopTimes.map((stopTime, index) => {
             const isSelected = stopTime.stop_id === selectedStationId
             const isFirst = index === 0
             const isLast = index === stopTimes.length - 1
@@ -126,10 +129,10 @@ export default function TripDetailModal({
                 </div>
                 <div className="trip-detail-modal__stop-times">
                   <span className="trip-detail-modal__stop-arr">
-                    {isFirst ? '' : formatTimeDisplay(stopTime.arrival_datetime)}
+                    {isFirst ? '' : formatTimeDisplay(stopTime.arrival_datetime, resolvedLanguage)}
                   </span>
                   <span className="trip-detail-modal__stop-dep">
-                    {isLast ? '' : formatTimeDisplay(stopTime.departure_datetime)}
+                    {isLast ? '' : formatTimeDisplay(stopTime.departure_datetime, resolvedLanguage)}
                   </span>
                 </div>
                 <div className="trip-detail-modal__stop-name">

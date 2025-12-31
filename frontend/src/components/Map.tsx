@@ -14,6 +14,7 @@ import { useStops, Bounds } from './map/useStops'
 import { stopsToGeoJSON, tripsToGeoJSON } from './map/geojson'
 import StationHoverPanel from './map/StationHoverPanel'
 import { SavedTrip } from '../App'
+import { useTranslation } from 'react-i18next'
 import './Map.css'
 
 export interface MapViewState {
@@ -92,6 +93,7 @@ export default function Map({
   onTimeChange,
   onTripSelection,
 }: MapProps) {
+  const { t } = useTranslation()
   const [viewState, setViewState] = useState(INITIAL_VIEW_STATE)
   const [isLoadingStation, setIsLoadingStation] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -439,12 +441,12 @@ export default function Map({
     <div className="map-shell">
       <div className="map-search" role="search">
         <label className="map-search__sr-only" htmlFor="map-search-input">
-          Station suchen
+          {t('map.search.label')}
         </label>
         <input
           id="map-search-input"
           type="text"
-          placeholder="Station suchen..."
+          placeholder={t('map.search.placeholder')}
           value={searchTerm}
           onChange={handleSearchInputChange}
           onKeyDown={handleSearchKeyDown}
@@ -453,13 +455,13 @@ export default function Map({
         />
         {(isSearching || showEmptyState) && (
           <div className="map-search__status-row">
-            {isSearching && <span className="map-search__status">Suche läuft...</span>}
-            {showEmptyState && <span className="map-search__status">Keine Station gefunden</span>}
+            {isSearching && <span className="map-search__status">{t('map.search.status.searching')}</span>}
+            {showEmptyState && <span className="map-search__status">{t('map.search.status.empty')}</span>}
           </div>
         )}
         <div className="map-datetime">
           <label className="map-datetime__label">
-            <span>Datum</span>
+            <span>{t('map.datetime.date')}</span>
             <input
               type="date"
               value={selectedDate}
@@ -468,7 +470,7 @@ export default function Map({
             />
           </label>
           <label className="map-datetime__label">
-            <span>Zeit</span>
+            <span>{t('map.datetime.time')}</span>
             <input
               type="time"
               value={selectedTime}
@@ -478,7 +480,7 @@ export default function Map({
           </label>
         </div>
         {showResults && (
-          <ul className="map-search__results" role="listbox" aria-label="Stationsempfehlungen">
+          <ul className="map-search__results" role="listbox" aria-label={t('map.search.resultsAria')}>
             {searchResults.map((stop, index) => {
               const isActive = index === activeResultIndex
               return (

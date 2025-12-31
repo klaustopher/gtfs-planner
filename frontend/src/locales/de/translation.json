@@ -1,0 +1,93 @@
+{
+  "common": {
+    "language": {
+      "label": "Sprache",
+      "ariaLabel": "Sprache auswählen",
+      "options": {
+        "de": "Deutsch",
+        "en": "Englisch"
+      }
+    }
+  },
+  "journey": {
+    "title": "Reiseplanung",
+    "actions": {
+      "new": "Neu",
+      "newTooltip": "Neue Reise starten",
+      "load": "Laden",
+      "loadTooltip": "Gespeicherte Reise laden",
+      "save": "Speichern",
+      "saveTooltip": "Aktuelle Reise speichern"
+    },
+    "plannedTitle": "Geplante Reise",
+    "clearSaved": "Löschen",
+    "removeTrip": "Verbindung entfernen",
+    "unsaved": {
+      "title": "Ungespeicherte Änderungen",
+      "message": "Es gibt ungespeicherte Änderungen. Möchten Sie fortfahren und diese verwerfen?"
+    }
+  },
+  "stationSection": {
+    "selectPrompt": "Station auswählen",
+    "hint": "Klicke auf eine Station in der Karte, um Abfahrten zu sehen",
+    "loading": "Lade Abfahrten...",
+    "empty": "Keine Abfahrten für diese Zeit gefunden"
+  },
+  "map": {
+    "search": {
+      "label": "Station suchen",
+      "placeholder": "Station suchen...",
+      "status": {
+        "searching": "Suche läuft...",
+        "empty": "Keine Station gefunden"
+      },
+      "resultsAria": "Stationsempfehlungen"
+    },
+    "datetime": {
+      "date": "Datum",
+      "time": "Zeit"
+    }
+  },
+  "tripModal": {
+    "loading": "Lade Verbindungsdetails...",
+    "error": "Verbindungsdetails konnten nicht geladen werden",
+    "close": "Dialog schließen"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "description": "Passe an, wie der Planer funktioniert",
+    "languageLabel": "Anzeigesprache",
+    "languageHint": "Wähle die Sprache für die Benutzeroberfläche.",
+    "openButton": "Einstellungen",
+    "openButtonTooltip": "App-Einstellungen öffnen",
+    "close": "Einstellungen schließen"
+  },
+  "transportType": {
+    "short": {
+      "tram": "Tram",
+      "subway": "U-Bahn",
+      "rail": "Zug",
+      "bus": "Bus",
+      "ferry": "Fähre",
+      "cableTram": "Seilbahn",
+      "aerialLift": "Gondel",
+      "funicular": "Standseilbahn",
+      "trolleybus": "O-Bus",
+      "monorail": "Monorail",
+      "unknown": "?"
+    },
+    "name": {
+      "tram": "Tram / Stadtbahn",
+      "subway": "U-Bahn / Metro",
+      "rail": "Zug",
+      "bus": "Bus",
+      "ferry": "Fähre",
+      "cableTram": "Seilbahn",
+      "aerialLift": "Luftseilbahn / Gondel",
+      "funicular": "Standseilbahn",
+      "trolleybus": "Oberleitungsbus",
+      "monorail": "Monorail",
+      "unknown": "Unbekannt ({{routeType}})"
+    }
+  }
+}

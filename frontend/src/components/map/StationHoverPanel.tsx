@@ -1,12 +1,13 @@
 import { useMemo } from 'react'
 import { models } from '../../../wailsjs/go/models'
 import { getTripColor } from './geojson'
+import { useTranslation } from 'react-i18next'
 import './StationHoverPanel.css'
 
 // Format ISO 8601 datetime to HH:MM display
-function formatTimeDisplay(isoDateTime: string): string {
+function formatTimeDisplay(isoDateTime: string, locale: string): string {
   const date = new Date(isoDateTime)
-  return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+  return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
 interface StationHoverPanelProps {
@@ -41,6 +42,8 @@ export default function StationHoverPanel({
   onMouseEnter,
   onMouseLeave,
 }: StationHoverPanelProps) {
+  const { i18n } = useTranslation()
+  const resolvedLanguage = i18n.language || i18n.resolvedLanguage || 'en'
   // Find trips that pass through this station and get their arrival datetimes
   const tripsToStation = useMemo(() => {
     const result: TripToStation[] = []
@@ -99,11 +102,11 @@ export default function StationHoverPanel({
               </span>
               <span className="station-hover-panel__times">
                 <span className="station-hover-panel__dep">
-                  {formatTimeDisplay(trip.departure_datetime)}
+                  {formatTimeDisplay(trip.departure_datetime, resolvedLanguage)}
                 </span>
                 <span className="station-hover-panel__arrow">→</span>
                 <span className="station-hover-panel__arr">
-                  {formatTimeDisplay(arrivalDateTime)}
+                  {formatTimeDisplay(arrivalDateTime, resolvedLanguage)}
                 </span>
               </span>
             </button>
