@@ -13,6 +13,7 @@ import { models } from '../../wailsjs/go/models'
 import { useStops, Bounds } from './map/useStops'
 import { stopsToGeoJSON, tripsToGeoJSON } from './map/geojson'
 import StationHoverPanel from './map/StationHoverPanel'
+import { SavedTrip } from '../App'
 import './Map.css'
 
 export interface MapViewState {
@@ -35,6 +36,7 @@ interface MapProps {
   onStationSelect?: (station: models.StationDetails | null) => void
   selectedStation?: models.StationDetails | null
   tripsData?: models.UpcomingTripsData | null
+  savedTrips: SavedTrip[]
   selectedDate: string
   selectedTime: string
   onDateChange: (date: string) => void

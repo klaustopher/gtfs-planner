@@ -77,7 +77,7 @@ GetTripDetails(tripID, serviceDate)        // Full trip itinerary
 - `App.tsx` - State management, journey planning logic
 - `components/Map.tsx` - MapLibre map with search, station selection
 - `components/TripDetailModal.tsx` - Trip itinerary viewer
-- `components/DebugSidebar.tsx` - Departures list, journey plan display
+- `components/Sidebar.tsx` - Journey planning panel, departures list
 
 **Custom Hooks (`components/map/`):**
 - `useStops.ts` - Fetches stations in viewport (debounced)

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import Map, { MapViewState } from './components/Map'
-import DebugSidebar from './components/DebugSidebar'
+import Sidebar from './components/Sidebar'
 import TripDetailModal from './components/TripDetailModal'
 import { models } from '../wailsjs/go/models'
 import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, ShowConfirmDialog } from '../wailsjs/go/main/App'
@@ -326,8 +326,7 @@ function App() {
           onTripSelection={handleTripSelection}
         />
       </div>
-      <DebugSidebar
-        viewState={viewState}
+      <Sidebar
         selectedStation={selectedStation}
         tripsData={tripsData}
         isLoadingTrips={isLoadingTrips}

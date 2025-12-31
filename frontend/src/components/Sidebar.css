@@ -1,0 +1,306 @@
+.sidebar {
+  width: 320px;
+  background-color: #1a1f2e;
+  color: white;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Card component */
+.sidebar-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-card--flex {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sidebar-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.sidebar-card__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.sidebar-card__subtitle {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+
+/* Hint text */
+.sidebar-hint {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  margin: 0;
+  padding: 8px 0;
+}
+
+/* Journey actions */
+.journey-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.journey-btn {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.journey-btn--secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.journey-btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.journey-btn--primary {
+  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+  color: #0a1a0f;
+}
+
+.journey-btn--primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5eea94 0%, #2ed96b 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);
+}
+
+.journey-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.journey-btn__indicator {
+  color: #fbbf24;
+  margin-left: 4px;
+  font-weight: 700;
+}
+
+/* Trips section */
+.trips-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.trips-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.trip-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  border: none;
+  border-left: 4px solid #666;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.trip-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(2px);
+}
+
+.trip-time {
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Menlo', monospace;
+  color: #4ade80;
+  min-width: 50px;
+}
+
+.trip-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.trip-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trip-type-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.trip-route-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: white;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.trip-destination {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Saved trips / Planned journey */
+.saved-trips-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.saved-trip-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  border-left: 4px solid #666;
+}
+
+.saved-trip-number {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.4);
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+
+.saved-trip-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.saved-trip-route {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.saved-trip-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.saved-trip-leg {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.saved-trip-time {
+  font-family: 'SF Mono', 'Menlo', monospace;
+  color: #4ade80;
+  font-weight: 600;
+  min-width: 42px;
+}
+
+.saved-trip-station {
+  color: rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-trip-arrow {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 10px;
+  padding-left: 50px;
+}
+
+.clear-trips-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 100, 100, 0.3);
+  color: rgba(255, 100, 100, 0.8);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clear-trips-btn:hover {
+  background: rgba(255, 100, 100, 0.15);
+  border-color: rgba(255, 100, 100, 0.5);
+  color: #ff6b6b;
+}
+
+.remove-trip-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: color 0.2s;
+  align-self: flex-start;
+}
+
+.remove-trip-btn:hover {
+  color: #ff6b6b;
+}
