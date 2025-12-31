@@ -385,6 +385,7 @@ function App() {
           selectedStationId={selectedStation.stop_id}
           serviceDate={selectedDate.replace(/-/g, '')}
           onClose={closeTripModal}
+          onTripSelection={handleTripSelection}
         />
       )}
     </div>

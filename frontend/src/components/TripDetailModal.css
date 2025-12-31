@@ -178,3 +178,38 @@
   font-weight: 600;
   color: white;
 }
+
+/* Clickable stops (after selected station) */
+.trip-detail-modal__stop--clickable {
+  width: 100%;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  margin: 0 -12px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  transition: background 0.15s;
+  color: inherit;
+  font: inherit;
+}
+
+.trip-detail-modal__stop--clickable:hover {
+  background: rgba(74, 222, 128, 0.15);
+}
+
+.trip-detail-modal__stop--clickable:focus {
+  outline: none;
+  background: rgba(74, 222, 128, 0.2);
+}
+
+.trip-detail-modal__stop--clickable .trip-detail-modal__stop-name::after {
+  content: ' →';
+  color: rgba(74, 222, 128, 0.6);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.trip-detail-modal__stop--clickable:hover .trip-detail-modal__stop-name::after {
+  opacity: 1;
+}

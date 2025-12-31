@@ -55,7 +55,8 @@
   "tripModal": {
     "loading": "Lade Verbindungsdetails...",
     "error": "Verbindungsdetails konnten nicht geladen werden",
-    "close": "Dialog schließen"
+    "close": "Dialog schließen",
+    "selectStopTooltip": "Fahrt buchen und an dieser Station aussteigen"
   },
   "settings": {
     "title": "Einstellungen",

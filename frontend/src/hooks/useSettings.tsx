@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useContext, createContext, type ReactNode } from 'react'
 
 const STORAGE_KEY = 'bus-planning-settings'
 
@@ -12,7 +12,14 @@ const DEFAULT_SETTINGS: Settings = {
   connectionTimeMinutes: 5,
 }
 
-export function useSettings() {
+interface SettingsContextValue {
+  settings: Settings
+  updateSettings: (updates: Partial<Settings>) => void
+}
+
+const SettingsContext = createContext<SettingsContextValue | null>(null)
+
+export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
@@ -38,5 +45,17 @@ export function useSettings() {
     setSettings(prev => ({ ...prev, ...updates }))
   }, [])
 
-  return { settings, updateSettings }
+  return (
+    <SettingsContext.Provider value={{ settings, updateSettings }}>
+      {children}
+    </SettingsContext.Provider>
+  )
+}
+
+export function useSettings() {
+  const context = useContext(SettingsContext)
+  if (!context) {
+    throw new Error('useSettings must be used within a SettingsProvider')
+  }
+  return context
 }

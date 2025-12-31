@@ -55,7 +55,8 @@
   "tripModal": {
     "loading": "Loading trip details...",
     "error": "Failed to load trip details",
-    "close": "Close dialog"
+    "close": "Close dialog",
+    "selectStopTooltip": "Board trip and exit at this station"
   },
   "settings": {
     "title": "Settings",

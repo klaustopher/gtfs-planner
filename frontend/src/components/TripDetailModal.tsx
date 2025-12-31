@@ -12,6 +12,12 @@ interface TripDetailModalProps {
   selectedStationId: string
   serviceDate: string // YYYYMMDD format
   onClose: () => void
+  onTripSelection: (
+    trip: models.UpcomingTrip,
+    destinationStopId: string,
+    destinationStopName: string,
+    arrivalDateTime: string
+  ) => void
 }
 
 // Format ISO 8601 datetime to HH:MM display
@@ -26,6 +32,7 @@ export default function TripDetailModal({
   selectedStationId,
   serviceDate,
   onClose,
+  onTripSelection,
 }: TripDetailModalProps) {
   const [tripDetails, setTripDetails] = useState<models.TripDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -105,42 +112,73 @@ export default function TripDetailModal({
           {hasError && (
             <div className="trip-detail-modal__error">{t('tripModal.error')}</div>
           )}
-          {!isLoading && !hasError && stopTimes.map((stopTime, index) => {
-            const isSelected = stopTime.stop_id === selectedStationId
-            const isFirst = index === 0
-            const isLast = index === stopTimes.length - 1
+          {!isLoading && !hasError && (() => {
+            // Use the trip's actual start station (may be nearby station) for determining clickable stops
+            const boardingStationId = trip.start_station_id
+            const boardingIndex = stopTimes.findIndex(st => st.stop_id === boardingStationId)
 
-            return (
-              <div
-                key={`${stopTime.stop_id}-${stopTime.stop_sequence}`}
-                className={`trip-detail-modal__stop ${isSelected ? 'trip-detail-modal__stop--selected' : ''}`}
-              >
-                <div className="trip-detail-modal__stop-indicator">
-                  <div
-                    className={`trip-detail-modal__stop-dot ${isFirst ? 'trip-detail-modal__stop-dot--first' : ''} ${isLast ? 'trip-detail-modal__stop-dot--last' : ''}`}
-                    style={{ borderColor: tripColor, backgroundColor: isSelected ? tripColor : undefined }}
-                  />
-                  {!isLast && (
+            return stopTimes.map((stopTime, index) => {
+              const isBoarding = stopTime.stop_id === boardingStationId
+              const isFirst = index === 0
+              const isLast = index === stopTimes.length - 1
+              // Stops after boarding station are clickable
+              const isClickable = boardingIndex >= 0 && index > boardingIndex
+
+              const handleStopClick = () => {
+                if (isClickable) {
+                  onTripSelection(trip, stopTime.stop_id, stopTime.stop_name, stopTime.arrival_datetime)
+                  onClose()
+                }
+              }
+
+              const stopContent = (
+                <>
+                  <div className="trip-detail-modal__stop-indicator">
                     <div
-                      className="trip-detail-modal__stop-line"
-                      style={{ backgroundColor: tripColor }}
+                      className={`trip-detail-modal__stop-dot ${isFirst ? 'trip-detail-modal__stop-dot--first' : ''} ${isLast ? 'trip-detail-modal__stop-dot--last' : ''}`}
+                      style={{ borderColor: tripColor, backgroundColor: isBoarding ? tripColor : undefined }}
                     />
-                  )}
+                    {!isLast && (
+                      <div
+                        className="trip-detail-modal__stop-line"
+                        style={{ backgroundColor: tripColor }}
+                      />
+                    )}
+                  </div>
+                  <div className="trip-detail-modal__stop-times">
+                    <span className="trip-detail-modal__stop-arr">
+                      {isFirst ? '' : formatTimeDisplay(stopTime.arrival_datetime, resolvedLanguage)}
+                    </span>
+                    <span className="trip-detail-modal__stop-dep">
+                      {isLast ? '' : formatTimeDisplay(stopTime.departure_datetime, resolvedLanguage)}
+                    </span>
+                  </div>
+                  <div className="trip-detail-modal__stop-name">
+                    {stopTime.stop_name}
+                  </div>
+                </>
+              )
+
+              return isClickable ? (
+                <button
+                  key={`${stopTime.stop_id}-${stopTime.stop_sequence}`}
+                  type="button"
+                  className="trip-detail-modal__stop trip-detail-modal__stop--clickable"
+                  onClick={handleStopClick}
+                  title={t('tripModal.selectStopTooltip')}
+                >
+                  {stopContent}
+                </button>
+              ) : (
+                <div
+                  key={`${stopTime.stop_id}-${stopTime.stop_sequence}`}
+                  className={`trip-detail-modal__stop ${isBoarding ? 'trip-detail-modal__stop--selected' : ''}`}
+                >
+                  {stopContent}
                 </div>
-                <div className="trip-detail-modal__stop-times">
-                  <span className="trip-detail-modal__stop-arr">
-                    {isFirst ? '' : formatTimeDisplay(stopTime.arrival_datetime, resolvedLanguage)}
-                  </span>
-                  <span className="trip-detail-modal__stop-dep">
-                    {isLast ? '' : formatTimeDisplay(stopTime.departure_datetime, resolvedLanguage)}
-                  </span>
-                </div>
-                <div className="trip-detail-modal__stop-name">
-                  {stopTime.stop_name}
-                </div>
-              </div>
-            )
-          })}
+              )
+            })
+          })()}
         </div>
       </div>
     </div>
