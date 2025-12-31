@@ -5,6 +5,7 @@ import TripDetailModal from './components/TripDetailModal'
 import { models } from '../wailsjs/go/models'
 import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, ShowConfirmDialog } from '../wailsjs/go/main/App'
 import { useTrips, TripQueryParams } from './components/map/useTrips'
+import { useSettings } from './hooks/useSettings'
 import { useTranslation } from 'react-i18next'
 import './App.css'
 
@@ -58,6 +59,7 @@ function addMinutesToDateTime(isoDateTime: string, minutes: number): { date: str
 
 function App() {
   const { t } = useTranslation()
+  const { settings, updateSettings } = useSettings()
   const [viewState, setViewState] = useState<MapViewState | null>(null)
   const [selectedStation, setSelectedStation] = useState<models.StationDetails | null>(null)
 
@@ -307,8 +309,9 @@ function App() {
       stopId: selectedStation.stop_id,
       datetime: combineToISO8601(selectedDate, selectedTime),
       limit: UPCOMING_TRIPS_LIMIT,
+      radiusMeters: settings.nearbyStationRadius,
     }
-  }, [selectedStation, selectedDate, selectedTime])
+  }, [selectedStation, selectedDate, selectedTime, settings.nearbyStationRadius])
 
   // Fetch upcoming trips when a station is selected
   const { tripsData, isLoading: isLoadingTrips } = useTrips(tripQueryParams)
@@ -342,6 +345,8 @@ function App() {
         onSaveJourney={handleSaveJourney}
         onLoadJourney={handleLoadJourney}
         onNewJourney={handleNewJourney}
+        nearbyStationRadius={settings.nearbyStationRadius}
+        onNearbyStationRadiusChange={(radius) => updateSettings({ nearbyStationRadius: radius })}
       />
       {tripModalData && selectedStation && (
         <TripDetailModal

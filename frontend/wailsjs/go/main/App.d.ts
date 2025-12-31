@@ -3,6 +3,8 @@
 import {models} from '../models';
 import {main} from '../models';
 
+export function GetNearbyStations(arg1:string,arg2:number):Promise<Array<models.Stop>>;
+
 export function GetRouteByID(arg1:string):Promise<models.Route>;
 
 export function GetRoutesForStation(arg1:string):Promise<models.RoutesData>;
@@ -14,6 +16,8 @@ export function GetStops(arg1:number,arg2:number,arg3:number,arg4:number):Promis
 export function GetTripDetails(arg1:string,arg2:string):Promise<models.TripDetails>;
 
 export function GetUpcomingTrips(arg1:string,arg2:string,arg3:number):Promise<models.UpcomingTripsData>;
+
+export function GetUpcomingTripsWithNearby(arg1:string,arg2:number,arg3:string,arg4:number):Promise<models.UpcomingTripsData>;
 
 export function Greet(arg1:string):Promise<string>;
 

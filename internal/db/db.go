@@ -4,6 +4,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"math"
 	"strings"
 
 	"bus-planning/internal/models"
@@ -232,6 +233,65 @@ func (db *DB) SearchStations(query string, limit int) ([]models.Stop, error) {
 	return results, nil
 }
 
+// GetNearbyStations returns all parent stations within radiusMeters of the given station.
+// Uses a simple bounding box approximation for performance.
+// Lat/lon differences approximation: 1 degree lat ≈ 111km, 1 degree lon ≈ 111km * cos(latitude)
+func (db *DB) GetNearbyStations(stopID string, radiusMeters float64) ([]models.Stop, error) {
+	// Get the reference station's coordinates
+	var refLat, refLon float64
+	err := db.conn.QueryRow(`
+		SELECT stop_lat, stop_lon
+		FROM stops
+		WHERE stop_id = ? AND location_type = 1
+	`, stopID).Scan(&refLat, &refLon)
+	if err != nil {
+		return nil, fmt.Errorf("station not found: %w", err)
+	}
+
+	// Calculate bounding box
+	// At equator: 1 degree ≈ 111,320 meters
+	// For small distances, this is accurate enough
+	latDelta := radiusMeters / 111320.0
+	lonDelta := radiusMeters / (111320.0 * math.Cos(refLat*math.Pi/180.0))
+
+	minLat := refLat - latDelta
+	maxLat := refLat + latDelta
+	minLon := refLon - lonDelta
+	maxLon := refLon + lonDelta
+
+	// Query stations within bounding box, excluding the reference station
+	query := `
+		SELECT stop_id, stop_name, stop_lat, stop_lon
+		FROM stops
+		WHERE location_type = 1
+		  AND stop_id != ?
+		  AND stop_lat BETWEEN ? AND ?
+		  AND stop_lon BETWEEN ? AND ?
+		ORDER BY stop_name
+	`
+
+	rows, err := db.conn.Query(query, stopID, minLat, maxLat, minLon, maxLon)
+	if err != nil {
+		return nil, fmt.Errorf("nearby stations query failed: %w", err)
+	}
+	defer rows.Close()
+
+	var stations []models.Stop
+	for rows.Next() {
+		var s models.Stop
+		if err := rows.Scan(&s.StopID, &s.StopName, &s.StopLat, &s.StopLon); err != nil {
+			return nil, fmt.Errorf("scan failed: %w", err)
+		}
+		stations = append(stations, s)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
+	}
+
+	return stations, nil
+}
+
 // getRouteGeometry fetches the geometry for a single route, preferring a trip that serves the
 // selected station to ensure the drawn polyline actually passes through it.
 func (db *DB) getRouteGeometry(routeID, stationID, shortName, longName, color string) (*models.RouteGeometry, []models.Stop) {
@@ -439,6 +499,116 @@ func (db *DB) GetUpcomingTrips(stopID string, datetime string, limit int) (*mode
 	}
 
 	// Sort trips by their normalized departure datetime
+	sortTripsByDepartureDateTime(result.Trips)
+
+	// Limit the final result
+	if len(result.Trips) > limit {
+		result.Trips = result.Trips[:limit]
+	}
+
+	// Convert station set to slice
+	for _, station := range stationSet {
+		result.Stations = append(result.Stations, station)
+	}
+
+	return result, nil
+}
+
+// GetUpcomingTripsWithNearby returns upcoming trips from the station and nearby stations.
+// Similar to GetUpcomingTrips but queries multiple stations and merges results.
+func (db *DB) GetUpcomingTripsWithNearby(stopID string, radiusMeters float64, datetime string, limit int) (*models.UpcomingTripsData, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 50 {
+		limit = 50
+	}
+
+	// Get nearby stations (excluding the reference station)
+	nearbyStations, err := db.GetNearbyStations(stopID, radiusMeters)
+	if err != nil {
+		// If nearby query fails, fall back to single station
+		return db.GetUpcomingTrips(stopID, datetime, limit)
+	}
+
+	// Build list of all station IDs to query (including the original)
+	stationIDs := []string{stopID}
+	for _, station := range nearbyStations {
+		stationIDs = append(stationIDs, station.StopID)
+	}
+
+	// Extract date and time from ISO 8601 datetime
+	date, timeStr, err := timeutil.ExtractDateAndTime(datetime)
+	if err != nil {
+		return nil, fmt.Errorf("invalid datetime format: %w", err)
+	}
+
+	// Get previous day parameters for overnight trips
+	prevDate, overnightTime, err := timeutil.GetPreviousDayOvernightParams(datetime)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get overnight params: %w", err)
+	}
+
+	// Find the day of week for calendar filtering
+	dayOfWeek, err := db.getDayOfWeek(date)
+	if err != nil {
+		return nil, fmt.Errorf("invalid date format: %w", err)
+	}
+	prevDayOfWeek, err := db.getDayOfWeek(prevDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid previous date format: %w", err)
+	}
+
+	// Query trips from all stations
+	var allTripInfos []tripInfo
+	seenTrips := make(map[string]bool)
+
+	for _, stationID := range stationIDs {
+		// Query current day trips
+		tripInfos, err := db.queryTripsForDate(stationID, date, timeStr, dayOfWeek, limit)
+		if err != nil {
+			continue // Skip stations with errors
+		}
+
+		// Query overnight trips
+		overnightTripInfos, err := db.queryTripsForDate(stationID, prevDate, overnightTime, prevDayOfWeek, limit)
+		if err != nil {
+			// Continue with current day trips only
+			overnightTripInfos = []tripInfo{}
+		}
+
+		// Combine and deduplicate
+		for _, info := range append(tripInfos, overnightTripInfos...) {
+			if !seenTrips[info.tripID] {
+				seenTrips[info.tripID] = true
+				allTripInfos = append(allTripInfos, info)
+			}
+		}
+	}
+
+	result := &models.UpcomingTripsData{
+		Trips:    make([]models.UpcomingTrip, 0),
+		Stations: make([]models.Stop, 0),
+	}
+
+	stationSet := make(map[string]models.Stop)
+
+	// For each trip, get geometry from sequence
+	for _, info := range allTripInfos {
+		trip, stations := db.getTripGeometryFromSequence(
+			info.tripID, info.stopSequence, info.routeID, info.routeType,
+			info.shortName, info.longName, info.color, info.departureTime,
+			info.headsign, info.serviceDate,
+		)
+		if trip != nil {
+			result.Trips = append(result.Trips, *trip)
+		}
+		for _, station := range stations {
+			stationSet[station.StopID] = station
+		}
+	}
+
+	// Sort trips by departure datetime
 	sortTripsByDepartureDateTime(result.Trips)
 
 	// Limit the final result

@@ -31,7 +31,9 @@
     "selectPrompt": "Station auswählen",
     "hint": "Klicke auf eine Station in der Karte, um Abfahrten zu sehen",
     "loading": "Lade Abfahrten...",
-    "empty": "Keine Abfahrten für diese Zeit gefunden"
+    "empty": "Keine Abfahrten für diese Zeit gefunden",
+    "nearbyStationPrefix": "ab ",
+    "nearbyStationAria": "Abfahrt von Nachbarstation"
   },
   "map": {
     "search": {
@@ -58,6 +60,10 @@
     "description": "Passe an, wie der Planer funktioniert",
     "languageLabel": "Anzeigesprache",
     "languageHint": "Wähle die Sprache für die Benutzeroberfläche.",
+    "nearbyStationRadiusLabel": "Radius für Nachbarstationen",
+    "nearbyStationRadiusHint": "Abfahrten von Nachbarstationen in diesem Umkreis einbeziehen.",
+    "nearbyStationRadiusDisabled": "Deaktiviert (nur ausgewählte Station anzeigen)",
+    "nearbyStationRadiusValue": "{{meters}} Meter",
     "openButton": "Einstellungen",
     "openButtonTooltip": "App-Einstellungen öffnen",
     "close": "Einstellungen schließen"

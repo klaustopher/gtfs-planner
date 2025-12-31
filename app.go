@@ -87,6 +87,29 @@ func (a *App) GetUpcomingTrips(stopID string, datetime string, limit int) (*mode
 	return a.db.GetUpcomingTrips(stopID, datetime, limit)
 }
 
+// GetNearbyStations returns all parent stations within radiusMeters of the given station.
+// radiusMeters should be between 0 and 200.
+func (a *App) GetNearbyStations(stopID string, radiusMeters float64) ([]models.Stop, error) {
+	if a.db == nil {
+		return nil, fmt.Errorf("database not connected")
+	}
+	return a.db.GetNearbyStations(stopID, radiusMeters)
+}
+
+// GetUpcomingTripsWithNearby returns upcoming trips from a station and nearby stations.
+// datetime should be in ISO 8601 format: "2006-01-02T15:04:05".
+// radiusMeters should be between 0 and 200 (0 means no nearby stations).
+func (a *App) GetUpcomingTripsWithNearby(stopID string, radiusMeters float64, datetime string, limit int) (*models.UpcomingTripsData, error) {
+	if a.db == nil {
+		return nil, fmt.Errorf("database not connected")
+	}
+	// If radius is 0, use the standard method
+	if radiusMeters <= 0 {
+		return a.db.GetUpcomingTrips(stopID, datetime, limit)
+	}
+	return a.db.GetUpcomingTripsWithNearby(stopID, radiusMeters, datetime, limit)
+}
+
 // GetTripDetails returns the full details of a trip including all stops.
 // tripID is the GTFS trip_id and serviceDate should be in YYYYMMDD format.
 func (a *App) GetTripDetails(tripID string, serviceDate string) (*models.TripDetails, error) {

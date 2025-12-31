@@ -20,6 +20,8 @@ interface SidebarProps {
   onSaveJourney: () => void
   onLoadJourney: () => void
   onNewJourney: () => void
+  nearbyStationRadius: number
+  onNearbyStationRadiusChange: (radius: number) => void
 }
 
 // Format ISO 8601 datetime to HH:MM display
@@ -41,6 +43,8 @@ export default function Sidebar({
   onSaveJourney,
   onLoadJourney,
   onNewJourney,
+  nearbyStationRadius,
+  onNearbyStationRadiusChange,
 }: SidebarProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const { t, i18n } = useTranslation()
@@ -166,12 +170,15 @@ export default function Sidebar({
               <div className="trips-list">
                 {tripsData.trips.map((trip: models.UpcomingTrip, index: number) => {
                   const tripColor = getTripColor(trip, index)
+                  const isNearbyTrip = selectedStation && trip.start_station_id !== selectedStation.stop_id
+
                   return (
                     <button
                       key={trip.trip_id}
                       className="trip-item"
                       style={{ borderLeftColor: tripColor }}
                       onClick={() => onTripClick(trip, index)}
+                      aria-label={isNearbyTrip ? t('stationSection.nearbyStationAria') : undefined}
                     >
                       <span className="trip-time">{formatTimeDisplay(trip.departure_datetime, timeLocale)}</span>
                       <div className="trip-details">
@@ -185,6 +192,11 @@ export default function Sidebar({
                               style={{ backgroundColor: tripColor }}
                             >
                               {trip.display_name}
+                            </span>
+                          )}
+                          {isNearbyTrip && (
+                            <span className="trip-nearby-badge" title={trip.start_station_name}>
+                              ↔ <span className="trip-nearby-station">{trip.start_station_name}</span>
                             </span>
                           )}
                         </div>
@@ -212,7 +224,12 @@ export default function Sidebar({
           <span className="settings-btn__label">{t('settings.openButton')}</span>
         </button>
       </div>
-      <SettingsModal isOpen={isSettingsOpen} onClose={closeSettings} />
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={closeSettings}
+        nearbyStationRadius={nearbyStationRadius}
+        onNearbyStationRadiusChange={onNearbyStationRadiusChange}
+      />
     </div>
   )
 }

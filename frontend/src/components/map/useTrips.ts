@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
-import { GetUpcomingTrips } from '../../../wailsjs/go/main/App'
+import { GetUpcomingTrips, GetUpcomingTripsWithNearby } from '../../../wailsjs/go/main/App'
 import { models } from '../../../wailsjs/go/models'
 
 export interface TripQueryParams {
   stopId: string
   datetime: string // ISO 8601 format: "2006-01-02T15:04:05"
   limit?: number
+  radiusMeters?: number
 }
 
 export interface UseTripsResult {
@@ -34,7 +35,7 @@ export function useTrips(params: TripQueryParams | null): UseTripsResult {
       return
     }
 
-    const { stopId, datetime, limit = DEFAULT_LIMIT } = params
+    const { stopId, datetime, limit = DEFAULT_LIMIT, radiusMeters = 0 } = params
 
     if (!stopId || !datetime) {
       setTripsData(null)
@@ -45,7 +46,12 @@ export function useTrips(params: TripQueryParams | null): UseTripsResult {
     setIsLoading(true)
     setError(null)
 
-    GetUpcomingTrips(stopId, datetime, limit)
+    // Choose method based on radius
+    const fetchPromise = radiusMeters > 0
+      ? GetUpcomingTripsWithNearby(stopId, radiusMeters, datetime, limit)
+      : GetUpcomingTrips(stopId, datetime, limit)
+
+    fetchPromise
       .then((data) => {
         setTripsData(data)
         setError(null)
@@ -58,7 +64,7 @@ export function useTrips(params: TripQueryParams | null): UseTripsResult {
       .finally(() => {
         setIsLoading(false)
       })
-  }, [params?.stopId, params?.datetime, params?.limit, refetchTrigger])
+  }, [params?.stopId, params?.datetime, params?.limit, params?.radiusMeters, refetchTrigger])
 
   return { tripsData, isLoading, error, refetch }
 }

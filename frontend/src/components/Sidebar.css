@@ -237,6 +237,26 @@
   white-space: nowrap;
 }
 
+.trip-nearby-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(251, 191, 36, 0.15);
+  color: rgba(251, 191, 36, 0.9);
+  font-weight: 500;
+  font-size: 10px;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.trip-nearby-station {
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Saved trips / Planned journey */
 .saved-trips-list {
   display: flex;
