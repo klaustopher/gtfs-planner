@@ -48,6 +48,7 @@ interface MapProps {
     destinationStopName: string,
     arrivalTime: string
   ) => void
+  onResetTime: () => void
 }
 
 const INITIAL_VIEW_STATE = {
@@ -92,6 +93,7 @@ export default function Map({
   onDateChange,
   onTimeChange,
   onTripSelection,
+  onResetTime,
 }: MapProps) {
   const { t } = useTranslation()
   const [viewState, setViewState] = useState(INITIAL_VIEW_STATE)
@@ -478,6 +480,15 @@ export default function Map({
               className="map-datetime__input"
             />
           </label>
+          <button
+            type="button"
+            className="map-datetime__reset"
+            onClick={onResetTime}
+            title={t('map.datetime.resetTooltip')}
+            aria-label={t('map.datetime.resetTooltip')}
+          >
+            ↺
+          </button>
         </div>
         {showResults && (
           <ul className="map-search__results" role="listbox" aria-label={t('map.search.resultsAria')}>

@@ -20,8 +20,6 @@ interface SidebarProps {
   onSaveJourney: () => void
   onLoadJourney: () => void
   onNewJourney: () => void
-  nearbyStationRadius: number
-  onNearbyStationRadiusChange: (radius: number) => void
 }
 
 // Format ISO 8601 datetime to HH:MM display
@@ -43,8 +41,6 @@ export default function Sidebar({
   onSaveJourney,
   onLoadJourney,
   onNewJourney,
-  nearbyStationRadius,
-  onNearbyStationRadiusChange,
 }: SidebarProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const { t, i18n } = useTranslation()
@@ -227,8 +223,6 @@ export default function Sidebar({
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={closeSettings}
-        nearbyStationRadius={nearbyStationRadius}
-        onNearbyStationRadiusChange={onNearbyStationRadiusChange}
       />
     </div>
   )

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import Map, { MapViewState } from './components/Map'
 import Sidebar from './components/Sidebar'
 import TripDetailModal from './components/TripDetailModal'
@@ -59,7 +59,7 @@ function addMinutesToDateTime(isoDateTime: string, minutes: number): { date: str
 
 function App() {
   const { t } = useTranslation()
-  const { settings, updateSettings } = useSettings()
+  const { settings } = useSettings()
   const [viewState, setViewState] = useState<MapViewState | null>(null)
   const [selectedStation, setSelectedStation] = useState<models.StationDetails | null>(null)
 
@@ -104,8 +104,8 @@ function App() {
           .catch(err => {
             console.error('Failed to fetch station details:', err)
           })
-        // Set date/time to arrival + 5 minutes
-        const { date, time } = addMinutesToDateTime(lastTrip.arrivalDateTime, 5)
+        // Set date/time to arrival + connection time
+        const { date, time } = addMinutesToDateTime(lastTrip.arrivalDateTime, settings.connectionTimeMinutes)
         setSelectedDate(date)
         setSelectedTime(time)
       }
@@ -113,7 +113,7 @@ function App() {
       return newTrips
     })
     setHasUnsavedChanges(true)
-  }, [])
+  }, [settings.connectionTimeMinutes])
 
   // Handler to clear all saved trips
   const clearSavedTrips = useCallback(() => {
@@ -164,11 +164,11 @@ function App() {
       console.error('Failed to fetch station details:', err)
     }
 
-    // Set date/time to arrival + 5 minutes
-    const { date, time } = addMinutesToDateTime(arrivalDateTime, 5)
+    // Set date/time to arrival + connection time
+    const { date, time } = addMinutesToDateTime(arrivalDateTime, settings.connectionTimeMinutes)
     setSelectedDate(date)
     setSelectedTime(time)
-  }, [addSavedTrip])
+  }, [addSavedTrip, settings.connectionTimeMinutes])
 
   // Save journey to file
   const handleSaveJourney = useCallback(async () => {
@@ -302,6 +302,37 @@ function App() {
     setHasUnsavedChanges(false)
   }, [hasUnsavedChanges, t])
 
+  // Handler to reset time to current time or last arrival + connection time
+  const handleResetTime = useCallback(() => {
+    if (savedTrips.length === 0) {
+      // No saved trips - reset to current time
+      const now = new Date()
+      setSelectedDate(formatDateForInput(now))
+      setSelectedTime(formatTimeForInput(now))
+    } else {
+      // Has saved trips - reset to last arrival + connection time
+      const lastTrip = savedTrips[savedTrips.length - 1]
+      const { date, time } = addMinutesToDateTime(lastTrip.arrivalDateTime, settings.connectionTimeMinutes)
+      setSelectedDate(date)
+      setSelectedTime(time)
+    }
+  }, [savedTrips, settings.connectionTimeMinutes])
+
+  // Track previous connection time to detect changes
+  const prevConnectionTimeRef = useRef(settings.connectionTimeMinutes)
+
+  // Auto-adjust time when connection time setting changes and saved trips exist
+  useEffect(() => {
+    const prevConnectionTime = prevConnectionTimeRef.current
+    if (savedTrips.length > 0 && prevConnectionTime !== settings.connectionTimeMinutes) {
+      const lastTrip = savedTrips[savedTrips.length - 1]
+      const { date, time } = addMinutesToDateTime(lastTrip.arrivalDateTime, settings.connectionTimeMinutes)
+      setSelectedDate(date)
+      setSelectedTime(time)
+    }
+    prevConnectionTimeRef.current = settings.connectionTimeMinutes
+  }, [settings.connectionTimeMinutes, savedTrips])
+
   // Build trip query params when station is selected
   const tripQueryParams: TripQueryParams | null = useMemo(() => {
     if (!selectedStation) return null
@@ -330,6 +361,7 @@ function App() {
           onDateChange={setSelectedDate}
           onTimeChange={setSelectedTime}
           onTripSelection={handleTripSelection}
+          onResetTime={handleResetTime}
         />
       </div>
       <Sidebar
@@ -345,8 +377,6 @@ function App() {
         onSaveJourney={handleSaveJourney}
         onLoadJourney={handleLoadJourney}
         onNewJourney={handleNewJourney}
-        nearbyStationRadius={settings.nearbyStationRadius}
-        onNearbyStationRadiusChange={(radius) => updateSettings({ nearbyStationRadius: radius })}
       />
       {tripModalData && selectedStation && (
         <TripDetailModal

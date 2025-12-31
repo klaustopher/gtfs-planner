@@ -128,6 +128,29 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
+.map-datetime__reset {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.map-datetime__reset:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.map-datetime__reset:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.2);
+}
+
 @media (max-width: 640px) {
   .map-search {
     position: static;

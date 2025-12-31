@@ -4,10 +4,12 @@ const STORAGE_KEY = 'bus-planning-settings'
 
 export interface Settings {
   nearbyStationRadius: number // in meters, 0-200
+  connectionTimeMinutes: number // in minutes, 0-30
 }
 
 const DEFAULT_SETTINGS: Settings = {
   nearbyStationRadius: 50,
+  connectionTimeMinutes: 5,
 }
 
 export function useSettings() {

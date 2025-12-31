@@ -47,7 +47,9 @@
     },
     "datetime": {
       "date": "Date",
-      "time": "Time"
+      "time": "Time",
+      "resetButton": "Reset",
+      "resetTooltip": "Reset to current time or last arrival + connection time"
     }
   },
   "tripModal": {
@@ -64,6 +66,9 @@
     "nearbyStationRadiusHint": "Include trips from nearby stations within this distance.",
     "nearbyStationRadiusDisabled": "Disabled (show only selected station)",
     "nearbyStationRadiusValue": "{{meters}} meters",
+    "connectionTimeLabel": "Connection time",
+    "connectionTimeHint": "Buffer time added after arrival when looking for connecting trips.",
+    "connectionTimeValue": "{{minutes}} minutes",
     "openButton": "Settings",
     "openButtonTooltip": "Open app settings",
     "close": "Close settings"

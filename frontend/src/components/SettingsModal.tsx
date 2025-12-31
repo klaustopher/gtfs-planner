@@ -1,17 +1,17 @@
 import { useEffect, type ChangeEvent, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
+import { useSettings } from '../hooks/useSettings'
 import './SettingsModal.css'
 
 interface SettingsModalProps {
   isOpen: boolean
   onClose: () => void
-  nearbyStationRadius: number
-  onNearbyStationRadiusChange: (radius: number) => void
 }
 
-export default function SettingsModal({ isOpen, onClose, nearbyStationRadius, onNearbyStationRadiusChange }: SettingsModalProps) {
+export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { t, i18n } = useTranslation()
+  const { settings, updateSettings } = useSettings()
   const rawLanguage = i18n.resolvedLanguage || i18n.language || 'en'
   const normalizedLanguage = rawLanguage.split('-')[0]
 
@@ -37,7 +37,14 @@ export default function SettingsModal({ isOpen, onClose, nearbyStationRadius, on
   const handleRadiusChange = (event: ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(event.target.value, 10)
     if (!isNaN(value)) {
-      onNearbyStationRadiusChange(value)
+      updateSettings({ nearbyStationRadius: value })
+    }
+  }
+
+  const handleConnectionTimeChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(event.target.value, 10)
+    if (!isNaN(value)) {
+      updateSettings({ connectionTimeMinutes: value })
     }
   }
 
@@ -95,14 +102,35 @@ export default function SettingsModal({ isOpen, onClose, nearbyStationRadius, on
               min="0"
               max="200"
               step="10"
-              value={nearbyStationRadius}
+              value={settings.nearbyStationRadius}
               onChange={handleRadiusChange}
               className="settings-modal__slider"
             />
             <div className="settings-modal__slider-value">
-              {nearbyStationRadius === 0
+              {settings.nearbyStationRadius === 0
                 ? t('settings.nearbyStationRadiusDisabled')
-                : t('settings.nearbyStationRadiusValue', { meters: nearbyStationRadius })}
+                : t('settings.nearbyStationRadiusValue', { meters: settings.nearbyStationRadius })}
+            </div>
+          </div>
+        </section>
+        <section className="settings-modal__section">
+          <label htmlFor="settings-connection-time" className="settings-modal__section-title">
+            {t('settings.connectionTimeLabel')}
+          </label>
+          <p className="settings-modal__hint">{t('settings.connectionTimeHint')}</p>
+          <div className="settings-modal__slider-container">
+            <input
+              id="settings-connection-time"
+              type="range"
+              min="0"
+              max="30"
+              step="1"
+              value={settings.connectionTimeMinutes}
+              onChange={handleConnectionTimeChange}
+              className="settings-modal__slider"
+            />
+            <div className="settings-modal__slider-value">
+              {t('settings.connectionTimeValue', { minutes: settings.connectionTimeMinutes })}
             </div>
           </div>
         </section>

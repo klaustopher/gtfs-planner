@@ -47,7 +47,9 @@
     },
     "datetime": {
       "date": "Datum",
-      "time": "Zeit"
+      "time": "Zeit",
+      "resetButton": "Zurücksetzen",
+      "resetTooltip": "Auf aktuelle Zeit oder letzte Ankunft + Umsteigezeit zurücksetzen"
     }
   },
   "tripModal": {
@@ -64,6 +66,9 @@
     "nearbyStationRadiusHint": "Abfahrten von Nachbarstationen in diesem Umkreis einbeziehen.",
     "nearbyStationRadiusDisabled": "Deaktiviert (nur ausgewählte Station anzeigen)",
     "nearbyStationRadiusValue": "{{meters}} Meter",
+    "connectionTimeLabel": "Umsteigezeit",
+    "connectionTimeHint": "Pufferzeit nach Ankunft bei der Suche nach Anschlussverbindungen.",
+    "connectionTimeValue": "{{minutes}} Minuten",
     "openButton": "Einstellungen",
     "openButtonTooltip": "App-Einstellungen öffnen",
     "close": "Einstellungen schließen"
