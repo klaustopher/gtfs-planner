@@ -1,24 +1,21 @@
 import { models } from '../../../wailsjs/go/models'
+import { detectOverlaps, applyOffset, type TripForOverlap } from './lineOffset'
 
+// Distinct colors for route lines - chosen to be visually different from each other
 export const FALLBACK_COLORS = [
-  '#F94144',
-  '#F3722C',
-  '#F8961E',
-  '#F9844A',
-  '#43AA8B',
-  '#577590',
-  '#277DA1',
-  '#9B5DE5',
-  '#F15BB5',
-  '#00BBF9',
+  '#E63946', // Red
+  '#2A9D8F', // Teal
+  '#5E60CE', // Purple
+  '#F4A261', // Orange
+  '#1D3557', // Navy
+  '#E9C46A', // Yellow
+  '#06D6A0', // Green
+  '#EF476F', // Pink
+  '#118AB2', // Blue
+  '#073B4C', // Dark teal
 ]
 
-const LINE_WIDTH_STEPS = [5.5, 6, 6.5, 7]
-const LINE_OFFSETS = [0, 2, -2, 3.5, -3.5, 5, -5]
-
-export interface RouteLineStyleOptions {
-  dashVariantCount?: number
-}
+const LINE_WIDTH = 6
 
 export interface StopsGeoJSON {
   type: 'FeatureCollection'
@@ -50,8 +47,6 @@ export interface RouteLinesGeoJSON {
       route_color: string
       line_color: string
       line_width: number
-      line_offset: number
-      dash_variant: number
     }
   }>
 }
@@ -73,11 +68,15 @@ export function stopsToGeoJSON(stops: models.Stop[]): StopsGeoJSON {
   }
 }
 
-export function routesToGeoJSON(
-  routes: models.RouteGeometry[],
-  options: RouteLineStyleOptions = {}
-): RouteLinesGeoJSON {
-  const { dashVariantCount = 3 } = options
+export function routesToGeoJSON(routes: models.RouteGeometry[]): RouteLinesGeoJSON {
+  // Convert routes to format for overlap detection
+  const routesForOverlap: TripForOverlap[] = routes.map((route) => ({
+    id: route.route_id,
+    coordinates: route.coordinates.map((c: models.Coordinate) => [c.lon, c.lat] as [number, number]),
+  }))
+
+  // Detect overlapping routes and get offset indices
+  const offsetIndices = detectOverlaps(routesForOverlap)
 
   return {
     type: 'FeatureCollection',
@@ -85,25 +84,27 @@ export function routesToGeoJSON(
       const normalizedColor = normalizeColor(route.route_color)
       const fallbackColor = FALLBACK_COLORS[index % FALLBACK_COLORS.length]
       const lineColor = normalizedColor ?? fallbackColor
-      const lineWidth = LINE_WIDTH_STEPS[index % LINE_WIDTH_STEPS.length]
-      const lineOffset = LINE_OFFSETS[index % LINE_OFFSETS.length]
-      const dashVariant = dashVariantCount > 0 ? index % dashVariantCount : 0
+
+      // Get original coordinates
+      const originalCoords = route.coordinates.map((c: models.Coordinate) => [c.lon, c.lat] as [number, number])
+
+      // Apply offset based on overlap detection (keeps endpoints at station positions)
+      const offsetIndex = offsetIndices.get(route.route_id) ?? 0
+      const offsetCoords = applyOffset(originalCoords, offsetIndex)
 
       return {
-      type: 'Feature',
-      geometry: {
-        type: 'LineString',
-        coordinates: route.coordinates.map((c: models.Coordinate) => [c.lon, c.lat] as [number, number]),
-      },
-      properties: {
-        route_id: route.route_id,
-        route_short_name: route.route_short_name,
-        route_long_name: route.route_long_name,
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: offsetCoords,
+        },
+        properties: {
+          route_id: route.route_id,
+          route_short_name: route.route_short_name,
+          route_long_name: route.route_long_name,
           route_color: lineColor,
           line_color: lineColor,
-          line_width: lineWidth,
-          line_offset: lineOffset,
-          dash_variant: dashVariant,
+          line_width: LINE_WIDTH,
         },
       }
     }),
@@ -145,17 +146,19 @@ export interface TripLinesGeoJSON {
       headsign: string
       line_color: string
       line_width: number
-      line_offset: number
-      dash_variant: number
     }
   }>
 }
 
-export function tripsToGeoJSON(
-  trips: models.UpcomingTrip[],
-  options: RouteLineStyleOptions = {}
-): TripLinesGeoJSON {
-  const { dashVariantCount = 3 } = options
+export function tripsToGeoJSON(trips: models.UpcomingTrip[]): TripLinesGeoJSON {
+  // Convert trips to format for overlap detection
+  const tripsForOverlap: TripForOverlap[] = trips.map((trip) => ({
+    id: trip.trip_id,
+    coordinates: trip.coordinates.map((c: models.Coordinate) => [c.lon, c.lat] as [number, number]),
+  }))
+
+  // Detect overlapping trips and get offset indices
+  const offsetIndices = detectOverlaps(tripsForOverlap)
 
   return {
     type: 'FeatureCollection',
@@ -163,15 +166,19 @@ export function tripsToGeoJSON(
       const normalizedColor = normalizeColor(trip.route_color)
       const fallbackColor = FALLBACK_COLORS[index % FALLBACK_COLORS.length]
       const lineColor = normalizedColor ?? fallbackColor
-      const lineWidth = LINE_WIDTH_STEPS[index % LINE_WIDTH_STEPS.length]
-      const lineOffset = LINE_OFFSETS[index % LINE_OFFSETS.length]
-      const dashVariant = dashVariantCount > 0 ? index % dashVariantCount : 0
+
+      // Get original coordinates
+      const originalCoords = trip.coordinates.map((c: models.Coordinate) => [c.lon, c.lat] as [number, number])
+
+      // Apply offset based on overlap detection (keeps endpoints at station positions)
+      const offsetIndex = offsetIndices.get(trip.trip_id) ?? 0
+      const offsetCoords = applyOffset(originalCoords, offsetIndex)
 
       return {
         type: 'Feature',
         geometry: {
           type: 'LineString',
-          coordinates: trip.coordinates.map((c: models.Coordinate) => [c.lon, c.lat] as [number, number]),
+          coordinates: offsetCoords,
         },
         properties: {
           trip_id: trip.trip_id,
@@ -182,9 +189,7 @@ export function tripsToGeoJSON(
           departure_datetime: trip.departure_datetime,
           headsign: trip.headsign,
           line_color: lineColor,
-          line_width: lineWidth,
-          line_offset: lineOffset,
-          dash_variant: dashVariant,
+          line_width: LINE_WIDTH,
         },
       }
     }),

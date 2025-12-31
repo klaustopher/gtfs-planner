@@ -335,7 +335,8 @@ func (db *DB) getRouteGeometry(routeID, stationID, shortName, longName, color st
 			continue
 		}
 
-		coordinates = append(coordinates, models.Coordinate{Lat: stopLat, Lon: stopLon})
+		// Use parent station coordinates for the polyline so lines align with station markers
+		coordinates = append(coordinates, models.Coordinate{Lat: stationLat, Lon: stationLon})
 
 		if stationIDVal != "" {
 			stations = append(stations, models.Stop{
@@ -790,7 +791,8 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 			continue
 		}
 
-		coordinates = append(coordinates, models.Coordinate{Lat: stopLat, Lon: stopLon})
+		// Use parent station coordinates for the polyline so lines align with station markers
+		coordinates = append(coordinates, models.Coordinate{Lat: stationLat, Lon: stationLon})
 
 		// Track the first station as the start station
 		if isFirst && stationIDVal != "" {

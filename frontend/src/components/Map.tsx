@@ -4,8 +4,6 @@ import MapGL, { ViewStateChangeEvent, Source, Layer, Popup, MapRef } from 'react
 import type {
   CircleLayerSpecification,
   MapLayerMouseEvent,
-  ExpressionSpecification,
-  FilterSpecification,
 } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { GetStationDetails, SearchStations } from '../../wailsjs/go/main/App'
@@ -59,12 +57,6 @@ const INITIAL_VIEW_STATE = {
 
 const ZOOM_THRESHOLD = 8
 const ROUTE_LINE_OPACITY = 0.8
-const ROUTE_STYLE_VARIANTS = [
-  { id: 'solid', dashArray: undefined },
-  { id: 'dash', dashArray: [2.5, 1.5] },
-  { id: 'dot', dashArray: [0.4, 1.2] },
-  { id: 'longdash', dashArray: [4, 2, 1, 2] },
-] as const
 const SEARCH_DEBOUNCE_MS = 250
 const SEARCH_RESULT_LIMIT = 8
 const SEARCH_MIN_LENGTH = 2
@@ -124,7 +116,7 @@ export default function Map({
   const stopsGeojsonData = useMemo(() => stopsToGeoJSON(displayStops), [displayStops])
 
   const tripLinesGeojsonData = useMemo(
-    () => tripsToGeoJSON(tripsData?.trips ?? [], { dashVariantCount: ROUTE_STYLE_VARIANTS.length }),
+    () => tripsToGeoJSON(tripsData?.trips ?? []),
     [tripsData]
   )
 
@@ -544,27 +536,19 @@ export default function Map({
         {/* Trip lines layer - only shown when a station is selected */}
         {tripsData && (
           <Source id="trip-lines" type="geojson" data={tripLinesGeojsonData}>
-            {ROUTE_STYLE_VARIANTS.map((variant, index) => (
-              <Layer
-                key={variant.id}
-                id={`trip-lines-${variant.id}`}
-                type="line"
-                filter={['==', ['get', 'dash_variant'], index] as FilterSpecification}
-                layout={{
-                  'line-cap': 'round',
-                  'line-join': 'round',
-                }}
-                paint={{
-                  'line-color': ['get', 'line_color'],
-                  'line-width': ['get', 'line_width'],
-                  'line-opacity': ROUTE_LINE_OPACITY,
-                  'line-offset': ['get', 'line_offset'],
-                  ...(variant.dashArray
-                    ? { 'line-dasharray': ['literal', variant.dashArray] as ExpressionSpecification }
-                    : {}),
-                }}
-              />
-            ))}
+            <Layer
+              id="trip-lines"
+              type="line"
+              layout={{
+                'line-cap': 'round',
+                'line-join': 'round',
+              }}
+              paint={{
+                'line-color': ['get', 'line_color'],
+                'line-width': ['get', 'line_width'],
+                'line-opacity': ROUTE_LINE_OPACITY,
+              }}
+            />
           </Source>
         )}
 
