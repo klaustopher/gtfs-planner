@@ -57,6 +57,67 @@
   font-style: italic;
 }
 
+/* Journey actions section */
+.debug-sidebar .journey-actions {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.debug-sidebar .journey-actions__buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.debug-sidebar .journey-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.debug-sidebar .journey-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.debug-sidebar .journey-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.debug-sidebar .journey-btn--save {
+  background: rgba(74, 222, 128, 0.2);
+  border-color: rgba(74, 222, 128, 0.4);
+  color: #4ade80;
+}
+
+.debug-sidebar .journey-btn--save:hover:not(:disabled) {
+  background: rgba(74, 222, 128, 0.3);
+  border-color: rgba(74, 222, 128, 0.5);
+}
+
+.debug-sidebar .journey-btn__indicator {
+  color: #fbbf24;
+  margin-left: 2px;
+}
+
+.debug-sidebar .journey-actions__filepath {
+  margin-top: 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Trips section */
 .debug-sidebar .trips-section {
   border-top: 1px solid rgba(255, 255, 255, 0.2);

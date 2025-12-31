@@ -1,3 +1,40 @@
+export namespace main {
+	
+	export class LoadJourneyResult {
+	    journey?: models.JourneyData;
+	    filePath: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new LoadJourneyResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.journey = this.convertValues(source["journey"], models.JourneyData);
+	        this.filePath = source["filePath"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+
+}
+
 export namespace models {
 	
 	export class Coordinate {
@@ -14,6 +51,87 @@ export namespace models {
 	        this.lon = source["lon"];
 	    }
 	}
+	export class MapView {
+	    longitude: number;
+	    latitude: number;
+	    zoom: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new MapView(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.longitude = source["longitude"];
+	        this.latitude = source["latitude"];
+	        this.zoom = source["zoom"];
+	    }
+	}
+	export class SavedTripData {
+	    tripId: string;
+	    routeId: string;
+	    startStationId: string;
+	    departureDateTime: string;
+	    endStationId: string;
+	    arrivalDateTime: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SavedTripData(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.tripId = source["tripId"];
+	        this.routeId = source["routeId"];
+	        this.startStationId = source["startStationId"];
+	        this.departureDateTime = source["departureDateTime"];
+	        this.endStationId = source["endStationId"];
+	        this.arrivalDateTime = source["arrivalDateTime"];
+	    }
+	}
+	export class JourneyData {
+	    version: number;
+	    createdAt: string;
+	    modifiedAt: string;
+	    savedTrips: SavedTripData[];
+	    selectedStationId?: string;
+	    currentDateTime: string;
+	    mapView?: MapView;
+	
+	    static createFrom(source: any = {}) {
+	        return new JourneyData(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.version = source["version"];
+	        this.createdAt = source["createdAt"];
+	        this.modifiedAt = source["modifiedAt"];
+	        this.savedTrips = this.convertValues(source["savedTrips"], SavedTripData);
+	        this.selectedStationId = source["selectedStationId"];
+	        this.currentDateTime = source["currentDateTime"];
+	        this.mapView = this.convertValues(source["mapView"], MapView);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
 	export class Route {
 	    route_id: string;
 	    route_short_name: string;
@@ -126,6 +244,7 @@ export namespace models {
 		    return a;
 		}
 	}
+	
 	export class StationDetails {
 	    stop_id: string;
 	    stop_name: string;

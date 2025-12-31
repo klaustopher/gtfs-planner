@@ -3,7 +3,7 @@ import Map, { MapViewState } from './components/Map'
 import DebugSidebar from './components/DebugSidebar'
 import TripDetailModal from './components/TripDetailModal'
 import { models } from '../wailsjs/go/models'
-import { GetStationDetails } from '../wailsjs/go/main/App'
+import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, ShowConfirmDialog } from '../wailsjs/go/main/App'
 import { useTrips, TripQueryParams } from './components/map/useTrips'
 import './App.css'
 
@@ -66,6 +66,10 @@ function App() {
   // Saved trips for journey planner
   const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([])
 
+  // Journey persistence state
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [currentFilePath, setCurrentFilePath] = useState<string | null>(null)
+
   // Modal state for trip details
   const [tripModalData, setTripModalData] = useState<{
     trip: models.UpcomingTrip
@@ -75,6 +79,7 @@ function App() {
   // Handler to add a trip to the saved list
   const addSavedTrip = useCallback((trip: SavedTrip) => {
     setSavedTrips(prev => [...prev, trip])
+    setHasUnsavedChanges(true)
   }, [])
 
   // Handler to remove a trip from the saved list
@@ -102,11 +107,13 @@ function App() {
 
       return newTrips
     })
+    setHasUnsavedChanges(true)
   }, [])
 
   // Handler to clear all saved trips
   const clearSavedTrips = useCallback(() => {
     setSavedTrips([])
+    setHasUnsavedChanges(true)
   }, [])
 
   // Handler to open trip detail modal
@@ -157,6 +164,137 @@ function App() {
     setSelectedTime(time)
   }, [addSavedTrip])
 
+  // Save journey to file
+  const handleSaveJourney = useCallback(async () => {
+    try {
+      const journeyData = new models.JourneyData({
+        version: 1,
+        createdAt: '',
+        modifiedAt: '',
+        savedTrips: savedTrips.map(t => new models.SavedTripData({
+          tripId: t.tripId,
+          routeId: t.routeId,
+          startStationId: t.startStationId,
+          departureDateTime: t.departureDateTime,
+          endStationId: t.endStationId,
+          arrivalDateTime: t.arrivalDateTime,
+        })),
+        selectedStationId: selectedStation?.stop_id || '',
+        currentDateTime: combineToISO8601(selectedDate, selectedTime),
+        mapView: viewState ? new models.MapView({
+          longitude: viewState.longitude,
+          latitude: viewState.latitude,
+          zoom: viewState.zoom,
+        }) : undefined,
+      })
+      const filePath = await SaveJourney(journeyData)
+      if (filePath) {
+        setCurrentFilePath(filePath)
+        setHasUnsavedChanges(false)
+      }
+    } catch (err) {
+      console.error('Failed to save journey:', err)
+    }
+  }, [savedTrips, selectedStation, selectedDate, selectedTime, viewState])
+
+  // Load journey from file
+  const handleLoadJourney = useCallback(async () => {
+    // Warn about unsaved changes
+    if (hasUnsavedChanges) {
+      const confirmed = await ShowConfirmDialog(
+        'Ungespeicherte Änderungen',
+        'Es gibt ungespeicherte Änderungen. Möchten Sie fortfahren und diese verwerfen?'
+      )
+      if (!confirmed) {
+        return
+      }
+    }
+
+    try {
+      const result = await LoadJourney()
+      if (result && result.journey) {
+        const journey = result.journey
+
+        // Hydrate saved trips from database
+        const hydratedTrips: SavedTrip[] = []
+        for (const tripData of journey.savedTrips) {
+          try {
+            // Fetch route info
+            const route = await GetRouteByID(tripData.routeId)
+            // Fetch station names
+            const startStation = await GetStationDetails(tripData.startStationId)
+            const endStation = await GetStationDetails(tripData.endStationId)
+
+            hydratedTrips.push({
+              id: `${tripData.tripId}-${tripData.endStationId}-${Date.now()}`,
+              tripId: tripData.tripId,
+              routeId: tripData.routeId,
+              routeShortName: route.route_short_name,
+              routeColor: route.route_color,
+              startStationId: tripData.startStationId,
+              startStationName: startStation.stop_name,
+              departureDateTime: tripData.departureDateTime,
+              endStationId: tripData.endStationId,
+              endStationName: endStation.stop_name,
+              arrivalDateTime: tripData.arrivalDateTime,
+            })
+          } catch (err) {
+            console.error('Failed to hydrate trip:', err)
+          }
+        }
+        setSavedTrips(hydratedTrips)
+
+        // Restore date/time from ISO 8601
+        if (journey.currentDateTime) {
+          const dt = new Date(journey.currentDateTime)
+          setSelectedDate(formatDateForInput(dt))
+          setSelectedTime(formatTimeForInput(dt))
+        }
+
+        // Restore selected station
+        if (journey.selectedStationId) {
+          try {
+            const stationDetails = await GetStationDetails(journey.selectedStationId)
+            setSelectedStation(stationDetails)
+          } catch (err) {
+            console.error('Failed to fetch station details:', err)
+            setSelectedStation(null)
+          }
+        } else {
+          setSelectedStation(null)
+        }
+
+        setCurrentFilePath(result.filePath)
+        setHasUnsavedChanges(false)
+      }
+    } catch (err) {
+      console.error('Failed to load journey:', err)
+    }
+  }, [hasUnsavedChanges])
+
+  // Start new journey
+  const handleNewJourney = useCallback(async () => {
+    // Warn about unsaved changes
+    if (hasUnsavedChanges) {
+      const confirmed = await ShowConfirmDialog(
+        'Ungespeicherte Änderungen',
+        'Es gibt ungespeicherte Änderungen. Möchten Sie fortfahren und diese verwerfen?'
+      )
+      if (!confirmed) {
+        return
+      }
+    }
+
+    // Reset all journey state
+    setSavedTrips([])
+    setSelectedStation(null)
+    const now = new Date()
+    setSelectedDate(formatDateForInput(now))
+    setSelectedTime(formatTimeForInput(now))
+    setCurrentFilePath(null)
+    setHasUnsavedChanges(false)
+  }, [hasUnsavedChanges])
+
   // Build trip query params when station is selected
   const tripQueryParams: TripQueryParams | null = useMemo(() => {
     if (!selectedStation) return null
@@ -194,6 +332,11 @@ function App() {
         onRemoveSavedTrip={removeSavedTrip}
         onClearSavedTrips={clearSavedTrips}
         onTripClick={handleTripClick}
+        hasUnsavedChanges={hasUnsavedChanges}
+        currentFilePath={currentFilePath}
+        onSaveJourney={handleSaveJourney}
+        onLoadJourney={handleLoadJourney}
+        onNewJourney={handleNewJourney}
       />
       {tripModalData && selectedStation && (
         <TripDetailModal

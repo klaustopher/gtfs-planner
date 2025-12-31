@@ -792,3 +792,31 @@ func (db *DB) GetTripDetails(tripID string, serviceDate string) (*models.TripDet
 		StopTimes:   stopTimes,
 	}, nil
 }
+
+// GetRouteByID returns route details for a given route_id.
+func (db *DB) GetRouteByID(routeID string) (*models.Route, error) {
+	var route models.Route
+	err := db.conn.QueryRow(`
+		SELECT route_id,
+			COALESCE(route_short_name, '') as route_short_name,
+			COALESCE(route_long_name, '') as route_long_name,
+			COALESCE(route_desc, '') as route_desc,
+			route_type,
+			COALESCE(route_color, '') as route_color,
+			COALESCE(route_text_color, '') as route_text_color
+		FROM routes
+		WHERE route_id = ?
+	`, routeID).Scan(
+		&route.RouteID,
+		&route.RouteShortName,
+		&route.RouteLongName,
+		&route.RouteDesc,
+		&route.RouteType,
+		&route.RouteColor,
+		&route.RouteTextColor,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("route not found: %w", err)
+	}
+	return &route, nil
+}

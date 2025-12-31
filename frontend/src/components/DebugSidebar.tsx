@@ -13,6 +13,11 @@ interface DebugSidebarProps {
   onRemoveSavedTrip: (tripId: string) => void
   onClearSavedTrips: () => void
   onTripClick: (trip: models.UpcomingTrip, tripIndex: number) => void
+  hasUnsavedChanges: boolean
+  currentFilePath: string | null
+  onSaveJourney: () => void
+  onLoadJourney: () => void
+  onNewJourney: () => void
 }
 
 function formatCoord(value: number, decimals = 4): string {
@@ -34,10 +39,49 @@ export default function DebugSidebar({
   onRemoveSavedTrip,
   onClearSavedTrips,
   onTripClick,
+  hasUnsavedChanges,
+  currentFilePath,
+  onSaveJourney,
+  onLoadJourney,
+  onNewJourney,
 }: DebugSidebarProps) {
   return (
     <div className="debug-sidebar">
       <h3>Station Info</h3>
+
+      {/* Journey file actions */}
+      <section className="journey-actions">
+        <div className="journey-actions__buttons">
+          <button
+            className="journey-btn journey-btn--new"
+            onClick={onNewJourney}
+            title="Neue Reise"
+          >
+            Neu
+          </button>
+          <button
+            className="journey-btn journey-btn--load"
+            onClick={onLoadJourney}
+            title="Reise laden"
+          >
+            Laden
+          </button>
+          <button
+            className="journey-btn journey-btn--save"
+            onClick={onSaveJourney}
+            disabled={savedTrips.length === 0}
+            title="Reise speichern"
+          >
+            Speichern
+            {hasUnsavedChanges && savedTrips.length > 0 && <span className="journey-btn__indicator">*</span>}
+          </button>
+        </div>
+        {currentFilePath && (
+          <div className="journey-actions__filepath">
+            {currentFilePath.split('/').pop()}
+          </div>
+        )}
+      </section>
 
       {selectedStation ? (
         <section className="station-details">

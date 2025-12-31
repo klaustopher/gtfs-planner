@@ -92,3 +92,32 @@ type TripDetails struct {
 	Headsign    string     `json:"headsign"`
 	StopTimes   []StopTime `json:"stop_times"`
 }
+
+// SavedTripData stores only IDs and times for journey persistence.
+// Station names and route details are fetched from the database on load.
+type SavedTripData struct {
+	TripID            string `json:"tripId"`
+	RouteID           string `json:"routeId"`
+	StartStationID    string `json:"startStationId"`
+	DepartureDateTime string `json:"departureDateTime"`
+	EndStationID      string `json:"endStationId"`
+	ArrivalDateTime   string `json:"arrivalDateTime"`
+}
+
+// MapView represents the map viewport state for journey persistence
+type MapView struct {
+	Longitude float64 `json:"longitude"`
+	Latitude  float64 `json:"latitude"`
+	Zoom      float64 `json:"zoom"`
+}
+
+// JourneyData represents a complete journey for file persistence
+type JourneyData struct {
+	Version           int             `json:"version"`
+	CreatedAt         string          `json:"createdAt"`
+	ModifiedAt        string          `json:"modifiedAt"`
+	SavedTrips        []SavedTripData `json:"savedTrips"`
+	SelectedStationID string          `json:"selectedStationId,omitempty"`
+	CurrentDateTime   string          `json:"currentDateTime"`
+	MapView           *MapView        `json:"mapView,omitempty"`
+}
