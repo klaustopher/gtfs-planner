@@ -7,7 +7,7 @@ import (
 	"bus-planning/internal/models"
 )
 
-const testDBPath = "../../gtfs-data/sqlite/gtfs.sqlite"
+const testDBPath = "testdata/test.sqlite"
 
 func skipIfNoDatabase(t *testing.T) *DB {
 	t.Helper()
