@@ -1,6 +1,7 @@
 import { MapViewState } from './Map'
 import { models } from '../../wailsjs/go/models'
 import { getTripColor } from './map/geojson'
+import { getTransportTypeLabel } from '../utils/transportType'
 import { SavedTrip } from '../App'
 import './DebugSidebar.css'
 
@@ -121,6 +122,9 @@ export default function DebugSidebar({
                   >
                     <span className="trip-time">{formatTimeDisplay(trip.departure_datetime)}</span>
                     <div className="trip-details">
+                      <span className="trip-type-badge">
+                        {getTransportTypeLabel(trip.route_type)}
+                      </span>
                       {trip.display_name && (
                         <span
                           className="trip-route-badge"
@@ -160,6 +164,9 @@ export default function DebugSidebar({
                 <div className="saved-trip-number">{index + 1}</div>
                 <div className="saved-trip-content">
                   <div className="saved-trip-route">
+                    <span className="trip-type-badge">
+                      {getTransportTypeLabel(trip.routeType)}
+                    </span>
                     <span
                       className="trip-route-badge"
                       style={{ backgroundColor: trip.routeColor ? `#${trip.routeColor}` : '#666' }}

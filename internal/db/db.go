@@ -429,7 +429,7 @@ func (db *DB) GetUpcomingTrips(stopID string, datetime string, limit int) (*mode
 
 	// For each trip, get only the stops after the selected station
 	for _, info := range allTripInfos {
-		trip, stations := db.getTripGeometryFromSequence(info.tripID, info.stopSequence, info.routeID, info.shortName, info.longName, info.color, info.departureTime, info.headsign, info.serviceDate)
+		trip, stations := db.getTripGeometryFromSequence(info.tripID, info.stopSequence, info.routeID, info.routeType, info.shortName, info.longName, info.color, info.departureTime, info.headsign, info.serviceDate)
 		if trip != nil {
 			result.Trips = append(result.Trips, *trip)
 		}
@@ -458,6 +458,7 @@ func (db *DB) GetUpcomingTrips(stopID string, datetime string, limit int) (*mode
 type tripInfo struct {
 	tripID        string
 	routeID       string
+	routeType     int
 	shortName     string
 	longName      string
 	color         string
@@ -501,6 +502,7 @@ func (db *DB) queryTripsForDate(stopID, date, minTime, dayOfWeek string, limit i
 		SELECT
 			sd.trip_id,
 			sd.route_id,
+			r.route_type,
 			COALESCE(r.route_short_name, '') as route_short_name,
 			COALESCE(r.route_long_name, '') as route_long_name,
 			COALESCE(r.route_color, '') as route_color,
@@ -523,7 +525,7 @@ func (db *DB) queryTripsForDate(stopID, date, minTime, dayOfWeek string, limit i
 		var info tripInfo
 		info.serviceDate = date
 		if err := rows.Scan(
-			&info.tripID, &info.routeID, &info.shortName, &info.longName,
+			&info.tripID, &info.routeID, &info.routeType, &info.shortName, &info.longName,
 			&info.color, &info.departureTime, &info.headsign, &info.stopSequence,
 		); err != nil {
 			return nil, fmt.Errorf("trip scan failed: %w", err)
@@ -575,7 +577,7 @@ func (db *DB) getDayOfWeek(date string) (string, error) {
 
 // getTripGeometryFromSequence fetches the geometry for a trip starting from the given stop sequence.
 // The serviceDate parameter (YYYYMMDD format) is used to normalize GTFS times to ISO 8601 datetimes.
-func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, routeID, shortName, longName, color, departureTime, headsign, serviceDate string) (*models.UpcomingTrip, []models.Stop) {
+func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, routeID string, routeType int, shortName, longName, color, departureTime, headsign, serviceDate string) (*models.UpcomingTrip, []models.Stop) {
 	// Get stops for this trip starting from the given sequence, including arrival/departure times
 	stopsQuery := `
 		SELECT s.stop_lat, s.stop_lon,
@@ -681,6 +683,7 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 	return &models.UpcomingTrip{
 		TripID:            tripID,
 		RouteID:           routeID,
+		RouteType:         routeType,
 		RouteColor:        color,
 		DepartureDateTime: departureDateTime,
 		Headsign:          headsign,
@@ -698,8 +701,10 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 func (db *DB) GetTripDetails(tripID string, serviceDate string) (*models.TripDetails, error) {
 	// Get route info for this trip
 	var routeID, routeShortName, routeLongName, routeColor, headsign string
+	var routeType int
 	err := db.conn.QueryRow(`
 		SELECT t.route_id,
+			r.route_type,
 			COALESCE(r.route_short_name, '') as route_short_name,
 			COALESCE(r.route_long_name, '') as route_long_name,
 			COALESCE(r.route_color, '') as route_color,
@@ -707,7 +712,7 @@ func (db *DB) GetTripDetails(tripID string, serviceDate string) (*models.TripDet
 		FROM trips t
 		JOIN routes r ON r.route_id = t.route_id
 		WHERE t.trip_id = ?
-	`, tripID).Scan(&routeID, &routeShortName, &routeLongName, &routeColor, &headsign)
+	`, tripID).Scan(&routeID, &routeType, &routeShortName, &routeLongName, &routeColor, &headsign)
 	if err != nil {
 		return nil, fmt.Errorf("trip not found: %w", err)
 	}
@@ -785,6 +790,7 @@ func (db *DB) GetTripDetails(tripID string, serviceDate string) (*models.TripDet
 	return &models.TripDetails{
 		TripID:      tripID,
 		RouteID:     routeID,
+		RouteType:   routeType,
 		RouteColor:  routeColor,
 		DisplayName: displayName,
 		Destination: destination,

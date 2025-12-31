@@ -44,6 +44,20 @@ var (
 			BorderForeground(lipgloss.Color("63")).
 			Padding(1, 2).
 			MarginTop(1)
+
+	// Route type to human-readable name mapping (GTFS specification)
+	routeTypeNames = map[int]string{
+		0:  "Tram/Streetcar/Light rail",
+		1:  "Subway/Metro",
+		2:  "Rail",
+		3:  "Bus",
+		4:  "Ferry",
+		5:  "Cable tram",
+		6:  "Aerial lift/Gondola",
+		7:  "Funicular",
+		11: "Trolleybus",
+		12: "Monorail",
+	}
 )
 
 var statusCmd = &cobra.Command{
@@ -84,6 +98,13 @@ func runStatus(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	// Get available route types
+	routeTypes, err := getRouteTypes(db)
+	if err != nil {
+		fmt.Println(errorStyle.Render("Failed to query route types: " + err.Error()))
+		os.Exit(1)
+	}
+
 	// Parse dates
 	minTime, err := time.Parse("20060102", minDate)
 	if err != nil {
@@ -111,7 +132,12 @@ func runStatus(cmd *cobra.Command, args []string) {
 	content += labelStyle.Render("First trip date:") + valueStyle.Render(minDateFmt) + "\n"
 	content += labelStyle.Render("Last trip date:") + valueStyle.Render(maxDateFmt) + "\n"
 	content += labelStyle.Render("Total days:") + valueStyle.Render(fmt.Sprintf("%d days", totalDays)) + "\n"
-	content += labelStyle.Render("Days remaining:") + valueStyle.Render(fmt.Sprintf("%d days", daysFromNow))
+	content += labelStyle.Render("Days remaining:") + valueStyle.Render(fmt.Sprintf("%d days", daysFromNow)) + "\n"
+	content += "\n"
+	content += labelStyle.Render("Transport modes:")
+	for _, rt := range routeTypes {
+		content += "\n  • " + valueStyle.Render(getRouteTypeName(rt))
+	}
 
 	fmt.Println(boxStyle.Render(content))
 
@@ -132,6 +158,36 @@ func runStatus(cmd *cobra.Command, args []string) {
 		fmt.Println()
 		fmt.Println(successStyle.Render(fmt.Sprintf("✓ Database has %d days of trip data remaining.", daysFromNow)))
 	}
+}
+
+// getRouteTypes returns the distinct route types present in the database
+func getRouteTypes(db *sql.DB) ([]int, error) {
+	query := `SELECT DISTINCT route_type FROM routes ORDER BY route_type`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("query failed: %w", err)
+	}
+	defer rows.Close()
+
+	var types []int
+	for rows.Next() {
+		var routeType int
+		if err := rows.Scan(&routeType); err != nil {
+			return nil, fmt.Errorf("scan failed: %w", err)
+		}
+		types = append(types, routeType)
+	}
+
+	return types, rows.Err()
+}
+
+// getRouteTypeName returns the human-readable name for a route type
+func getRouteTypeName(routeType int) string {
+	if name, ok := routeTypeNames[routeType]; ok {
+		return name
+	}
+	return fmt.Sprintf("Unknown (%d)", routeType)
 }
 
 // getTripDateRange returns the minimum and maximum service dates from the database

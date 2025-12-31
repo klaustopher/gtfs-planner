@@ -14,6 +14,7 @@ export interface SavedTrip {
   id: string
   tripId: string
   routeId: string
+  routeType: number
   routeShortName: string
   routeColor: string
   startStationId: string
@@ -139,6 +140,7 @@ function App() {
       id: `${trip.trip_id}-${destinationStopId}-${Date.now()}`,
       tripId: trip.trip_id,
       routeId: trip.route_id,
+      routeType: trip.route_type,
       routeShortName: trip.display_name,
       routeColor: trip.route_color,
       startStationId: trip.start_station_id,
@@ -229,6 +231,7 @@ function App() {
               id: `${tripData.tripId}-${tripData.endStationId}-${Date.now()}`,
               tripId: tripData.tripId,
               routeId: tripData.routeId,
+              routeType: route.route_type,
               routeShortName: route.route_short_name,
               routeColor: route.route_color,
               startStationId: tripData.startStationId,

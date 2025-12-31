@@ -65,6 +65,7 @@ type StopTime struct {
 type UpcomingTrip struct {
 	TripID            string       `json:"trip_id"`
 	RouteID           string       `json:"route_id"`
+	RouteType         int          `json:"route_type"`
 	RouteColor        string       `json:"route_color"`
 	DepartureDateTime string       `json:"departure_datetime"`
 	Headsign          string       `json:"headsign"`
@@ -86,6 +87,7 @@ type UpcomingTripsData struct {
 type TripDetails struct {
 	TripID      string     `json:"trip_id"`
 	RouteID     string     `json:"route_id"`
+	RouteType   int        `json:"route_type"`
 	RouteColor  string     `json:"route_color"`
 	DisplayName string     `json:"display_name"`
 	Destination string     `json:"destination"`

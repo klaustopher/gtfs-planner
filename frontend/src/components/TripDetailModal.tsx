@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { models } from '../../wailsjs/go/models'
 import { GetTripDetails } from '../../wailsjs/go/main/App'
 import { normalizeColor, FALLBACK_COLORS } from './map/geojson'
+import { getTransportTypeLabel } from '../utils/transportType'
 import './TripDetailModal.css'
 
 interface TripDetailModalProps {
@@ -78,6 +79,9 @@ export default function TripDetailModal({
       <div className="trip-detail-modal">
         <div className="trip-detail-modal__header">
           <div className="trip-detail-modal__title">
+            <span className="trip-detail-modal__type-badge">
+              {getTransportTypeLabel(trip.route_type)}
+            </span>
             <span
               className="trip-detail-modal__badge"
               style={{ backgroundColor: tripColor }}

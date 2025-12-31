@@ -311,6 +311,7 @@ export namespace models {
 	export class TripDetails {
 	    trip_id: string;
 	    route_id: string;
+	    route_type: number;
 	    route_color: string;
 	    display_name: string;
 	    destination: string;
@@ -325,6 +326,7 @@ export namespace models {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.trip_id = source["trip_id"];
 	        this.route_id = source["route_id"];
+	        this.route_type = source["route_type"];
 	        this.route_color = source["route_color"];
 	        this.display_name = source["display_name"];
 	        this.destination = source["destination"];
@@ -353,6 +355,7 @@ export namespace models {
 	export class UpcomingTrip {
 	    trip_id: string;
 	    route_id: string;
+	    route_type: number;
 	    route_color: string;
 	    departure_datetime: string;
 	    headsign: string;
@@ -371,6 +374,7 @@ export namespace models {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.trip_id = source["trip_id"];
 	        this.route_id = source["route_id"];
+	        this.route_type = source["route_type"];
 	        this.route_color = source["route_color"];
 	        this.departure_datetime = source["departure_datetime"];
 	        this.headsign = source["headsign"];
