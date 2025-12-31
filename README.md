@@ -43,10 +43,21 @@ cd bus-planning
 
 ### 2. Prepare GTFS Data
 
-The application requires a pre-processed SQLite database from GTFS data:
+The application requires a pre-processed SQLite database from GTFS data. Use the included `gtfs-manager` CLI tool:
 
-1. Download a GTFS feed ZIP file and place it in `gtfs-data/feeds/`
-2. Parse the GTFS data into SQLite and place the database at `gtfs-data/sqlite/gtfs.sqlite`
+```bash
+# Build the GTFS manager CLI
+go build -o build/bin/gtfs-manager ./cmd/gtfs-manager/
+
+# Download the GTFS feed (with progress display)
+./build/bin/gtfs-manager download
+
+# Import into SQLite database (requires Node.js/npx)
+./build/bin/gtfs-manager import
+
+# Check database status
+./build/bin/gtfs-manager status
+```
 
 The database should contain standard GTFS tables:
 - `stops` - Station/stop locations
@@ -91,6 +102,13 @@ The executable will be in `build/bin/`.
 bus-planning/
 ├── main.go                 # Wails app entry point
 ├── app.go                  # Core App struct with Wails bindings
+├── cmd/
+│   └── gtfs-manager/       # GTFS data management CLI
+│       ├── main.go         # CLI entry point
+│       ├── config.go       # YAML config loader
+│       ├── status.go       # Status command
+│       ├── download.go     # Download command
+│       └── import.go       # Import command
 ├── internal/
 │   ├── db/                 # Database operations
 │   │   ├── db.go           # GTFS queries
@@ -113,6 +131,7 @@ bus-planning/
 ├── gtfs-data/
 │   ├── feeds/              # GTFS ZIP files (gitignored)
 │   └── sqlite/             # SQLite database (gitignored)
+├── gtfs-config.yaml        # GTFS manager configuration
 └── build/                  # Build configuration
 ```
 
@@ -149,6 +168,65 @@ go test -v ./...
 # Run specific package tests
 go test ./internal/db/
 ```
+
+## GTFS Manager CLI
+
+The `gtfs-manager` CLI tool manages GTFS data for the application.
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `status` | Check database status and data availability (default) |
+| `download` | Download GTFS feed with progress display |
+| `import` | Parse GTFS ZIP and create SQLite database |
+
+### Configuration
+
+Create a `gtfs-config.yaml` file in the project root:
+
+```yaml
+# URL to download the GTFS feed from
+feed_url: "https://download.gtfs.de/germany/nv_free/latest.zip"
+
+# Local path to store the downloaded GTFS feed
+feed_path: "gtfs-data/feeds/latest.zip"
+
+# Path to the SQLite database
+database_path: "gtfs-data/sqlite/gtfs.sqlite"
+```
+
+Use `--config` to specify an alternate config file:
+
+```bash
+./build/bin/gtfs-manager --config /path/to/config.yaml status
+```
+
+### Status Command
+
+Shows the date range of available trip data and warns if less than 2 weeks remain:
+
+```
+GTFS Database Status
+
+╭────────────────────────────────────────────────────╮
+│  Database:           gtfs-data/sqlite/gtfs.sqlite  │
+│  First trip date:    Sat, 20 Dec 2025              │
+│  Last trip date:     Mon, 19 Jan 2026              │
+│  Total days:         31 days                       │
+│  Days remaining:     19 days                       │
+╰────────────────────────────────────────────────────╯
+
+✓ Database has 19 days of trip data remaining.
+```
+
+### Download Command
+
+Downloads the GTFS feed with a live progress display showing speed and ETA.
+
+### Import Command
+
+Runs `npx gtfs-import` to parse the GTFS ZIP file into SQLite. Requires Node.js.
 
 ## Configuration
 

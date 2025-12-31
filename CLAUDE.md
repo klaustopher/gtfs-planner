@@ -21,6 +21,7 @@ wails dev                    # Start dev server with hot reload
 
 # Building
 wails build                  # Build production executable
+go build -o build/bin/gtfs-manager ./cmd/gtfs-manager/  # Build GTFS manager CLI
 
 # Testing
 go test ./...                # Run all Go tests
@@ -32,6 +33,11 @@ cd frontend && npm run build # Build frontend assets
 
 # Generate Wails bindings (after changing Go methods)
 wails generate module
+
+# GTFS Data Management
+gtfs-manager status          # Check database status and data availability
+gtfs-manager download        # Download GTFS feed from configured URL
+gtfs-manager import          # Import GTFS feed into SQLite database
 ```
 
 ## Architecture Overview
@@ -41,11 +47,19 @@ wails generate module
 **Entry Points:**
 - `main.go` - Wails app initialization
 - `app.go` - Main `App` struct with Wails-bound methods
+- `cmd/gtfs-manager/` - CLI tool for GTFS data management
 
 **Key Packages:**
 - `internal/db/` - All database queries (~800 lines)
 - `internal/models/` - Data structures with JSON tags
 - `internal/timeutil/` - GTFS time normalization utilities
+
+**GTFS Manager CLI (`cmd/gtfs-manager/`):**
+- `main.go` - Cobra CLI entry point and command registration
+- `config.go` - YAML config file loader
+- `status.go` - Database status check with date range display
+- `download.go` - Feed download with Bubble Tea progress UI
+- `import.go` - GTFS import via `npx gtfs-import`
 
 **Wails Bindings (app.go:29-80):**
 ```go
@@ -113,6 +127,19 @@ When querying trips, the code checks:
 
 - `gtfs-data/feeds/` - Raw GTFS feed ZIP files (gitignored)
 - `gtfs-data/sqlite/gtfs.sqlite` - Parsed SQLite database (gitignored)
+- `gtfs-config.yaml` - GTFS manager configuration file
+
+## GTFS Manager Configuration
+
+The `gtfs-manager` CLI reads settings from `gtfs-config.yaml`:
+
+```yaml
+feed_url: "https://download.gtfs.de/germany/nv_free/latest.zip"
+feed_path: "gtfs-data/feeds/latest.zip"
+database_path: "gtfs-data/sqlite/gtfs.sqlite"
+```
+
+Use `--config` flag to specify an alternate config file location.
 
 ## Key Implementation Details
 
