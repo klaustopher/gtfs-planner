@@ -109,7 +109,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <div className="settings-modal__slider-value">
               {settings.nearbyStationRadius === 0
                 ? t('settings.nearbyStationRadiusDisabled')
-                : t('settings.nearbyStationRadiusValue', { meters: settings.nearbyStationRadius })}
+                : <><strong>{settings.nearbyStationRadius}</strong> m</>}
             </div>
           </div>
         </section>
@@ -130,7 +130,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               className="settings-modal__slider"
             />
             <div className="settings-modal__slider-value">
-              {t('settings.connectionTimeValue', { minutes: settings.connectionTimeMinutes })}
+              <strong>{settings.connectionTimeMinutes}</strong> {t('settings.connectionTimeUnit')}
             </div>
           </div>
         </section>

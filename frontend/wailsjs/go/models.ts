@@ -292,6 +292,7 @@ export namespace models {
 	    arrival_datetime: string;
 	    departure_datetime: string;
 	    stop_sequence: number;
+	    platform_code: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new StopTime(source);
@@ -306,6 +307,7 @@ export namespace models {
 	        this.arrival_datetime = source["arrival_datetime"];
 	        this.departure_datetime = source["departure_datetime"];
 	        this.stop_sequence = source["stop_sequence"];
+	        this.platform_code = source["platform_code"];
 	    }
 	}
 	export class TripDetails {

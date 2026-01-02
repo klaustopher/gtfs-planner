@@ -5,6 +5,7 @@ import TripDetailModal from './components/TripDetailModal'
 import { models } from '../wailsjs/go/models'
 import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, ShowConfirmDialog } from '../wailsjs/go/main/App'
 import { useTrips, TripQueryParams } from './components/map/useTrips'
+import { useJourneyView } from './hooks/useJourneyView'
 import { useSettings } from './hooks/useSettings'
 import { useTranslation } from 'react-i18next'
 import './App.css'
@@ -81,6 +82,9 @@ function App() {
     tripIndex: number
   } | null>(null)
 
+  // Journey view mode - displays the complete journey on the map
+  const [journeyViewMode, setJourneyViewMode] = useState(false)
+
   // Handler to add a trip to the saved list
   const addSavedTrip = useCallback((trip: SavedTrip) => {
     setSavedTrips(prev => [...prev, trip])
@@ -118,7 +122,13 @@ function App() {
   // Handler to clear all saved trips
   const clearSavedTrips = useCallback(() => {
     setSavedTrips([])
+    setJourneyViewMode(false)
     setHasUnsavedChanges(true)
+  }, [])
+
+  // Toggle journey view mode
+  const toggleJourneyView = useCallback(() => {
+    setJourneyViewMode(prev => !prev)
   }, [])
 
   // Handler to open trip detail modal
@@ -273,6 +283,11 @@ function App() {
 
         setCurrentFilePath(result.filePath)
         setHasUnsavedChanges(false)
+
+        // Automatically enter journey view mode if there are trips
+        if (hydratedTrips.length > 0) {
+          setJourneyViewMode(true)
+        }
       }
     } catch (err) {
       console.error('Failed to load journey:', err)
@@ -295,6 +310,7 @@ function App() {
     // Reset all journey state
     setSavedTrips([])
     setSelectedStation(null)
+    setJourneyViewMode(false)
     const now = new Date()
     setSelectedDate(formatDateForInput(now))
     setSelectedTime(formatTimeForInput(now))
@@ -347,6 +363,12 @@ function App() {
   // Fetch upcoming trips when a station is selected
   const { tripsData, isLoading: isLoadingTrips } = useTrips(tripQueryParams)
 
+  // Fetch journey view data when in journey view mode
+  const { data: journeyViewData, isLoading: isLoadingJourneyView } = useJourneyView(
+    savedTrips,
+    journeyViewMode
+  )
+
   return (
     <div className="app-container">
       <div className="map-container">
@@ -362,6 +384,8 @@ function App() {
           onTimeChange={setSelectedTime}
           onTripSelection={handleTripSelection}
           onResetTime={handleResetTime}
+          journeyViewMode={journeyViewMode}
+          journeyViewData={journeyViewData}
         />
       </div>
       <Sidebar
@@ -377,6 +401,10 @@ function App() {
         onSaveJourney={handleSaveJourney}
         onLoadJourney={handleLoadJourney}
         onNewJourney={handleNewJourney}
+        journeyViewMode={journeyViewMode}
+        onToggleJourneyView={toggleJourneyView}
+        journeyViewData={journeyViewData}
+        isLoadingJourneyView={isLoadingJourneyView}
       />
       {tripModalData && selectedStation && (
         <TripDetailModal

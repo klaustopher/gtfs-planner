@@ -5,6 +5,8 @@ import { getTransportTypeLabel } from '../utils/transportType'
 import { SavedTrip } from '../App'
 import { useTranslation } from 'react-i18next'
 import SettingsModal from './SettingsModal'
+import JourneySummaryPanel from './JourneySummaryPanel'
+import type { JourneyViewData } from '../hooks/useJourneyView'
 import './Sidebar.css'
 
 interface SidebarProps {
@@ -20,6 +22,10 @@ interface SidebarProps {
   onSaveJourney: () => void
   onLoadJourney: () => void
   onNewJourney: () => void
+  journeyViewMode: boolean
+  onToggleJourneyView: () => void
+  journeyViewData: JourneyViewData | null
+  isLoadingJourneyView: boolean
 }
 
 // Format ISO 8601 datetime to HH:MM display
@@ -41,6 +47,10 @@ export default function Sidebar({
   onSaveJourney,
   onLoadJourney,
   onNewJourney,
+  journeyViewMode,
+  onToggleJourneyView,
+  journeyViewData,
+  isLoadingJourneyView,
 }: SidebarProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const { t, i18n } = useTranslation()
@@ -95,9 +105,18 @@ export default function Sidebar({
         <div className="sidebar-card">
           <div className="sidebar-card__header">
             <h3 className="sidebar-card__title">{t('journey.plannedTitle')}</h3>
-            <button className="clear-trips-btn" onClick={onClearSavedTrips}>
-              {t('journey.clearSaved')}
-            </button>
+            <div className="sidebar-card__actions">
+              <button
+                className={`journey-view-btn ${journeyViewMode ? 'journey-view-btn--active' : ''}`}
+                onClick={onToggleJourneyView}
+                title={journeyViewMode ? t('journey.hideOnMap') : t('journey.showOnMap')}
+              >
+                {journeyViewMode ? t('journey.hideOnMap') : t('journey.showOnMap')}
+              </button>
+              <button className="clear-trips-btn" onClick={onClearSavedTrips}>
+                {t('journey.clearSaved')}
+              </button>
+            </div>
           </div>
           <div className="saved-trips-list">
             {savedTrips.map((trip, index) => (
@@ -147,68 +166,87 @@ export default function Sidebar({
         </div>
       )}
 
-      {/* Station & Departures */}
-      <div className="sidebar-card sidebar-card--flex">
-        <div className="sidebar-card__header">
-          <h3 className="sidebar-card__title">
-            {selectedStation ? selectedStation.stop_name : t('stationSection.selectPrompt')}
-          </h3>
-        </div>
-
-        {!selectedStation && (
-          <p className="sidebar-hint">{t('stationSection.hint')}</p>
-        )}
-
-        {selectedStation && (
-          <div className="trips-section">
-            {isLoadingTrips && <p className="sidebar-hint">{t('stationSection.loading')}</p>}
-            {!isLoadingTrips && tripsData && tripsData.trips && tripsData.trips.length > 0 && (
-              <div className="trips-list">
-                {tripsData.trips.map((trip: models.UpcomingTrip, index: number) => {
-                  const tripColor = getTripColor(trip, index)
-                  const isNearbyTrip = selectedStation && trip.start_station_id !== selectedStation.stop_id
-
-                  return (
-                    <button
-                      key={trip.trip_id}
-                      className="trip-item"
-                      style={{ borderLeftColor: tripColor }}
-                      onClick={() => onTripClick(trip, index)}
-                      aria-label={isNearbyTrip ? t('stationSection.nearbyStationAria') : undefined}
-                    >
-                      <span className="trip-time">{formatTimeDisplay(trip.departure_datetime, timeLocale)}</span>
-                      <div className="trip-details">
-                        <div className="trip-badges">
-                          <span className="trip-type-badge">
-                            {getTransportTypeLabel(trip.route_type, t)}
-                          </span>
-                          {trip.display_name && (
-                            <span
-                              className="trip-route-badge"
-                              style={{ backgroundColor: tripColor }}
-                            >
-                              {trip.display_name}
-                            </span>
-                          )}
-                          {isNearbyTrip && (
-                            <span className="trip-nearby-badge" title={trip.start_station_name}>
-                              ↔ <span className="trip-nearby-station">{trip.start_station_name}</span>
-                            </span>
-                          )}
-                        </div>
-                        <span className="trip-destination">{trip.destination}</span>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-            {!isLoadingTrips && tripsData && (!tripsData.trips || tripsData.trips.length === 0) && (
-              <p className="sidebar-hint">{t('stationSection.empty')}</p>
-            )}
+      {/* Journey Summary (when in journey view mode) */}
+      {journeyViewMode && (
+        <div className="sidebar-card sidebar-card--flex">
+          <div className="sidebar-card__header">
+            <h3 className="sidebar-card__title">{t('journeySummary.title', 'Journey Overview')}</h3>
           </div>
-        )}
-      </div>
+          {journeyViewData?.summary ? (
+            <JourneySummaryPanel
+              summary={journeyViewData.summary}
+              isLoading={isLoadingJourneyView}
+            />
+          ) : (
+            <p className="sidebar-hint">{t('journeySummary.loading')}</p>
+          )}
+        </div>
+      )}
+
+      {/* Station & Departures (hidden when in journey view mode) */}
+      {!journeyViewMode && (
+        <div className="sidebar-card sidebar-card--flex">
+          <div className="sidebar-card__header">
+            <h3 className="sidebar-card__title">
+              {selectedStation ? selectedStation.stop_name : t('stationSection.selectPrompt')}
+            </h3>
+          </div>
+
+          {!selectedStation && (
+            <p className="sidebar-hint">{t('stationSection.hint')}</p>
+          )}
+
+          {selectedStation && (
+            <div className="trips-section">
+              {isLoadingTrips && <p className="sidebar-hint">{t('stationSection.loading')}</p>}
+              {!isLoadingTrips && tripsData && tripsData.trips && tripsData.trips.length > 0 && (
+                <div className="trips-list">
+                  {tripsData.trips.map((trip: models.UpcomingTrip, index: number) => {
+                    const tripColor = getTripColor(trip, index)
+                    const isNearbyTrip = selectedStation && trip.start_station_id !== selectedStation.stop_id
+
+                    return (
+                      <button
+                        key={trip.trip_id}
+                        className="trip-item"
+                        style={{ borderLeftColor: tripColor }}
+                        onClick={() => onTripClick(trip, index)}
+                        aria-label={isNearbyTrip ? t('stationSection.nearbyStationAria') : undefined}
+                      >
+                        <span className="trip-time">{formatTimeDisplay(trip.departure_datetime, timeLocale)}</span>
+                        <div className="trip-details">
+                          <div className="trip-badges">
+                            <span className="trip-type-badge">
+                              {getTransportTypeLabel(trip.route_type, t)}
+                            </span>
+                            {trip.display_name && (
+                              <span
+                                className="trip-route-badge"
+                                style={{ backgroundColor: tripColor }}
+                              >
+                                {trip.display_name}
+                              </span>
+                            )}
+                            {isNearbyTrip && (
+                              <span className="trip-nearby-badge" title={trip.start_station_name}>
+                                ↔ <span className="trip-nearby-station">{trip.start_station_name}</span>
+                              </span>
+                            )}
+                          </div>
+                          <span className="trip-destination">{trip.destination}</span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+              {!isLoadingTrips && tripsData && (!tripsData.trips || tripsData.trips.length === 0) && (
+                <p className="sidebar-hint">{t('stationSection.empty')}</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       <div className="sidebar-footer">
         <button
           className="settings-btn"

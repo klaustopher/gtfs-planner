@@ -195,3 +195,102 @@ export function tripsToGeoJSON(trips: models.UpcomingTrip[]): TripLinesGeoJSON {
     }),
   }
 }
+
+// ===== Journey View GeoJSON Functions =====
+
+import type { JourneyLeg, WalkingConnection } from '../../hooks/useJourneyView'
+
+export interface JourneyLinesGeoJSON {
+  type: 'FeatureCollection'
+  features: Array<{
+    type: 'Feature'
+    geometry: {
+      type: 'LineString'
+      coordinates: Array<[number, number]>
+    }
+    properties: {
+      trip_id: string
+      route_color: string
+      route_short_name: string
+      line_color: string
+      line_width: number
+    }
+  }>
+}
+
+export function journeyLegsToGeoJSON(legs: JourneyLeg[]): JourneyLinesGeoJSON {
+  // Convert legs to format for overlap detection
+  const legsForOverlap: TripForOverlap[] = legs.map((leg) => ({
+    id: leg.tripId,
+    coordinates: leg.coordinates.map((c) => [c.lon, c.lat] as [number, number]),
+  }))
+
+  // Detect overlapping legs and get offset indices
+  const offsetIndices = detectOverlaps(legsForOverlap)
+
+  return {
+    type: 'FeatureCollection',
+    features: legs.map((leg, index) => {
+      const normalizedColor = normalizeColor(leg.routeColor)
+      const fallbackColor = FALLBACK_COLORS[index % FALLBACK_COLORS.length]
+      const lineColor = normalizedColor ?? fallbackColor
+
+      // Get original coordinates
+      const originalCoords = leg.coordinates.map((c) => [c.lon, c.lat] as [number, number])
+
+      // Apply offset based on overlap detection
+      const offsetIndex = offsetIndices.get(leg.tripId) ?? 0
+      const offsetCoords = applyOffset(originalCoords, offsetIndex)
+
+      return {
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: offsetCoords,
+        },
+        properties: {
+          trip_id: leg.tripId,
+          route_color: lineColor,
+          route_short_name: leg.routeShortName,
+          line_color: lineColor,
+          line_width: LINE_WIDTH,
+        },
+      }
+    }),
+  }
+}
+
+export interface WalkingLinesGeoJSON {
+  type: 'FeatureCollection'
+  features: Array<{
+    type: 'Feature'
+    geometry: {
+      type: 'LineString'
+      coordinates: Array<[number, number]>
+    }
+    properties: {
+      from_station_id: string
+      to_station_id: string
+    }
+  }>
+}
+
+export function walkingConnectionsToGeoJSON(connections: WalkingConnection[]): WalkingLinesGeoJSON {
+  return {
+    type: 'FeatureCollection',
+    features: connections.map((conn) => ({
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [conn.fromLon, conn.fromLat],
+          [conn.toLon, conn.toLat],
+        ] as Array<[number, number]>,
+      },
+      properties: {
+        from_station_id: conn.fromStationId,
+        to_station_id: conn.toStationId,
+      },
+    })),
+  }
+}

@@ -5,12 +5,15 @@ import type {
   CircleLayerSpecification,
   MapLayerMouseEvent,
 } from 'maplibre-gl'
+import { LngLatBounds } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { GetStationDetails, SearchStations } from '../../wailsjs/go/main/App'
 import { models } from '../../wailsjs/go/models'
 import { useStops, Bounds } from './map/useStops'
-import { stopsToGeoJSON, tripsToGeoJSON } from './map/geojson'
+import { stopsToGeoJSON, tripsToGeoJSON, journeyLegsToGeoJSON, walkingConnectionsToGeoJSON } from './map/geojson'
+import type { JourneyViewData } from '../hooks/useJourneyView'
 import StationHoverPanel from './map/StationHoverPanel'
+import JourneyMarkerPopover from './map/JourneyMarkerPopover'
 import { SavedTrip } from '../App'
 import { useTranslation } from 'react-i18next'
 import './Map.css'
@@ -47,6 +50,8 @@ interface MapProps {
     arrivalTime: string
   ) => void
   onResetTime: () => void
+  journeyViewMode?: boolean
+  journeyViewData?: JourneyViewData | null
 }
 
 const INITIAL_VIEW_STATE = {
@@ -86,6 +91,8 @@ export default function Map({
   onTimeChange,
   onTripSelection,
   onResetTime,
+  journeyViewMode,
+  journeyViewData,
 }: MapProps) {
   const { t } = useTranslation()
   const [viewState, setViewState] = useState(INITIAL_VIEW_STATE)
@@ -118,6 +125,17 @@ export default function Map({
   const tripLinesGeojsonData = useMemo(
     () => tripsToGeoJSON(tripsData?.trips ?? []),
     [tripsData]
+  )
+
+  // Journey view GeoJSON data
+  const journeyLegsGeojsonData = useMemo(
+    () => journeyLegsToGeoJSON(journeyViewData?.legs ?? []),
+    [journeyViewData?.legs]
+  )
+
+  const walkingConnectionsGeojsonData = useMemo(
+    () => walkingConnectionsToGeoJSON(journeyViewData?.walkingConnections ?? []),
+    [journeyViewData?.walkingConnections]
   )
 
   // Handle date change
@@ -363,6 +381,39 @@ export default function Map({
     }
   }, [selectedStation])
 
+  // Fit map to journey bounds when entering journey view mode
+  useEffect(() => {
+    if (!journeyViewMode || !journeyViewData || journeyViewData.legs.length === 0) {
+      return
+    }
+
+    const map = mapRef.current?.getMap()
+    if (!map) {
+      return
+    }
+
+    // Calculate bounds from all leg coordinates
+    const bounds = new LngLatBounds()
+    for (const leg of journeyViewData.legs) {
+      for (const coord of leg.coordinates) {
+        bounds.extend([coord.lon, coord.lat])
+      }
+    }
+
+    // Also include walking connection coordinates
+    for (const walk of journeyViewData.walkingConnections) {
+      bounds.extend([walk.fromLon, walk.fromLat])
+      bounds.extend([walk.toLon, walk.toLat])
+    }
+
+    // Fit the map to the bounds with padding
+    map.fitBounds(bounds, {
+      padding: { top: 80, bottom: 40, left: 40, right: 40 },
+      maxZoom: 14,
+      duration: 500,
+    })
+  }, [journeyViewMode, journeyViewData])
+
   const handleSearchInputChange = useCallback((evt: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(evt.target.value)
   }, [])
@@ -533,8 +584,8 @@ export default function Map({
           ],
         }}
       >
-        {/* Trip lines layer - only shown when a station is selected */}
-        {tripsData && (
+        {/* Trip lines layer - only shown when a station is selected and NOT in journey view */}
+        {tripsData && !journeyViewMode && (
           <Source id="trip-lines" type="geojson" data={tripLinesGeojsonData}>
             <Layer
               id="trip-lines"
@@ -552,11 +603,51 @@ export default function Map({
           </Source>
         )}
 
+        {/* Journey view layers - shown when in journey view mode */}
+        {journeyViewMode && journeyViewData && (
+          <>
+            {/* Walking connections - dashed gray lines */}
+            <Source id="walking-connections" type="geojson" data={walkingConnectionsGeojsonData}>
+              <Layer
+                id="walking-connections"
+                type="line"
+                layout={{
+                  'line-cap': 'round',
+                  'line-join': 'round',
+                }}
+                paint={{
+                  'line-color': '#6b7280',
+                  'line-width': 3,
+                  'line-opacity': 0.7,
+                  'line-dasharray': [2, 2],
+                }}
+              />
+            </Source>
+
+            {/* Journey leg lines - colored by route */}
+            <Source id="journey-legs" type="geojson" data={journeyLegsGeojsonData}>
+              <Layer
+                id="journey-legs"
+                type="line"
+                layout={{
+                  'line-cap': 'round',
+                  'line-join': 'round',
+                }}
+                paint={{
+                  'line-color': ['get', 'line_color'],
+                  'line-width': ['get', 'line_width'],
+                  'line-opacity': ROUTE_LINE_OPACITY,
+                }}
+              />
+            </Source>
+          </>
+        )}
+
         <Source id="stops" type="geojson" data={stopsGeojsonData}>
           <Layer {...stopsLayerStyle} />
         </Source>
 
-        {selectedStation && (
+        {selectedStation && !journeyViewMode && (
           <Popup
             longitude={selectedStation.stop_lon}
             latitude={selectedStation.stop_lat}
@@ -567,6 +658,21 @@ export default function Map({
             <strong>{selectedStation.stop_name}</strong>
           </Popup>
         )}
+
+        {/* Journey marker popovers - always visible when in journey view */}
+        {journeyViewMode && journeyViewData?.markers.map((marker, index) => (
+          <Popup
+            key={`journey-marker-${marker.stationId}-${index}`}
+            longitude={marker.lon}
+            latitude={marker.lat}
+            anchor="bottom"
+            closeButton={false}
+            closeOnClick={false}
+            className="journey-marker-popup"
+          >
+            <JourneyMarkerPopover marker={marker} />
+          </Popup>
+        ))}
       </MapGL>
 
       {/* Hover panel for trip selection */}

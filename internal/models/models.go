@@ -59,6 +59,7 @@ type StopTime struct {
 	ArrivalDateTime   string  `json:"arrival_datetime"`
 	DepartureDateTime string  `json:"departure_datetime"`
 	StopSequence      int     `json:"stop_sequence"`
+	PlatformCode      string  `json:"platform_code"`
 }
 
 // UpcomingTrip represents a single trip departing from a station

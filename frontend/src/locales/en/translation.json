@@ -22,10 +22,25 @@
     "plannedTitle": "Planned Journey",
     "clearSaved": "Clear",
     "removeTrip": "Remove connection",
+    "showOnMap": "Show on map",
+    "hideOnMap": "Hide map",
     "unsaved": {
       "title": "Unsaved changes",
       "message": "There are unsaved changes. Do you want to continue and discard them?"
     }
+  },
+  "journeySummary": {
+    "title": "Journey Overview",
+    "loading": "Loading journey details...",
+    "departure": "Departure",
+    "arrival": "Arrival",
+    "totalTime": "Total",
+    "leg": "Leg",
+    "legs": "Legs",
+    "transfer": "Transfer",
+    "transfers": "Transfers",
+    "walkingConnection": "Walk",
+    "walkingConnections": "Walks"
   },
   "stationSection": {
     "selectPrompt": "Select a station",
@@ -70,9 +85,17 @@
     "connectionTimeLabel": "Connection time",
     "connectionTimeHint": "Buffer time added after arrival when looking for connecting trips.",
     "connectionTimeValue": "{{minutes}} minutes",
+    "connectionTimeUnit": "min",
     "openButton": "Settings",
     "openButtonTooltip": "Open app settings",
     "close": "Close settings"
+  },
+  "journeyMarker": {
+    "arrival": "Arr",
+    "departure": "Dep",
+    "platform": "Pl.",
+    "walkTo": "Walk to next station",
+    "minutes": "min"
   },
   "transportType": {
     "short": {
