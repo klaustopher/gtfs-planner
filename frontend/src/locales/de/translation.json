@@ -7,7 +7,8 @@
         "de": "Deutsch",
         "en": "Englisch"
       }
-    }
+    },
+    "close": "Schließen"
   },
   "journey": {
     "title": "Reiseplanung",
@@ -17,7 +18,9 @@
       "load": "Laden",
       "loadTooltip": "Gespeicherte Reise laden",
       "save": "Speichern",
-      "saveTooltip": "Aktuelle Reise speichern"
+      "saveTooltip": "Aktuelle Reise speichern",
+      "export": "Exportieren",
+      "exportTooltip": "Reise als ICS oder PDF exportieren"
     },
     "plannedTitle": "Geplante Reise",
     "clearSaved": "Löschen",
@@ -27,6 +30,18 @@
     "unsaved": {
       "title": "Ungespeicherte Änderungen",
       "message": "Es gibt ungespeicherte Änderungen. Möchten Sie fortfahren und diese verwerfen?"
+    },
+    "export": {
+      "title": "Reise exportieren",
+      "tripCount": "Fahrten",
+      "totalDuration": "Gesamtdauer",
+      "date": "Datum",
+      "hours": "Std.",
+      "minutes": "Min.",
+      "exportICS": "Als Kalender (ICS) exportieren",
+      "exportPDF": "Als PDF exportieren",
+      "exporting": "Exportiere...",
+      "error": "Fehler beim Exportieren"
     }
   },
   "journeySummary": {

@@ -3,6 +3,10 @@
 import {models} from '../models';
 import {main} from '../models';
 
+export function ExportJourneyToICS(arg1:models.JourneyData):Promise<string>;
+
+export function ExportJourneyToPDF(arg1:models.JourneyData):Promise<string>;
+
 export function GetNearbyStations(arg1:string,arg2:number):Promise<Array<models.Stop>>;
 
 export function GetRouteByID(arg1:string):Promise<models.Route>;

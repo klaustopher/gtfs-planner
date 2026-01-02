@@ -1,0 +1,230 @@
+.journey-export-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.journey-export-modal {
+  background: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.journey-export-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.journey-export-modal__title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  color: #2c3e50;
+}
+
+.journey-export-modal__close {
+  background: none;
+  border: none;
+  font-size: 32px;
+  cursor: pointer;
+  color: #7f8c8d;
+  line-height: 1;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.journey-export-modal__close:hover {
+  color: #2c3e50;
+}
+
+.journey-export-modal__content {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.journey-export-modal__summary {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.journey-export-modal__summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.journey-export-modal__summary-row:last-child {
+  margin-bottom: 0;
+}
+
+.journey-export-modal__summary-label {
+  font-weight: 500;
+  color: #5a6c7d;
+}
+
+.journey-export-modal__summary-value {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.journey-export-modal__trips {
+  margin-bottom: 20px;
+}
+
+.journey-export-modal__trip {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.journey-export-modal__trip:last-child {
+  margin-bottom: 0;
+}
+
+.journey-export-modal__trip-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.journey-export-modal__trip-number {
+  background: #2c3e50;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.journey-export-modal__trip-badge {
+  background: #ecf0f1;
+  color: #5a6c7d;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.journey-export-modal__trip-route {
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.journey-export-modal__trip-details {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.journey-export-modal__trip-station {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.journey-export-modal__trip-time {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 2px;
+}
+
+.journey-export-modal__trip-name {
+  font-size: 13px;
+  color: #5a6c7d;
+}
+
+.journey-export-modal__trip-arrow {
+  font-size: 18px;
+  color: #95a5a6;
+  flex-shrink: 0;
+}
+
+.journey-export-modal__trip-duration {
+  font-size: 12px;
+  color: #7f8c8d;
+  text-align: right;
+}
+
+.journey-export-modal__actions {
+  display: flex;
+  gap: 12px;
+  flex-direction: column;
+}
+
+.journey-export-modal__error {
+  background: #fee;
+  color: #c33;
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.journey-export-modal__button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.journey-export-modal__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.journey-export-modal__button--ics {
+  background: #3498db;
+  color: white;
+}
+
+.journey-export-modal__button--ics:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.journey-export-modal__button--pdf {
+  background: #e74c3c;
+  color: white;
+}
+
+.journey-export-modal__button--pdf:hover:not(:disabled) {
+  background: #c0392b;
+}

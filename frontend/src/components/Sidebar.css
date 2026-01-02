@@ -92,12 +92,12 @@
 
 /* Journey actions */
 .journey-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
 
 .journey-btn {
-  flex: 1;
   padding: 10px 12px;
   border-radius: 8px;
   border: none;
@@ -126,6 +126,17 @@
   background: linear-gradient(135deg, #5eea94 0%, #2ed96b 100%);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);
+}
+
+.journey-btn--export {
+  background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+  color: white;
+}
+
+.journey-btn--export:hover:not(:disabled) {
+  background: linear-gradient(135deg, #a5b4fc 0%, #818cf8 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(129, 140, 248, 0.3);
 }
 
 .journey-btn:disabled {

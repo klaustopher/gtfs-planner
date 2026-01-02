@@ -7,7 +7,8 @@
         "de": "German",
         "en": "English"
       }
-    }
+    },
+    "close": "Close"
   },
   "journey": {
     "title": "Journey Planning",
@@ -17,7 +18,9 @@
       "load": "Load",
       "loadTooltip": "Load a saved journey",
       "save": "Save",
-      "saveTooltip": "Save the current journey"
+      "saveTooltip": "Save the current journey",
+      "export": "Export",
+      "exportTooltip": "Export journey as ICS or PDF"
     },
     "plannedTitle": "Planned Journey",
     "clearSaved": "Clear",
@@ -27,6 +30,18 @@
     "unsaved": {
       "title": "Unsaved changes",
       "message": "There are unsaved changes. Do you want to continue and discard them?"
+    },
+    "export": {
+      "title": "Export Journey",
+      "tripCount": "Trips",
+      "totalDuration": "Total Duration",
+      "date": "Date",
+      "hours": "hrs",
+      "minutes": "min",
+      "exportICS": "Export as Calendar (ICS)",
+      "exportPDF": "Export as PDF",
+      "exporting": "Exporting...",
+      "error": "Export failed"
     }
   },
   "journeySummary": {

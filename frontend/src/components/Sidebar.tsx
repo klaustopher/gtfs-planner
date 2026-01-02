@@ -6,6 +6,7 @@ import { SavedTrip } from '../App'
 import { useTranslation } from 'react-i18next'
 import SettingsModal from './SettingsModal'
 import JourneySummaryPanel from './JourneySummaryPanel'
+import JourneyExportModal from './JourneyExportModal'
 import type { JourneyViewData } from '../hooks/useJourneyView'
 import './Sidebar.css'
 
@@ -26,6 +27,7 @@ interface SidebarProps {
   onToggleJourneyView: () => void
   journeyViewData: JourneyViewData | null
   isLoadingJourneyView: boolean
+  journeyData: models.JourneyData | null
 }
 
 // Format ISO 8601 datetime to HH:MM display
@@ -51,8 +53,10 @@ export default function Sidebar({
   onToggleJourneyView,
   journeyViewData,
   isLoadingJourneyView,
+  journeyData,
 }: SidebarProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
   const { t, i18n } = useTranslation()
   const rawLanguage = i18n.resolvedLanguage || i18n.language || 'en'
   const resolvedLanguage = rawLanguage.split('-')[0]
@@ -60,6 +64,8 @@ export default function Sidebar({
 
   const openSettings = () => setIsSettingsOpen(true)
   const closeSettings = () => setIsSettingsOpen(false)
+  const openExportModal = () => setIsExportModalOpen(true)
+  const closeExportModal = () => setIsExportModalOpen(false)
 
   return (
     <div className="sidebar">
@@ -96,6 +102,14 @@ export default function Sidebar({
           >
             {t('journey.actions.save')}
             {hasUnsavedChanges && savedTrips.length > 0 && <span className="journey-btn__indicator">*</span>}
+          </button>
+          <button
+            className="journey-btn journey-btn--export"
+            onClick={openExportModal}
+            disabled={savedTrips.length === 0}
+            title={t('journey.actions.exportTooltip')}
+          >
+            {t('journey.actions.export')}
           </button>
         </div>
       </div>
@@ -262,6 +276,13 @@ export default function Sidebar({
         isOpen={isSettingsOpen}
         onClose={closeSettings}
       />
+      {isExportModalOpen && journeyData && (
+        <JourneyExportModal
+          journeyData={journeyData}
+          savedTrips={savedTrips}
+          onClose={closeExportModal}
+        />
+      )}
     </div>
   )
 }

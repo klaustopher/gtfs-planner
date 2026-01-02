@@ -369,6 +369,32 @@ function App() {
     journeyViewMode
   )
 
+  // Build journey data for export
+  const journeyData = useMemo(() => {
+    if (savedTrips.length === 0) return null
+
+    return new models.JourneyData({
+      version: 1,
+      createdAt: '',
+      modifiedAt: '',
+      savedTrips: savedTrips.map(t => new models.SavedTripData({
+        tripId: t.tripId,
+        routeId: t.routeId,
+        startStationId: t.startStationId,
+        departureDateTime: t.departureDateTime,
+        endStationId: t.endStationId,
+        arrivalDateTime: t.arrivalDateTime,
+      })),
+      selectedStationId: selectedStation?.stop_id || '',
+      currentDateTime: combineToISO8601(selectedDate, selectedTime),
+      mapView: viewState ? new models.MapView({
+        longitude: viewState.longitude,
+        latitude: viewState.latitude,
+        zoom: viewState.zoom,
+      }) : undefined,
+    })
+  }, [savedTrips, selectedStation, selectedDate, selectedTime, viewState])
+
   return (
     <div className="app-container">
       <div className="map-container">
@@ -405,6 +431,7 @@ function App() {
         onToggleJourneyView={toggleJourneyView}
         journeyViewData={journeyViewData}
         isLoadingJourneyView={isLoadingJourneyView}
+        journeyData={journeyData}
       />
       {tripModalData && selectedStation && (
         <TripDetailModal
