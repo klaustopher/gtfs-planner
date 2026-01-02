@@ -31,6 +31,9 @@ export interface JourneyMarker {
   // Transfer-specific
   layoverMinutes?: number
   isWalkingTransfer?: boolean
+  // Popover positioning
+  anchor?: 'left' | 'right' | 'top' | 'bottom'
+  offset?: [number, number]
 }
 
 // Walking connection between different stations
@@ -98,6 +101,35 @@ function extractCoordinateSegment(
     lat: st.stop_lat,
     lon: st.stop_lon,
   }))
+}
+
+// Calculate smart anchor position for popover to avoid blocking route lines
+function calculateAnchorPosition(
+  markerIndex: number,
+  isWalkingTransfer: boolean
+): { anchor: 'left' | 'right' | 'top' | 'bottom'; offset: [number, number] } {
+  // Walking transfers use top anchor to avoid blocking the walking line
+  if (isWalkingTransfer) {
+    return {
+      anchor: 'top',
+      offset: [0, -10] as [number, number],
+    }
+  }
+
+  // Alternate between left and right for normal markers
+  // This creates a zigzag pattern that keeps popovers away from the route line
+  const isEven = markerIndex % 2 === 0
+  if (isEven) {
+    return {
+      anchor: 'left',
+      offset: [15, 0] as [number, number],
+    }
+  } else {
+    return {
+      anchor: 'right',
+      offset: [-15, 0] as [number, number],
+    }
+  }
 }
 
 export function useJourneyView(
@@ -191,6 +223,7 @@ export function useJourneyView(
 
       // First trip: add start marker
       if (i === 0 && boardingStop) {
+        const positioning = calculateAnchorPosition(markers.length, false)
         markers.push({
           type: 'start',
           stationId: savedTrip.startStationId,
@@ -201,6 +234,8 @@ export function useJourneyView(
           departurePlatform: boardingStop.platform_code || undefined,
           departureRouteShortName: savedTrip.routeShortName,
           departureRouteColor: savedTrip.routeColor,
+          anchor: positioning.anchor,
+          offset: positioning.offset,
         })
       }
 
@@ -210,6 +245,7 @@ export function useJourneyView(
 
         if (isLastTrip) {
           // End marker
+          const positioning = calculateAnchorPosition(markers.length, false)
           markers.push({
             type: 'end',
             stationId: savedTrip.endStationId,
@@ -220,6 +256,8 @@ export function useJourneyView(
             arrivalPlatform: alightingStop.platform_code || undefined,
             arrivalRouteShortName: savedTrip.routeShortName,
             arrivalRouteColor: savedTrip.routeColor,
+            anchor: positioning.anchor,
+            offset: positioning.offset,
           })
         } else {
           // Transfer marker - we need info from the next trip too
@@ -238,7 +276,9 @@ export function useJourneyView(
           )
 
           if (isWalkingTransfer) {
-            // Walking transfer - create marker at arrival station
+            // Walking transfer - create two markers:
+            // 1. Arrival marker at the alighting station
+            const arrivalPositioning = calculateAnchorPosition(markers.length, false)
             markers.push({
               type: 'transfer',
               stationId: savedTrip.endStationId,
@@ -249,12 +289,9 @@ export function useJourneyView(
               arrivalPlatform: alightingStop.platform_code || undefined,
               arrivalRouteShortName: savedTrip.routeShortName,
               arrivalRouteColor: savedTrip.routeColor,
-              departureTime: nextTrip.departureDateTime,
-              departurePlatform: nextBoardingStop?.platform_code || undefined,
-              departureRouteShortName: nextTrip.routeShortName,
-              departureRouteColor: nextTrip.routeColor,
-              layoverMinutes,
               isWalkingTransfer: true,
+              anchor: arrivalPositioning.anchor,
+              offset: arrivalPositioning.offset,
             })
 
             // Add walking connection
@@ -267,9 +304,28 @@ export function useJourneyView(
                 toLat: nextBoardingStop.stop_lat,
                 toLon: nextBoardingStop.stop_lon,
               })
+
+              // 2. Departure marker at the next boarding station
+              const departurePositioning = calculateAnchorPosition(markers.length, false)
+              markers.push({
+                type: 'transfer',
+                stationId: nextTrip.startStationId,
+                stationName: nextTrip.startStationName,
+                lat: nextBoardingStop.stop_lat,
+                lon: nextBoardingStop.stop_lon,
+                departureTime: nextBoardingStop.departure_datetime || nextTrip.departureDateTime,
+                departurePlatform: nextBoardingStop.platform_code || undefined,
+                departureRouteShortName: nextTrip.routeShortName,
+                departureRouteColor: nextTrip.routeColor,
+                layoverMinutes,
+                isWalkingTransfer: true,
+                anchor: departurePositioning.anchor,
+                offset: departurePositioning.offset,
+              })
             }
           } else {
             // Same station transfer
+            const positioning = calculateAnchorPosition(markers.length, false)
             markers.push({
               type: 'transfer',
               stationId: savedTrip.endStationId,
@@ -286,6 +342,8 @@ export function useJourneyView(
               departureRouteColor: nextTrip.routeColor,
               layoverMinutes,
               isWalkingTransfer: false,
+              anchor: positioning.anchor,
+              offset: positioning.offset,
             })
           }
         }

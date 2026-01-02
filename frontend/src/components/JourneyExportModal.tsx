@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { models } from '../../wailsjs/go/models'
-import { ExportJourneyToICS, ExportJourneyToPDF } from '../../wailsjs/go/main/App'
+import { ExportJourneyToICS, ExportJourneyToPDF, GetTripDetails } from '../../wailsjs/go/main/App'
 import { getTransportTypeLabel } from '../utils/transportType'
 import { useTranslation } from 'react-i18next'
 import './JourneyExportModal.css'
@@ -58,6 +58,11 @@ function formatDuration(minutes: number, t: (key: string) => string): string {
   return `${mins} ${t('journey.export.minutes')}`
 }
 
+// Extract service date (YYYYMMDD) from ISO datetime
+function extractServiceDate(isoDateTime: string): string {
+  return isoDateTime.split('T')[0].replace(/-/g, '')
+}
+
 export default function JourneyExportModal({
   journeyData,
   savedTrips,
@@ -67,6 +72,7 @@ export default function JourneyExportModal({
   const resolvedLanguage = i18n.language || i18n.resolvedLanguage || 'en'
   const [isExporting, setIsExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
+  const [platformInfo, setPlatformInfo] = useState<Map<string, { departure: string; arrival: string }>>(new Map())
 
   // Handle click on backdrop to close
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -81,6 +87,44 @@ export default function JourneyExportModal({
       onClose()
     }
   }
+
+  // Fetch platform information for all trips
+  useEffect(() => {
+    const fetchPlatformInfo = async () => {
+      const info = new Map<string, { departure: string; arrival: string }>()
+
+      for (const trip of savedTrips) {
+        try {
+          const serviceDate = extractServiceDate(trip.departureDateTime)
+          const tripDetails = await GetTripDetails(trip.tripId, serviceDate)
+
+          // Find platform codes for boarding and alighting stops
+          let departurePlatform = ''
+          let arrivalPlatform = ''
+
+          for (const st of tripDetails.stop_times) {
+            if (st.stop_id === trip.startStationId) {
+              departurePlatform = st.platform_code || ''
+            }
+            if (st.stop_id === trip.endStationId) {
+              arrivalPlatform = st.platform_code || ''
+            }
+          }
+
+          info.set(trip.id, {
+            departure: departurePlatform,
+            arrival: arrivalPlatform,
+          })
+        } catch (err) {
+          console.error(`Failed to fetch platform info for trip ${trip.tripId}:`, err)
+        }
+      }
+
+      setPlatformInfo(info)
+    }
+
+    fetchPlatformInfo()
+  }, [savedTrips])
 
   // Export to ICS
   const handleExportICS = async () => {
@@ -178,49 +222,62 @@ export default function JourneyExportModal({
 
           {/* Trip list */}
           <div className="journey-export-modal__trips">
-            {savedTrips.map((trip, index) => (
-              <div key={trip.id} className="journey-export-modal__trip">
-                <div className="journey-export-modal__trip-header">
-                  <span className="journey-export-modal__trip-number">
-                    {index + 1}
-                  </span>
-                  <span className="journey-export-modal__trip-badge">
-                    {getTransportTypeLabel(trip.routeType, t)}
-                  </span>
-                  <span
-                    className="journey-export-modal__trip-route"
-                    style={{ backgroundColor: `#${trip.routeColor}` }}
-                  >
-                    {trip.routeShortName}
-                  </span>
-                </div>
-                <div className="journey-export-modal__trip-details">
-                  <div className="journey-export-modal__trip-station">
-                    <span className="journey-export-modal__trip-time">
-                      {formatTimeDisplay(trip.departureDateTime, resolvedLanguage)}
+            {savedTrips.map((trip, index) => {
+              const platforms = platformInfo.get(trip.id)
+              return (
+                <div key={trip.id} className="journey-export-modal__trip">
+                  <div className="journey-export-modal__trip-header">
+                    <span className="journey-export-modal__trip-number">
+                      {index + 1}
                     </span>
-                    <span className="journey-export-modal__trip-name">
-                      {trip.startStationName}
+                    <span className="journey-export-modal__trip-badge">
+                      {getTransportTypeLabel(trip.routeType, t)}
+                    </span>
+                    <span
+                      className="journey-export-modal__trip-route"
+                      style={{ backgroundColor: `#${trip.routeColor}` }}
+                    >
+                      {trip.routeShortName}
                     </span>
                   </div>
-                  <div className="journey-export-modal__trip-arrow">→</div>
-                  <div className="journey-export-modal__trip-station">
-                    <span className="journey-export-modal__trip-time">
-                      {formatTimeDisplay(trip.arrivalDateTime, resolvedLanguage)}
-                    </span>
-                    <span className="journey-export-modal__trip-name">
-                      {trip.endStationName}
-                    </span>
+                  <div className="journey-export-modal__trip-details">
+                    <div className="journey-export-modal__trip-station">
+                      <span className="journey-export-modal__trip-time">
+                        {formatTimeDisplay(trip.departureDateTime, resolvedLanguage)}
+                      </span>
+                      <span className="journey-export-modal__trip-name">
+                        {trip.startStationName}
+                        {platforms?.departure && (
+                          <span className="journey-export-modal__trip-platform">
+                            {' '}({t('journeyMarker.platform')} {platforms.departure})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="journey-export-modal__trip-arrow">→</div>
+                    <div className="journey-export-modal__trip-station">
+                      <span className="journey-export-modal__trip-time">
+                        {formatTimeDisplay(trip.arrivalDateTime, resolvedLanguage)}
+                      </span>
+                      <span className="journey-export-modal__trip-name">
+                        {trip.endStationName}
+                        {platforms?.arrival && (
+                          <span className="journey-export-modal__trip-platform">
+                            {' '}({t('journeyMarker.platform')} {platforms.arrival})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="journey-export-modal__trip-duration">
+                    {formatDuration(
+                      calculateDuration(trip.departureDateTime, trip.arrivalDateTime),
+                      t
+                    )}
                   </div>
                 </div>
-                <div className="journey-export-modal__trip-duration">
-                  {formatDuration(
-                    calculateDuration(trip.departureDateTime, trip.arrivalDateTime),
-                    t
-                  )}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* Export buttons */}

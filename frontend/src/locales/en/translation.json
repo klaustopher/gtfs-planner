@@ -110,6 +110,7 @@
     "departure": "Dep",
     "platform": "Pl.",
     "walkTo": "Walk to next station",
+    "walkFrom": "Footpath from previous station",
     "minutes": "min"
   },
   "transportType": {

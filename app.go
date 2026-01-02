@@ -317,6 +317,25 @@ func (a *App) ExportJourneyToICS(journey models.JourneyData) (string, error) {
 			return "", fmt.Errorf("failed to parse arrival time: %w", err)
 		}
 
+		// Fetch trip details to get platform codes
+		serviceDate := trip.DepartureDateTime[0:10]                        // Extract YYYY-MM-DD
+		serviceDate = strings.ReplaceAll(serviceDate, "-", "")             // Convert to YYYYMMDD
+		tripDetails, err := a.db.GetTripDetails(trip.TripID, serviceDate)
+		if err != nil {
+			return "", fmt.Errorf("failed to get trip details: %w", err)
+		}
+
+		// Find platform codes for boarding and alighting stops
+		var departurePlatform, arrivalPlatform string
+		for _, st := range tripDetails.StopTimes {
+			if st.StopID == trip.StartStationID {
+				departurePlatform = st.PlatformCode
+			}
+			if st.StopID == trip.EndStationID {
+				arrivalPlatform = st.PlatformCode
+			}
+		}
+
 		// Format times for ICS (YYYYMMDDTHHMMSSZ)
 		formatICSTime := func(t time.Time) string {
 			return t.UTC().Format("20060102T150405Z")
@@ -338,19 +357,68 @@ func (a *App) ExportJourneyToICS(journey models.JourneyData) (string, error) {
 			route.RouteShortName, startStation.StopName, endStation.StopName))
 
 		// Build description with all details
-		description := fmt.Sprintf(
-			"Verkehrsmittel: %s %s\\n"+
-				"Abfahrt: %s um %s\\n"+
-				"Ankunft: %s um %s\\n"+
-				"Trip ID: %s",
-			routeTypeName,
-			route.RouteShortName,
-			startStation.StopName,
-			departureTime.Format("15:04"),
-			endStation.StopName,
-			arrivalTime.Format("15:04"),
-			trip.TripID,
-		)
+		var description string
+		if departurePlatform != "" && arrivalPlatform != "" {
+			description = fmt.Sprintf(
+				"Verkehrsmittel: %s %s\\n"+
+					"Abfahrt: %s um %s (Gleis %s)\\n"+
+					"Ankunft: %s um %s (Gleis %s)\\n"+
+					"Trip ID: %s",
+				routeTypeName,
+				route.RouteShortName,
+				startStation.StopName,
+				departureTime.Format("15:04"),
+				departurePlatform,
+				endStation.StopName,
+				arrivalTime.Format("15:04"),
+				arrivalPlatform,
+				trip.TripID,
+			)
+		} else if departurePlatform != "" {
+			description = fmt.Sprintf(
+				"Verkehrsmittel: %s %s\\n"+
+					"Abfahrt: %s um %s (Gleis %s)\\n"+
+					"Ankunft: %s um %s\\n"+
+					"Trip ID: %s",
+				routeTypeName,
+				route.RouteShortName,
+				startStation.StopName,
+				departureTime.Format("15:04"),
+				departurePlatform,
+				endStation.StopName,
+				arrivalTime.Format("15:04"),
+				trip.TripID,
+			)
+		} else if arrivalPlatform != "" {
+			description = fmt.Sprintf(
+				"Verkehrsmittel: %s %s\\n"+
+					"Abfahrt: %s um %s\\n"+
+					"Ankunft: %s um %s (Gleis %s)\\n"+
+					"Trip ID: %s",
+				routeTypeName,
+				route.RouteShortName,
+				startStation.StopName,
+				departureTime.Format("15:04"),
+				endStation.StopName,
+				arrivalTime.Format("15:04"),
+				arrivalPlatform,
+				trip.TripID,
+			)
+		} else {
+			description = fmt.Sprintf(
+				"Verkehrsmittel: %s %s\\n"+
+					"Abfahrt: %s um %s\\n"+
+					"Ankunft: %s um %s\\n"+
+					"Trip ID: %s",
+				routeTypeName,
+				route.RouteShortName,
+				startStation.StopName,
+				departureTime.Format("15:04"),
+				endStation.StopName,
+				arrivalTime.Format("15:04"),
+				trip.TripID,
+			)
+		}
 		icsContent.WriteString(fmt.Sprintf("DESCRIPTION:%s\r\n", description))
 		icsContent.WriteString(fmt.Sprintf("LOCATION:%s\r\n", startStation.StopName))
 		icsContent.WriteString(fmt.Sprintf("SEQUENCE:%d\r\n", i))
@@ -444,6 +512,25 @@ func (a *App) ExportJourneyToPDF(journey models.JourneyData) (string, error) {
 			return "", fmt.Errorf("failed to parse arrival time: %w", err)
 		}
 
+		// Fetch trip details to get platform codes
+		serviceDate := trip.DepartureDateTime[0:10]                        // Extract YYYY-MM-DD
+		serviceDate = strings.ReplaceAll(serviceDate, "-", "")             // Convert to YYYYMMDD
+		tripDetails, err := a.db.GetTripDetails(trip.TripID, serviceDate)
+		if err != nil {
+			return "", fmt.Errorf("failed to get trip details: %w", err)
+		}
+
+		// Find platform codes for boarding and alighting stops
+		var departurePlatform, arrivalPlatform string
+		for _, st := range tripDetails.StopTimes {
+			if st.StopID == trip.StartStationID {
+				departurePlatform = st.PlatformCode
+			}
+			if st.StopID == trip.EndStationID {
+				arrivalPlatform = st.PlatformCode
+			}
+		}
+
 		// Get route type name
 		routeTypeName := getRouteTypeName(route.RouteType)
 
@@ -462,14 +549,22 @@ func (a *App) ExportJourneyToPDF(journey models.JourneyData) (string, error) {
 		pdf.SetFont("Arial", "B", 10)
 		pdf.Cell(40, 6, "Abfahrt:")
 		pdf.SetFont("Arial", "", 10)
-		pdf.Cell(0, 6, fmt.Sprintf("%s, %s", departureTime.Format("15:04"), startStation.StopName))
+		if departurePlatform != "" {
+			pdf.Cell(0, 6, fmt.Sprintf("%s, %s (Gleis %s)", departureTime.Format("15:04"), startStation.StopName, departurePlatform))
+		} else {
+			pdf.Cell(0, 6, fmt.Sprintf("%s, %s", departureTime.Format("15:04"), startStation.StopName))
+		}
 		pdf.Ln(6)
 
 		// Arrival
 		pdf.SetFont("Arial", "B", 10)
 		pdf.Cell(40, 6, "Ankunft:")
 		pdf.SetFont("Arial", "", 10)
-		pdf.Cell(0, 6, fmt.Sprintf("%s, %s", arrivalTime.Format("15:04"), endStation.StopName))
+		if arrivalPlatform != "" {
+			pdf.Cell(0, 6, fmt.Sprintf("%s, %s (Gleis %s)", arrivalTime.Format("15:04"), endStation.StopName, arrivalPlatform))
+		} else {
+			pdf.Cell(0, 6, fmt.Sprintf("%s, %s", arrivalTime.Format("15:04"), endStation.StopName))
+		}
 		pdf.Ln(6)
 
 		// Duration

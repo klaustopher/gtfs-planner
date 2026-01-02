@@ -102,6 +102,7 @@ export default function Map({
   const [isSearching, setIsSearching] = useState(false)
   const [activeResultIndex, setActiveResultIndex] = useState(-1)
   const [hoveredStation, setHoveredStation] = useState<HoveredStationInfo | null>(null)
+  const [hoveredJourneyMarkerIndex, setHoveredJourneyMarkerIndex] = useState<number | null>(null)
   const hoverTimeoutRef = useRef<number | null>(null)
   const boundsRef = useRef<Bounds | undefined>(undefined)
   const mapRef = useRef<MapRef | null>(null)
@@ -117,8 +118,27 @@ export default function Map({
     enabled: !selectedStation,
   })
 
-  // Use trip stations when a station is selected, otherwise use all stops in view
-  const displayStops = tripsData?.stations ?? viewportStops
+  // Determine which stations to display:
+  // - In journey view mode: only show journey stations
+  // - When station is selected: show trip stations
+  // - Otherwise: show all viewport stops
+  const displayStops = useMemo(() => {
+    if (journeyViewMode && journeyViewData?.markers) {
+      // Extract unique stations from journey markers
+      const journeyStationIds = new Set(journeyViewData.markers.map(m => m.stationId))
+      const journeyStops: models.Stop[] = journeyViewData.markers.map(marker => ({
+        stop_id: marker.stationId,
+        stop_name: marker.stationName,
+        stop_lat: marker.lat,
+        stop_lon: marker.lon,
+      }))
+      // Remove duplicates
+      return journeyStops.filter((stop, index, self) =>
+        index === self.findIndex(s => s.stop_id === stop.stop_id)
+      )
+    }
+    return tripsData?.stations ?? viewportStops
+  }, [journeyViewMode, journeyViewData, tripsData, viewportStops])
 
   const stopsGeojsonData = useMemo(() => stopsToGeoJSON(displayStops), [displayStops])
 
@@ -659,24 +679,55 @@ export default function Map({
           </Popup>
         )}
 
-        {/* Journey marker popovers - always visible when in journey view */}
+        {/* Journey markers - small dots that can be hovered */}
         {journeyViewMode && journeyViewData?.markers.map((marker, index) => (
-          <Popup
-            key={`journey-marker-${marker.stationId}-${index}`}
-            longitude={marker.lon}
-            latitude={marker.lat}
-            anchor="bottom"
-            closeButton={false}
-            closeOnClick={false}
-            className="journey-marker-popup"
-          >
-            <JourneyMarkerPopover marker={marker} />
-          </Popup>
+          <div key={`journey-marker-${marker.stationId}-${index}`}>
+            {/* Invisible hover target */}
+            <Popup
+              longitude={marker.lon}
+              latitude={marker.lat}
+              anchor="center"
+              closeButton={false}
+              closeOnClick={false}
+              className="journey-marker-target"
+              onClose={() => {}}
+            >
+              <div
+                onMouseEnter={() => setHoveredJourneyMarkerIndex(index)}
+                onMouseLeave={() => setHoveredJourneyMarkerIndex(null)}
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  cursor: 'pointer',
+                }}
+              />
+            </Popup>
+
+            {/* Popover shown only when hovered */}
+            {hoveredJourneyMarkerIndex === index && (
+              <Popup
+                longitude={marker.lon}
+                latitude={marker.lat}
+                anchor={marker.anchor || 'bottom'}
+                offset={marker.offset}
+                closeButton={false}
+                closeOnClick={false}
+                className="journey-marker-popup"
+              >
+                <div
+                  onMouseEnter={() => setHoveredJourneyMarkerIndex(index)}
+                  onMouseLeave={() => setHoveredJourneyMarkerIndex(null)}
+                >
+                  <JourneyMarkerPopover marker={marker} />
+                </div>
+              </Popup>
+            )}
+          </div>
         ))}
       </MapGL>
 
-      {/* Hover panel for trip selection */}
-      {hoveredStation && tripsData?.trips && (
+      {/* Hover panel for trip selection - hidden in journey view mode */}
+      {!journeyViewMode && hoveredStation && tripsData?.trips && (
         <StationHoverPanel
           stopId={hoveredStation.stopId}
           stopName={hoveredStation.stopName}

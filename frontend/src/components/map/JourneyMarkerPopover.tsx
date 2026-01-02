@@ -53,7 +53,11 @@ export default function JourneyMarkerPopover({ marker }: JourneyMarkerPopoverPro
         {marker.type === 'transfer' && marker.isWalkingTransfer && (
           <div className="journey-marker__walking">
             <span className="journey-marker__walking-icon">🚶</span>
-            <span className="journey-marker__walking-text">{t('journeyMarker.walkTo', 'Walk to next station')}</span>
+            <span className="journey-marker__walking-text">
+              {marker.arrivalTime && !marker.departureTime
+                ? t('journeyMarker.walkTo', 'Walk to next station')
+                : t('journeyMarker.walkFrom', 'Footpath from previous station')}
+            </span>
           </div>
         )}
 

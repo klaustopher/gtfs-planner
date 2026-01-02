@@ -175,7 +175,29 @@
   }
 }
 
-/* Journey marker popups */
+/* Journey marker hover target - invisible but interactive */
+.journey-marker-target {
+  z-index: 9;
+  pointer-events: auto;
+}
+
+.journey-marker-target .maplibregl-popup-content {
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+  border-radius: 50%;
+}
+
+.journey-marker-target .maplibregl-popup-tip {
+  display: none;
+}
+
+/* Journey marker popups - shown on hover */
+.journey-marker-popup {
+  z-index: 10;
+  pointer-events: auto;
+}
+
 .journey-marker-popup .maplibregl-popup-content {
   padding: 10px 12px;
   border-radius: 10px;
