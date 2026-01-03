@@ -577,6 +577,16 @@ func (db *DB) GetUpcomingTripsForStations(stationIDs []string, datetime string, 
 		return nil, fmt.Errorf("invalid previous date format: %w", err)
 	}
 
+	// Get next day parameters for trips that start after midnight
+	nextDate, err := timeutil.GetNextDay(date)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get next day: %w", err)
+	}
+	nextDayOfWeek, err := db.getDayOfWeek(nextDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid next date format: %w", err)
+	}
+
 	// Query trips from all stations in a single query
 	var allTripInfos []tripInfo
 	seenTrips := make(map[string]bool)
@@ -587,15 +597,26 @@ func (db *DB) GetUpcomingTripsForStations(stationIDs []string, datetime string, 
 		return nil, fmt.Errorf("failed to query current day trips: %w", err)
 	}
 
-	// Query overnight trips for all stations
+	// Query overnight trips for all stations (24+ notation from previous day)
 	overnightTripInfos, err := db.queryTripsForMultipleStations(stationIDs, prevDate, overnightTime, prevDayOfWeek, limit)
 	if err != nil {
 		// Continue with current day trips only
 		overnightTripInfos = []tripInfo{}
 	}
 
+	// Query next day trips (normal 00:00+ notation) if we don't have enough trips yet
+	// This handles cases where there are no more trips on the current day
+	nextDayTripInfos := []tripInfo{}
+	if len(tripInfos)+len(overnightTripInfos) < limit {
+		nextDayTripInfos, err = db.queryTripsForMultipleStations(stationIDs, nextDate, "00:00:00", nextDayOfWeek, limit)
+		if err != nil {
+			// Continue without next day trips
+			nextDayTripInfos = []tripInfo{}
+		}
+	}
+
 	// Combine and deduplicate
-	for _, info := range append(tripInfos, overnightTripInfos...) {
+	for _, info := range append(append(tripInfos, overnightTripInfos...), nextDayTripInfos...) {
 		if !seenTrips[info.tripID] {
 			seenTrips[info.tripID] = true
 			allTripInfos = append(allTripInfos, info)

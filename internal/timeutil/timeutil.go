@@ -113,3 +113,30 @@ func GetPreviousDayOvernightParams(datetime string) (prevDate string, overnightT
 
 	return prevDate, overnightTime, nil
 }
+
+// GetNextDay returns the next day's date in YYYYMMDD format.
+// For example, if date is "20251221", it returns "20251222".
+func GetNextDay(date string) (string, error) {
+	if len(date) != 8 {
+		return "", fmt.Errorf("invalid date format: %s (expected YYYYMMDD)", date)
+	}
+
+	year, err := strconv.Atoi(date[0:4])
+	if err != nil {
+		return "", fmt.Errorf("invalid year in date: %s", date)
+	}
+	month, err := strconv.Atoi(date[4:6])
+	if err != nil {
+		return "", fmt.Errorf("invalid month in date: %s", date)
+	}
+	day, err := strconv.Atoi(date[6:8])
+	if err != nil {
+		return "", fmt.Errorf("invalid day in date: %s", date)
+	}
+
+	// Create date and add one day
+	currentDate := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
+	nextDay := currentDate.AddDate(0, 0, 1)
+
+	return nextDay.Format("20060102"), nil
+}
