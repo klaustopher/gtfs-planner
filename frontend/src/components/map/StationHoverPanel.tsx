@@ -2,6 +2,8 @@ import { useMemo } from 'react'
 import { models } from '../../../wailsjs/go/models'
 import { getTripColor } from './geojson'
 import { useTranslation } from 'react-i18next'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faArrowRight } from '@fortawesome/free-solid-svg-icons'
 import './StationHoverPanel.css'
 
 // Format ISO 8601 datetime to HH:MM display
@@ -106,7 +108,9 @@ export default function StationHoverPanel({
                 <span className="station-hover-panel__dep">
                   {formatTimeDisplay(trip.departure_datetime, resolvedLanguage)}
                 </span>
-                <span className="station-hover-panel__arrow">→</span>
+                <span className="station-hover-panel__arrow">
+                  <FontAwesomeIcon icon={faArrowRight} />
+                </span>
                 <span className="station-hover-panel__arr">
                   {formatTimeDisplay(arrivalDateTime, resolvedLanguage)}
                 </span>

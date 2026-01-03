@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next'
 import { SavedTrip } from '../App'
 import { getTransportTypeLabel } from '../utils/transportType'
 import { formatTimeDisplay } from '../utils/time'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faTimes, faWalking } from '@fortawesome/free-solid-svg-icons'
 
 interface SavedJourneyTimelineProps {
   savedTrips: SavedTrip[]
@@ -72,7 +74,7 @@ export default function SavedJourneyTimeline({
                   title={t('journey.removeTrip')}
                   aria-label={t('journey.removeTrip')}
                 >
-                  ×
+                  <FontAwesomeIcon icon={faTimes} />
                 </button>
               )}
             </div>
@@ -81,7 +83,9 @@ export default function SavedJourneyTimeline({
               <div className="trip-connection">
                 {hasFootpath && (
                   <div className="trip-connection__footpath">
-                    <span className="trip-connection__icon">🚶</span>
+                    <span className="trip-connection__icon">
+                      <FontAwesomeIcon icon={faWalking} />
+                    </span>
                     <span className="trip-connection__label">{t('journey.footpath')}</span>
                   </div>
                 )}

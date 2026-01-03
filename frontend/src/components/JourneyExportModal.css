@@ -1,79 +1,85 @@
+@import '../variables.css';
+
 .journey-export-modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
 }
 
 .journey-export-modal {
-  background: white;
-  border-radius: 8px;
+  background: var(--modal-bg);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--modal-border);
+  box-shadow: var(--shadow-2xl);
   width: 90%;
   max-width: 600px;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  color: var(--color-text-primary);
 }
 
 .journey-export-modal__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #e0e0e0;
+  padding: var(--space-xl) var(--space-2xl);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .journey-export-modal__title {
-  font-size: 20px;
-  font-weight: 600;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
   margin: 0;
-  color: #2c3e50;
+  color: var(--color-text-primary);
 }
 
 .journey-export-modal__close {
-  background: none;
+  background: transparent;
   border: none;
-  font-size: 32px;
-  cursor: pointer;
-  color: #7f8c8d;
+  color: var(--color-text-subtle);
+  border-radius: var(--radius-sm);
+  width: var(--button-height-sm);
+  height: var(--button-height-sm);
+  font-size: var(--font-size-lg);
   line-height: 1;
-  padding: 0;
-  width: 32px;
-  height: 32px;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s;
+  transition: var(--transition-normal);
 }
 
 .journey-export-modal__close:hover {
-  color: #2c3e50;
+  color: var(--color-text-primary);
+  background: var(--modal-border);
 }
 
 .journey-export-modal__content {
-  padding: 20px;
+  padding: var(--space-xl) var(--space-2xl);
   overflow-y: auto;
   flex: 1;
 }
 
 .journey-export-modal__summary {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 6px;
-  margin-bottom: 20px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-light);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-xl);
 }
 
 .journey-export-modal__summary-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
 }
 
 .journey-export-modal__summary-row:last-child {
@@ -81,25 +87,27 @@
 }
 
 .journey-export-modal__summary-label {
-  font-weight: 500;
-  color: #5a6c7d;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
 }
 
 .journey-export-modal__summary-value {
-  font-weight: 600;
-  color: #2c3e50;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
 }
 
 .journey-export-modal__trips {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-xl);
 }
 
 .journey-export-modal__trip {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 10px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  margin-bottom: var(--space-sm);
 }
 
 .journey-export-modal__trip:last-child {
@@ -109,46 +117,46 @@
 .journey-export-modal__trip-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
 }
 
 .journey-export-modal__trip-number {
-  background: #2c3e50;
-  color: white;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  width: var(--space-2xl);
+  height: var(--space-2xl);
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
 }
 
 .journey-export-modal__trip-badge {
-  background: #ecf0f1;
-  color: #5a6c7d;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 500;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  padding: 2px var(--space-sm);
+  border-radius: var(--space-xs);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
   text-transform: uppercase;
 }
 
 .journey-export-modal__trip-route {
-  color: white;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
+  color: var(--color-text-primary);
+  padding: 2px var(--space-sm);
+  border-radius: var(--space-xs);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
 }
 
 .journey-export-modal__trip-details {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 6px;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
 }
 
 .journey-export-modal__trip-station {
@@ -158,52 +166,52 @@
 }
 
 .journey-export-modal__trip-time {
-  font-size: 14px;
-  font-weight: 600;
-  color: #2c3e50;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent-secondary);
   margin-bottom: 2px;
 }
 
 .journey-export-modal__trip-name {
-  font-size: 13px;
-  color: #5a6c7d;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
 }
 
 .journey-export-modal__trip-arrow {
-  font-size: 18px;
-  color: #95a5a6;
+  font-size: var(--font-size-xl);
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }
 
 .journey-export-modal__trip-duration {
-  font-size: 12px;
-  color: #7f8c8d;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
   text-align: right;
 }
 
 .journey-export-modal__actions {
   display: flex;
-  gap: 12px;
+  gap: var(--space-md);
   flex-direction: column;
 }
 
 .journey-export-modal__error {
-  background: #fee;
-  color: #c33;
-  padding: 10px;
-  border-radius: 4px;
-  font-size: 14px;
+  background: var(--color-overlay-danger);
+  color: var(--color-accent-danger);
+  padding: var(--space-sm);
+  border-radius: var(--space-xs);
+  font-size: var(--font-size-base);
   text-align: center;
 }
 
 .journey-export-modal__button {
-  padding: 12px 20px;
+  padding: var(--space-md) var(--space-xl);
   border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--transition-normal);
 }
 
 .journey-export-modal__button:disabled {
@@ -212,19 +220,19 @@
 }
 
 .journey-export-modal__button--ics {
-  background: #3498db;
-  color: white;
+  background: var(--color-accent-primary);
+  color: var(--color-text-primary);
 }
 
 .journey-export-modal__button--ics:hover:not(:disabled) {
-  background: #2980b9;
+  background: var(--color-accent-primary-dark);
 }
 
 .journey-export-modal__button--pdf {
-  background: #e74c3c;
-  color: white;
+  background: var(--color-accent-danger);
+  color: var(--color-text-primary);
 }
 
 .journey-export-modal__button--pdf:hover:not(:disabled) {
-  background: #c0392b;
+  background: var(--color-accent-danger);
 }

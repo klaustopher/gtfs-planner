@@ -1,66 +1,68 @@
+@import '../variables.css';
+
 .trip-detail-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(5, 8, 20, 0.8);
+  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
-  padding: 24px;
+  z-index: var(--z-modal);
+  padding: var(--space-2xl);
 }
 
 .trip-detail-modal {
-  background: #101422;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+  background: var(--modal-bg);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--modal-border);
+  box-shadow: var(--shadow-2xl);
   max-width: 420px;
   width: 100%;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  color: white;
+  color: var(--color-text-primary);
 }
 
 .trip-detail-modal__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: var(--space-xl) var(--space-2xl);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .trip-detail-modal__title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   min-width: 0;
 }
 
 .trip-detail-modal__type-badge {
-  padding: 4px 8px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 500;
-  font-size: 11px;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--space-xs);
+  background: var(--color-bg-active);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   flex-shrink: 0;
 }
 
 .trip-detail-modal__badge {
-  padding: 4px 12px;
-  border-radius: 6px;
-  color: white;
-  font-weight: 700;
-  font-size: 14px;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-base);
   flex-shrink: 0;
 }
 
 .trip-detail-modal__destination {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -69,24 +71,24 @@
 .trip-detail-modal__close {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.4);
-  border-radius: 6px;
-  width: 28px;
-  height: 28px;
-  font-size: 18px;
+  color: var(--color-text-subtle);
+  border-radius: var(--radius-sm);
+  width: var(--button-height-sm);
+  height: var(--button-height-sm);
+  font-size: var(--font-size-xl);
   line-height: 1;
   cursor: pointer;
-  transition: color 0.2s, background 0.2s;
+  transition: var(--transition-normal);
   flex-shrink: 0;
 }
 
 .trip-detail-modal__close:hover {
-  color: rgba(255, 255, 255, 0.9);
-  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-primary);
+  background: var(--modal-border);
 }
 
 .trip-detail-modal__stops {
-  padding: 20px 24px;
+  padding: var(--space-xl) var(--space-2xl);
   overflow-y: auto;
   flex: 1;
 }
@@ -94,43 +96,43 @@
 .trip-detail-modal__loading,
 .trip-detail-modal__error {
   text-align: center;
-  padding: 20px;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 14px;
+  padding: var(--space-xl);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
 }
 
 .trip-detail-modal__error {
-  color: #ff6b6b;
+  color: var(--color-accent-danger);
 }
 
 .trip-detail-modal__stop {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  min-height: 40px;
+  gap: var(--space-md);
+  min-height: var(--button-height-lg);
 }
 
 .trip-detail-modal__stop--selected {
-  background: rgba(255, 255, 255, 0.08);
-  margin: 0 -12px;
-  padding: 8px 12px;
-  border-radius: 6px;
+  background: var(--modal-border);
+  margin: 0 calc(var(--space-md) * -1);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
 }
 
 .trip-detail-modal__stop-indicator {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 16px;
+  width: var(--space-lg);
   flex-shrink: 0;
 }
 
 .trip-detail-modal__stop-dot {
-  width: 12px;
-  height: 12px;
+  width: var(--space-md);
+  height: var(--space-md);
   border-radius: 50%;
   border: 3px solid;
-  background: #101422;
+  background: var(--modal-bg);
   flex-shrink: 0;
   z-index: 1;
 }
@@ -144,40 +146,40 @@
 .trip-detail-modal__stop-line {
   width: 3px;
   flex: 1;
-  min-height: 24px;
+  min-height: var(--space-2xl);
   margin-top: -2px;
 }
 
 .trip-detail-modal__stop-times {
   display: flex;
   flex-direction: column;
-  min-width: 40px;
+  min-width: var(--button-height-lg);
   font-family: monospace;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   flex-shrink: 0;
 }
 
 .trip-detail-modal__stop-arr {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-muted);
   height: 18px;
 }
 
 .trip-detail-modal__stop-dep {
-  color: #4ade80;
-  font-weight: 600;
+  color: var(--color-accent-secondary);
+  font-weight: var(--font-weight-semibold);
   height: 18px;
 }
 
 .trip-detail-modal__stop-name {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
   padding-top: 2px;
   flex: 1;
 }
 
 .trip-detail-modal__stop--selected .trip-detail-modal__stop-name {
-  font-weight: 600;
-  color: white;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
 }
 
 /* Clickable stops (after selected station) */
@@ -187,26 +189,26 @@
   border: none;
   text-align: left;
   cursor: pointer;
-  margin: 0 -12px;
-  padding: 4px 12px;
-  border-radius: 6px;
-  transition: background 0.15s;
+  margin: 0 calc(var(--space-md) * -1);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
   color: inherit;
   font: inherit;
 }
 
 .trip-detail-modal__stop--clickable:hover {
-  background: rgba(74, 222, 128, 0.15);
+  background: var(--color-overlay-success);
 }
 
 .trip-detail-modal__stop--clickable:focus {
   outline: none;
-  background: rgba(74, 222, 128, 0.2);
+  background: var(--color-overlay-success);
 }
 
 .trip-detail-modal__stop--clickable .trip-detail-modal__stop-name::after {
   content: ' →';
-  color: rgba(74, 222, 128, 0.6);
+  color: var(--color-accent-secondary);
   opacity: 0;
   transition: opacity 0.15s;
 }

@@ -1,21 +1,23 @@
+@import '../variables.css';
+
 .sidebar {
   width: 320px;
-  background-color: #1a1f2e;
-  color: white;
-  padding: 16px;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  padding: var(--space-lg);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-lg);
 }
 
 /* Card component */
 .sidebar-card {
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: var(--card-padding);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--card-border);
 }
 
 .sidebar-card--flex {
@@ -29,19 +31,19 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-md);
 }
 
 .sidebar-card__title {
   margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
 }
 
 .sidebar-card__subtitle {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -50,89 +52,89 @@
 
 .sidebar-footer {
   margin-top: auto;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border-light);
 }
 
 .settings-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 6px;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-sm);
+  border-radius: var(--radius-sm);
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-disabled);
   cursor: pointer;
-  font-size: 12px;
-  transition: color 0.2s ease, background 0.2s ease;
+  font-size: var(--font-size-sm);
+  transition: var(--transition-normal);
 }
 
 .settings-btn:hover {
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-active);
 }
 
 .settings-btn__icon {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   line-height: 1;
 }
 
 .settings-btn__label {
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 /* Hint text */
 .sidebar-hint {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 13px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
   margin: 0;
-  padding: 8px 0;
+  padding: var(--space-sm) 0;
 }
 
 /* Journey actions */
 .journey-actions {
   display: flex;
   justify-content: space-between;
-  padding: 0 4px;
+  padding: 0 var(--space-xs);
 }
 
 .journey-btn {
   border: none;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--transition-normal);
   position: relative;
 }
 
 .journey-btn--secondary {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.9);
+  background: var(--modal-border);
+  color: var(--color-text-primary);
 }
 
 .journey-btn--secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--color-bg-active);
 }
 
 .journey-btn--primary {
-  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
-  color: #0a1a0f;
+  background: var(--gradient-success);
+  color: var(--color-bg-primary);
 }
 
 .journey-btn--primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #5eea94 0%, #2ed96b 100%);
+  background: var(--gradient-success);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);
+  box-shadow: 0 var(--space-xs) var(--space-md) var(--color-accent-primary-alpha);
 }
 
 .journey-btn--export {
-  background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
-  color: white;
+  background: var(--gradient-primary);
+  color: var(--color-text-primary);
 }
 
 .journey-btn--export:hover:not(:disabled) {
-  background: linear-gradient(135deg, #a5b4fc 0%, #818cf8 100%);
+  background: var(--gradient-primary);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(129, 140, 248, 0.3);
+  box-shadow: 0 var(--space-xs) var(--space-md) var(--color-accent-primary-alpha);
 }
 
 .journey-btn:disabled {
@@ -141,23 +143,23 @@
 }
 
 .journey-btn__indicator {
-  color: #fbbf24;
-  margin-left: 4px;
-  font-weight: 700;
+  color: var(--color-accent-warning-light);
+  margin-left: var(--space-xs);
+  font-weight: var(--font-weight-bold);
 }
 
 /* Nearby stations section */
 .nearby-stations-section {
-  padding: 12px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  margin-bottom: 12px;
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--color-border-medium);
+  margin-bottom: var(--space-md);
 }
 
 .nearby-stations-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
-  margin: 0 0 10px 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-sm) 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -165,33 +167,33 @@
 .nearby-stations-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .nearby-station-checkbox {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   cursor: pointer;
-  padding: 6px 8px;
-  border-radius: 4px;
-  transition: background-color 0.15s ease;
+  padding: var(--space-sm) var(--space-sm);
+  border-radius: var(--space-xs);
+  transition: var(--transition-fast);
 }
 
 .nearby-station-checkbox:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--color-bg-active);
 }
 
 .nearby-station-checkbox input[type="checkbox"] {
   cursor: pointer;
-  width: 16px;
-  height: 16px;
-  accent-color: #007aff;
+  width: var(--space-lg);
+  height: var(--space-lg);
+  accent-color: var(--color-accent-primary);
 }
 
 .nearby-station-name {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
   flex: 1;
 }
 
@@ -206,7 +208,7 @@
 .trips-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
   overflow-y: auto;
   flex: 1;
 }
@@ -214,25 +216,25 @@
 /* Load more button */
 .load-more-button {
   width: 100%;
-  padding: 10px 16px;
-  margin-top: 12px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 14px;
-  font-weight: 500;
+  padding: var(--space-sm) var(--space-lg);
+  margin-top: var(--space-md);
+  background: var(--modal-border);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-normal);
 }
 
 .load-more-button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: var(--color-border-strong);
+  border-color: var(--color-border-strong);
 }
 
 .load-more-button:active:not(:disabled) {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--color-bg-active);
 }
 
 .load-more-button:disabled {
@@ -243,37 +245,39 @@
 .trip-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 8px;
-  border: none;
-  border-left: 4px solid #666;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-medium);
+  border-left: 4px solid var(--color-accent-primary);
   width: 100%;
   text-align: left;
   font-family: inherit;
   color: inherit;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: var(--transition-fast);
 }
 
 .trip-item:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-bg-hover);
+  border-color: var(--color-border-medium);
+  border-left-color: var(--color-text-secondary);
   transform: translateX(2px);
 }
 
 .trip-time {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
   font-family: 'SF Mono', 'Menlo', monospace;
-  color: #4ade80;
+  color: var(--color-accent-secondary);
   min-width: 50px;
 }
 
 .trip-details {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-xs);
   flex: 1;
   min-width: 0;
 }
@@ -281,33 +285,33 @@
 .trip-badges {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-sm);
 }
 
 .trip-type-badge {
   display: inline-block;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 500;
-  font-size: 10px;
+  padding: 2px var(--space-sm);
+  border-radius: var(--space-xs);
+  background: var(--color-border-strong);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .trip-route-badge {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  color: white;
-  font-weight: 600;
-  font-size: 12px;
+  padding: 2px var(--space-sm);
+  border-radius: var(--space-xs);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
 }
 
 .trip-destination {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -316,14 +320,14 @@
 .trip-nearby-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: rgba(251, 191, 36, 0.15);
-  color: rgba(251, 191, 36, 0.9);
-  font-weight: 500;
-  font-size: 10px;
-  border: 1px solid rgba(251, 191, 36, 0.3);
+  gap: var(--space-xs);
+  padding: 2px var(--space-sm);
+  border-radius: var(--space-xs);
+  background: var(--color-overlay-warning);
+  color: var(--color-accent-warning-light);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-xs);
+  border: 1px solid var(--color-accent-warning);
 }
 
 .trip-nearby-station {
@@ -336,43 +340,44 @@
 .trip-day-offset-badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: rgba(139, 92, 246, 0.15);
-  color: rgba(167, 139, 250, 0.9);
-  font-weight: 600;
-  font-size: 10px;
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  padding: 2px var(--space-sm);
+  border-radius: var(--space-xs);
+  background: var(--color-overlay-secondary);
+  color: var(--color-accent-secondary);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
+  border: 1px solid var(--color-accent-secondary);
 }
 
 /* Saved trips / Planned journey */
 .saved-trips-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .saved-trip-item {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 8px;
-  border-left: 4px solid #666;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-medium);
+  border-left: 4px solid var(--color-accent-primary);
 }
 
 .saved-trip-number {
-  font-size: 12px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.4);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-subtle);
   min-width: 18px;
   height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 4px;
+  background: var(--modal-border);
+  border-radius: var(--space-xs);
 }
 
 .saved-trip-content {
@@ -380,76 +385,76 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-sm);
 }
 
 .saved-trip-route {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-sm);
 }
 
 .saved-trip-details {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 .saved-trip-leg {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
   align-items: center;
 }
 
 .saved-trip-time {
   font-family: 'SF Mono', 'Menlo', monospace;
-  color: #4ade80;
-  font-weight: 600;
+  color: var(--color-accent-secondary);
+  font-weight: var(--font-weight-semibold);
   min-width: 42px;
 }
 
 .saved-trip-station {
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .saved-trip-arrow {
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 10px;
+  color: var(--color-text-subtle);
+  font-size: var(--font-size-xs);
   padding-left: 50px;
 }
 
 .sidebar-card__actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
   align-items: center;
 }
 
 .journey-view-btn {
   background: transparent;
-  border: 1px solid rgba(74, 222, 128, 0.3);
-  color: rgba(74, 222, 128, 0.8);
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 500;
+  border: 1px solid var(--color-accent-secondary);
+  color: var(--color-accent-secondary);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--transition-normal);
 }
 
 .journey-view-btn:hover {
-  background: rgba(74, 222, 128, 0.15);
-  border-color: rgba(74, 222, 128, 0.5);
-  color: #4ade80;
+  background: var(--color-overlay-success);
+  border-color: var(--color-accent-secondary);
+  color: var(--color-accent-secondary);
 }
 
 .journey-view-btn--active {
-  background: rgba(74, 222, 128, 0.2);
-  border-color: rgba(74, 222, 128, 0.5);
-  color: #4ade80;
+  background: var(--color-overlay-success);
+  border-color: var(--color-accent-secondary);
+  color: var(--color-accent-secondary);
 }
 
 .journey-view-btn:disabled {
@@ -458,55 +463,55 @@
 }
 
 .journey-edit-btn {
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(59, 130, 246, 0.4);
-  color: #60a5fa;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 500;
+  background: var(--color-overlay-info);
+  border: 1px solid var(--color-accent-info);
+  color: var(--color-accent-info);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--transition-normal);
 }
 
 .journey-edit-btn:hover {
-  background: rgba(59, 130, 246, 0.25);
-  border-color: rgba(59, 130, 246, 0.6);
-  color: #93c5fd;
+  background: var(--color-overlay-info);
+  border-color: var(--color-accent-info);
+  color: var(--color-accent-info);
 }
 
 .clear-trips-btn {
   background: transparent;
-  border: 1px solid rgba(255, 100, 100, 0.3);
-  color: rgba(255, 100, 100, 0.8);
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 500;
+  border: 1px solid var(--color-accent-danger);
+  color: var(--color-accent-danger);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--transition-normal);
 }
 
 .clear-trips-btn:hover {
-  background: rgba(255, 100, 100, 0.15);
-  border-color: rgba(255, 100, 100, 0.5);
-  color: #ff6b6b;
+  background: var(--color-overlay-danger);
+  border-color: var(--color-accent-danger);
+  color: var(--color-accent-danger);
 }
 
 .remove-trip-btn {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 20px;
+  color: var(--color-text-subtle);
+  font-size: var(--space-xl);
   line-height: 1;
   cursor: pointer;
-  padding: 0 4px;
-  transition: color 0.2s;
+  padding: 0 var(--space-xs);
+  transition: var(--transition-normal);
   align-self: flex-start;
 }
 
 .remove-trip-btn:hover {
-  color: #ff6b6b;
+  color: var(--color-accent-danger);
 }
 
 /* Icon-only journey buttons */
@@ -517,16 +522,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: var(--font-size-base);
+  background: var(--modal-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
   flex-shrink: 0;
 }
 
 .journey-btn--icon:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 1);
+  background: var(--color-bg-active);
+  color: var(--color-text-primary);
 }
 
 /* Trip connection indicators */
@@ -534,28 +539,28 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 6px 0;
-  margin: 0 12px;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  margin: 0 var(--space-md);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
 }
 
 .trip-connection__footpath {
   display: flex;
   align-items: center;
-  gap: 4px;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 4px 8px;
-  border-radius: 4px;
+  gap: var(--space-xs);
+  background: var(--color-bg-active);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--space-xs);
 }
 
 .trip-connection__icon {
-  font-size: 14px;
+  font-size: var(--font-size-base);
 }
 
 .trip-connection__label {
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -563,15 +568,15 @@
 .trip-connection__wait {
   display: flex;
   align-items: center;
-  padding: 2px 6px;
-  background: rgba(74, 222, 128, 0.1);
-  border-radius: 4px;
-  color: rgba(74, 222, 128, 0.8);
-  font-weight: 500;
+  padding: 2px var(--space-sm);
+  background: var(--color-overlay-success);
+  border-radius: var(--space-xs);
+  color: var(--color-accent-secondary);
+  font-weight: var(--font-weight-medium);
 }
 
 .trip-connection__time {
-  font-size: 10px;
+  font-size: var(--font-size-xs);
 }
 
 /* Update saved-trip-details layout (no arrow) */

@@ -3,6 +3,8 @@ import { models } from '../../wailsjs/go/models'
 import { ExportJourneyToICS, ExportJourneyToPDF, GetTripDetails } from '../../wailsjs/go/main/App'
 import { getTransportTypeLabel } from '../utils/transportType'
 import { useTranslation } from 'react-i18next'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faTimes, faArrowRight } from '@fortawesome/free-solid-svg-icons'
 import './JourneyExportModal.css'
 
 interface JourneyExportModalProps {
@@ -183,7 +185,7 @@ export default function JourneyExportModal({
             onClick={onClose}
             aria-label={t('common.close')}
           >
-            ×
+            <FontAwesomeIcon icon={faTimes} />
           </button>
         </div>
 
@@ -252,7 +254,9 @@ export default function JourneyExportModal({
                         )}
                       </span>
                     </div>
-                    <div className="journey-export-modal__trip-arrow">→</div>
+                    <div className="journey-export-modal__trip-arrow">
+                      <FontAwesomeIcon icon={faArrowRight} />
+                    </div>
                     <div className="journey-export-modal__trip-station">
                       <span className="journey-export-modal__trip-time">
                         {formatTimeDisplay(trip.arrivalDateTime, resolvedLanguage)}

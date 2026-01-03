@@ -4,6 +4,8 @@ import { GetTripDetails } from '../../wailsjs/go/main/App'
 import { normalizeColor, FALLBACK_COLORS } from './map/geojson'
 import { getTransportTypeLabel } from '../utils/transportType'
 import { useTranslation } from 'react-i18next'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faTimes } from '@fortawesome/free-solid-svg-icons'
 import './TripDetailModal.css'
 
 interface TripDetailModalProps {
@@ -101,7 +103,7 @@ export default function TripDetailModal({
             <span className="trip-detail-modal__destination">{destination}</span>
           </div>
           <button className="trip-detail-modal__close" onClick={onClose} aria-label={t('tripModal.close')}>
-            ×
+            <FontAwesomeIcon icon={faTimes} />
           </button>
         </div>
 

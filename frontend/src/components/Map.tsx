@@ -51,7 +51,6 @@ interface MapProps {
     destinationStopName: string,
     arrivalTime: string
   ) => void
-  onResetTime: () => void
   planningMode: PlanningMode
   canEditTime: boolean
   hasJourney: boolean
@@ -65,7 +64,7 @@ const ZOOM_THRESHOLD = 8
 const ROUTE_LINE_OPACITY = 0.8
 const SEARCH_FOCUS_ZOOM = 12
 const MAPTILER_API_KEY='REDACTED_MAPTILER_KEY'
-const MAPTILER_STYLE_URL = `https://api.maptiler.com/maps/dataviz-v4/style.json?key=${MAPTILER_API_KEY}`
+const MAPTILER_STYLE_URL = `https://api.maptiler.com/maps/dataviz-dark/style.json?key=${MAPTILER_API_KEY}`
 
 const stopsLayerStyle: CircleLayerSpecification = {
   id: 'stops-layer',
@@ -90,7 +89,6 @@ export default function Map({
   onDateChange,
   onTimeChange,
   onTripSelection,
-  onResetTime,
   planningMode,
   canEditTime,
   hasJourney,
@@ -358,15 +356,6 @@ export default function Map({
                 className="map-datetime__input"
               />
             </label>
-            <button
-              type="button"
-              className="map-datetime__reset"
-              onClick={onResetTime}
-              title={t('map.datetime.resetTooltip')}
-              aria-label={t('map.datetime.resetTooltip')}
-            >
-              ↺
-            </button>
           </div>
         </div>
       </div>

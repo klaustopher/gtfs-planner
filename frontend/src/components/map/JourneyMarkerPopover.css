@@ -1,38 +1,40 @@
+@import '../../variables.css';
+
 .journey-marker {
   min-width: 140px;
   max-width: 220px;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 .journey-marker__header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .journey-marker__icon {
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   opacity: 0.7;
 }
 
 .journey-marker--start .journey-marker__icon {
-  color: #22c55e;
+  color: var(--color-success);
 }
 
 .journey-marker--end .journey-marker__icon {
-  color: #ef4444;
+  color: var(--color-accent-danger);
 }
 
 .journey-marker--transfer .journey-marker__icon {
-  color: #f59e0b;
+  color: var(--color-accent-warning);
 }
 
 .journey-marker__station {
-  font-weight: 600;
-  color: #1f2937;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -42,25 +44,25 @@
 .journey-marker__details {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-sm);
 }
 
 .journey-marker__row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
 }
 
 .journey-marker__label {
-  font-weight: 500;
-  color: #6b7280;
-  min-width: 28px;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  min-width: var(--button-height-sm);
 }
 
 .journey-marker__time {
-  font-weight: 600;
-  color: #1f2937;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
   font-family: monospace;
 }
 
@@ -68,30 +70,30 @@
   display: inline-block;
   padding: 1px 5px;
   border-radius: 3px;
-  color: white;
-  font-weight: 600;
-  font-size: 11px;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
 }
 
 .journey-marker__platform {
-  font-size: 11px;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 1px 4px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  background: var(--color-bg-tertiary);
+  padding: 1px var(--space-xs);
   border-radius: 2px;
 }
 
 .journey-marker__walking {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 0;
-  color: #f59e0b;
-  font-size: 11px;
+  gap: var(--space-xs);
+  padding: var(--space-xs) 0;
+  color: var(--color-accent-warning);
+  font-size: var(--font-size-xs);
 }
 
 .journey-marker__walking-icon {
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 .journey-marker__walking-text {
@@ -105,22 +107,22 @@
 }
 
 .journey-marker__layover-time {
-  font-size: 11px;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 2px 8px;
-  border-radius: 10px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  background: var(--color-bg-tertiary);
+  padding: 2px var(--space-sm);
+  border-radius: var(--space-sm);
 }
 
 /* Row styling variations */
 .journey-marker__row--arrival {
-  padding-bottom: 4px;
+  padding-bottom: var(--space-xs);
 }
 
 .journey-marker__row--departure {
-  padding-top: 4px;
+  padding-top: var(--space-xs);
 }
 
 .journey-marker--transfer .journey-marker__row--arrival {
-  border-bottom: 1px dashed rgba(0, 0, 0, 0.1);
+  border-bottom: 1px dashed var(--color-border-subtle);
 }

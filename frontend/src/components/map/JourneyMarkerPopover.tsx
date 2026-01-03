@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import type { JourneyMarker } from '../../hooks/useJourneyView'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faWalking } from '@fortawesome/free-solid-svg-icons'
 import './JourneyMarkerPopover.css'
 
 interface JourneyMarkerPopoverProps {
@@ -52,7 +54,9 @@ export default function JourneyMarkerPopover({ marker }: JourneyMarkerPopoverPro
         {/* Walking indicator for walking transfers */}
         {marker.type === 'transfer' && marker.isWalkingTransfer && (
           <div className="journey-marker__walking">
-            <span className="journey-marker__walking-icon">🚶</span>
+            <span className="journey-marker__walking-icon">
+              <FontAwesomeIcon icon={faWalking} />
+            </span>
             <span className="journey-marker__walking-text">
               {marker.arrivalTime && !marker.departureTime
                 ? t('journeyMarker.walkTo', 'Walk to next station')

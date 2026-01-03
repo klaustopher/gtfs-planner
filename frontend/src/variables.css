@@ -1,0 +1,145 @@
+/* ============================================
+   Design System - CSS Variables
+   ============================================ */
+
+:root {
+  /* ========== Color Palette ========== */
+
+  /* Background Colors */
+  --color-bg-primary: #101422;
+  --color-bg-secondary: #1a1f2e;
+  --color-bg-tertiary: #232936;
+  --color-bg-hover: rgba(255, 255, 255, 0.02);
+  --color-bg-active: rgba(255, 255, 255, 0.05);
+
+  /* Overlay/Backdrop */
+  --color-overlay: rgba(5, 8, 20, 0.8);
+  --color-overlay-heavy: rgba(5, 8, 20, 0.85);
+
+  /* Border Colors */
+  --color-border-subtle: rgba(255, 255, 255, 0.05);
+  --color-border-light: rgba(255, 255, 255, 0.06);
+  --color-border-medium: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.12);
+
+  /* Text Colors */
+  --color-text-primary: rgba(255, 255, 255, 0.95);
+  --color-text-secondary: rgba(255, 255, 255, 0.75);
+  --color-text-tertiary: rgba(255, 255, 255, 0.65);
+  --color-text-muted: rgba(255, 255, 255, 0.55);
+  --color-text-disabled: rgba(255, 255, 255, 0.45);
+  --color-text-subtle: rgba(255, 255, 255, 0.4);
+
+  /* Accent Colors */
+  --color-accent-primary: #3b82f6;
+  --color-accent-primary-dark: #2563eb;
+  --color-accent-secondary: #10b981;
+  --color-accent-warning: #f59e0b;
+  --color-accent-warning-light: #fbbf24;
+  --color-accent-danger: #ef4444;
+  --color-accent-info: #60a5fa;
+
+  /* State Colors */
+  --color-success: #10b981;
+  --color-error: #ef4444;
+  --color-warning: #f59e0b;
+  --color-info: #3b82f6;
+
+  /* ========== Spacing ========== */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 28px;
+  --space-4xl: 32px;
+
+  /* ========== Border Radius ========== */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ========== Shadows ========== */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.25);
+  --shadow-2xl: 0 24px 80px rgba(0, 0, 0, 0.6);
+
+  /* ========== Typography ========== */
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-base: 14px;
+  --font-size-md: 15px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 20px;
+  --font-size-3xl: 24px;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.6;
+  --line-height-loose: 1.75;
+
+  /* ========== Transitions ========== */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+
+  /* ========== Z-Index ========== */
+  --z-dropdown: 1000;
+  --z-sticky: 1100;
+  --z-fixed: 1200;
+  --z-modal-backdrop: 1400;
+  --z-modal: 1500;
+  --z-popover: 1600;
+  --z-tooltip: 1700;
+
+  /* ========== Component-Specific ========== */
+
+  /* Modal */
+  --modal-width-sm: 440px;
+  --modal-width-md: 640px;
+  --modal-width-lg: 800px;
+  --modal-padding: var(--space-3xl);
+  --modal-bg: var(--color-bg-primary);
+  --modal-border: var(--color-border-medium);
+
+  /* Button */
+  --button-height-sm: 28px;
+  --button-height-md: 32px;
+  --button-height-lg: 40px;
+  --button-padding-x: var(--space-lg);
+  --button-padding-y: var(--space-sm);
+
+  /* Input */
+  --input-height: 36px;
+  --input-padding-x: var(--space-md);
+  --input-padding-y: var(--space-sm);
+  --input-bg: rgba(0, 0, 0, 0.3);
+  --input-border: var(--color-border-medium);
+  --input-focus-border: var(--color-accent-primary);
+
+  /* Card */
+  --card-padding: var(--space-lg);
+  --card-bg: var(--color-bg-secondary);
+  --card-border: var(--color-border-subtle);
+
+  /* ========== Gradients ========== */
+  --gradient-primary: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-primary-dark));
+  --gradient-success: linear-gradient(135deg, #10b981, #059669);
+  --gradient-warning: linear-gradient(135deg, #f59e0b, #d97706);
+
+  /* ========== Special Effects ========== */
+  --backdrop-blur: blur(8px);
+  --code-bg: rgba(0, 0, 0, 0.3);
+  --code-color: var(--color-accent-secondary);
+}

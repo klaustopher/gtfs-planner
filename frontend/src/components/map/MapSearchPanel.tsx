@@ -1,6 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import { models } from '../../../wailsjs/go/models'
 import { useStationSearch } from './hooks/useStationSearch'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faTimes } from '@fortawesome/free-solid-svg-icons'
 
 interface MapSearchPanelProps {
   onResultSelect: (stop: models.Stop) => void
@@ -46,7 +48,7 @@ export default function MapSearchPanel({ onResultSelect }: MapSearchPanelProps) 
             aria-label={t('map.search.clearButton')}
             title={t('map.search.clearButton')}
           >
-            ×
+            <FontAwesomeIcon icon={faTimes} />
           </button>
         )}
       </div>

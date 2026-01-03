@@ -1,189 +1,191 @@
+@import '../variables.css';
+
 .gtfs-setup-modal__backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(5, 8, 20, 0.85);
+  background: var(--color-overlay-heavy);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1500;
-  padding: 24px;
+  z-index: var(--z-modal);
+  padding: var(--space-lg);
 }
 
 .gtfs-setup-modal {
   width: min(640px, 100%);
   max-height: 90vh;
   overflow-y: auto;
-  background: #101422;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
-  color: white;
-  padding: 28px;
+  background: var(--modal-bg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--modal-border);
+  box-shadow: var(--shadow-2xl);
+  color: var(--color-text-primary);
+  padding: var(--space-2xl);
 }
 
 .gtfs-setup-modal__header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 24px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .gtfs-setup-modal__header h2 {
   margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: #f59e0b;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent-warning);
 }
 
 .gtfs-setup-modal__description {
-  margin: 8px 0 0;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.65);
-  line-height: 1.6;
+  margin: var(--space-sm) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
 }
 
 .gtfs-setup-modal__close {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.4);
-  border-radius: 6px;
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-sm);
   width: 28px;
   height: 28px;
-  font-size: 24px;
+  font-size: var(--font-size-2xl);
   line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: all 0.2s;
+  transition: var(--transition-fast);
 }
 
 .gtfs-setup-modal__close:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.7);
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
 }
 
 .gtfs-setup-modal__content {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-lg);
 }
 
 .gtfs-setup-modal__section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-md);
 }
 
 .gtfs-setup-modal__section-title {
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
 }
 
 .gtfs-setup-modal__step {
   display: flex;
-  gap: 16px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-light);
 }
 
 .gtfs-setup-modal__step-number {
   flex-shrink: 0;
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  border-radius: 50%;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
-  font-size: 16px;
-  color: white;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-lg);
+  color: var(--color-text-primary);
 }
 
 .gtfs-setup-modal__step-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .gtfs-setup-modal__step-content h4 {
   margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
 }
 
 .gtfs-setup-modal__step-content p {
   margin: 0;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.65);
-  line-height: 1.6;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
 }
 
 .gtfs-setup-modal__code {
   display: block;
   padding: 10px 14px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
-  font-size: 13px;
-  color: #10b981;
+  background: var(--code-bg);
+  border: 1px solid var(--color-border-medium);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--code-color);
   overflow-x: auto;
-  margin: 4px 0;
+  margin: var(--space-xs) 0;
 }
 
 .gtfs-setup-modal__hint {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.45);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
   font-style: italic;
   margin: 0;
 }
 
 .gtfs-setup-modal__section--info {
-  padding: 16px;
-  background: rgba(59, 130, 246, 0.08);
-  border-radius: 12px;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  padding: var(--space-md);
+  background: var(--color-overlay-info);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-accent-info);
 }
 
 .gtfs-setup-modal__section--info .gtfs-setup-modal__section-title {
-  color: #60a5fa;
+  color: var(--color-accent-info);
 }
 
 .gtfs-setup-modal__section--info p {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.75);
-  line-height: 1.6;
+  margin: 0 0 var(--space-md) 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
 }
 
 .gtfs-setup-modal__section--note {
-  padding: 16px;
-  background: rgba(245, 158, 11, 0.08);
-  border-radius: 12px;
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  padding: var(--space-md);
+  background: var(--color-overlay-warning);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-accent-warning);
 }
 
 .gtfs-setup-modal__section--note .gtfs-setup-modal__section-title {
-  color: #fbbf24;
+  color: var(--color-accent-warning-light);
 }
 
 .gtfs-setup-modal__section--note p {
   margin: 0;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.75);
-  line-height: 1.6;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
 }
 
 /* Scrollbar styling */
@@ -192,15 +194,15 @@
 }
 
 .gtfs-setup-modal::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 4px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-xs);
 }
 
 .gtfs-setup-modal::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+  background: var(--color-border-medium);
+  border-radius: var(--radius-xs);
 }
 
 .gtfs-setup-modal::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--color-border-strong);
 }

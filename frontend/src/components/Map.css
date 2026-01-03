@@ -1,3 +1,5 @@
+@import '../variables.css';
+
 .map-shell {
   position: relative;
   width: 100%;
@@ -6,32 +8,32 @@
 
 .map-controls-wrapper {
   position: absolute;
-  top: 16px;
-  left: 16px;
-  width: min(320px, calc(100% - 32px));
+  top: var(--space-lg);
+  left: var(--space-lg);
+  width: min(320px, calc(100% - var(--space-4xl)));
   z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .map-controls-right {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: var(--space-lg);
+  right: var(--space-lg);
   z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .map-search {
-  padding: 12px;
-  border-radius: 16px;
-  background: rgba(12, 15, 30, 0.8);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
-  color: #f9fafb;
+  padding: var(--space-md);
+  border-radius: var(--radius-xl);
+  background: var(--modal-bg);
+  backdrop-filter: var(--backdrop-blur);
+  box-shadow: var(--shadow-xl);
+  color: var(--color-text-primary);
   font-family: inherit;
 }
 
@@ -43,64 +45,64 @@
 
 .map-search input {
   width: 100%;
-  padding: 10px 12px;
+  padding: var(--space-sm) var(--space-md);
   padding-right: 36px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--space-sm);
   font-size: 0.95rem;
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: var(--color-bg-active);
+  color: var(--color-text-primary);
 }
 
 .map-search input:focus {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.2);
+  outline: 2px solid var(--color-border-strong);
+  background: var(--color-bg-hover);
 }
 
 .map-search__clear {
   position: absolute;
-  right: 8px;
-  width: 24px;
-  height: 24px;
+  right: var(--space-sm);
+  width: var(--space-2xl);
+  height: var(--space-2xl);
   padding: 0;
   border: none;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 18px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-active);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xl);
   line-height: 1;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--transition-normal);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .map-search__clear:hover {
-  background: rgba(255, 255, 255, 0.25);
-  color: #fff;
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
 }
 
 .map-search__clear:focus {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.25);
+  outline: 2px solid var(--color-border-strong);
+  background: var(--color-bg-hover);
 }
 
 .map-search__status-row {
-  margin-top: 8px;
+  margin-top: var(--space-sm);
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-secondary);
 }
 
 .map-search__results {
-  margin: 10px 0 0;
+  margin: var(--space-sm) 0 0;
   padding: 0;
   list-style: none;
   max-height: 260px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-xs);
 }
 
 .map-search__result {
@@ -108,31 +110,31 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: var(--space-xs);
   border: none;
-  border-radius: 10px;
-  padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--space-sm);
+  padding: var(--space-sm) var(--space-sm);
+  background: var(--modal-border);
   color: inherit;
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition: var(--transition-fast);
 }
 
 .map-search__result:hover,
 .map-search__result.is-active {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-bg-hover);
   transform: translateX(1px);
 }
 
 .map-search__result-name {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   font-size: 0.95rem;
 }
 
 .map-search__result-meta {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-muted);
 }
 
 .map-search__sr-only {
@@ -148,48 +150,48 @@
 
 /* Date/time picker container */
 .map-datetime-container {
-  padding: 12px;
-  border-radius: 16px;
-  background: rgba(12, 15, 30, 0.8);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
-  color: #f9fafb;
+  padding: var(--space-md);
+  border-radius: var(--radius-xl);
+  background: var(--modal-bg);
+  backdrop-filter: var(--backdrop-blur);
+  box-shadow: var(--shadow-xl);
+  color: var(--color-text-primary);
   font-family: inherit;
 }
 
 /* Date/time picker */
 .map-datetime {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .map-datetime__label {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-xs);
   flex: 1;
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-secondary);
 }
 
 .map-datetime__input {
   width: 100%;
-  padding: 8px 10px;
+  padding: var(--space-sm) var(--space-sm);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 0.85rem;
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: var(--color-bg-active);
+  color: var(--color-text-primary);
   color-scheme: dark;
 }
 
 .map-datetime__input:focus {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.2);
+  outline: 2px solid var(--color-border-strong);
+  background: var(--color-bg-hover);
 }
 
 .map-datetime__input:disabled {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-bg-secondary);
   cursor: not-allowed;
   opacity: 0.7;
 }
@@ -201,33 +203,33 @@
   align-self: flex-end;
   padding: 0;
   margin-bottom: 2px;
-  width: 28px;
-  height: 28px;
+  width: var(--button-height-sm);
+  height: var(--button-height-sm);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 0.9rem;
   background: transparent;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-muted);
   cursor: pointer;
-  transition: color 0.2s, background 0.2s;
+  transition: var(--transition-normal);
 }
 
 .map-datetime__reset:hover {
-  color: rgba(255, 255, 255, 0.9);
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-primary);
+  background: var(--color-bg-hover);
 }
 
 .map-datetime__reset:focus {
   outline: none;
-  color: rgba(255, 255, 255, 0.9);
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-primary);
+  background: var(--color-bg-hover);
 }
 
 @media (max-width: 640px) {
   .map-search {
     position: static;
     width: 100%;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-md);
   }
 
   .map-shell {
@@ -265,11 +267,11 @@
 }
 
 .journey-marker-popup .maplibregl-popup-content {
-  padding: 10px 12px;
-  border-radius: 10px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--space-sm);
+  box-shadow: var(--shadow-lg);
 }
 
 .journey-marker-popup .maplibregl-popup-tip {
-  border-top-color: white;
+  border-top-color: var(--color-text-primary);
 }

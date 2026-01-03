@@ -1,6 +1,8 @@
 import { useEffect, type ChangeEvent, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faTimes } from '@fortawesome/free-solid-svg-icons'
 import { useSettings } from '../hooks/useSettings'
 import './SettingsModal.css'
 
@@ -65,7 +67,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             onClick={onClose}
             aria-label={t('settings.close')}
           >
-            ×
+            <FontAwesomeIcon icon={faTimes} />
           </button>
         </header>
         <section className="settings-modal__section">

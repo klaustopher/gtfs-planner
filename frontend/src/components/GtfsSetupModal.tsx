@@ -1,6 +1,8 @@
 import { useEffect, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faTimes } from '@fortawesome/free-solid-svg-icons'
 import './GtfsSetupModal.css'
 
 interface GtfsSetupModalProps {
@@ -51,7 +53,7 @@ export default function GtfsSetupModal({ isOpen, onClose }: GtfsSetupModalProps)
               onClick={onClose}
               aria-label={t('common.close')}
             >
-              ×
+              <FontAwesomeIcon icon={faTimes} />
             </button>
           )}
         </header>
