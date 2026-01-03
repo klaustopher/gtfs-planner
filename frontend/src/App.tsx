@@ -342,8 +342,8 @@ function App() {
 
   // Load journey from file
   const handleLoadJourney = useCallback(async () => {
-    // Warn about unsaved changes
-    if (hasUnsavedChanges) {
+    // Warn about unsaved changes only if there are actual saved trips
+    if (hasUnsavedChanges && savedTrips.length > 0) {
       const confirmed = await ShowConfirmDialog(
         t('journey.unsaved.title'),
         t('journey.unsaved.message')
@@ -425,7 +425,7 @@ function App() {
     } catch (err) {
       console.error('Failed to load journey:', err)
     }
-  }, [hasUnsavedChanges, t])
+  }, [hasUnsavedChanges, savedTrips.length, t])
 
   // Start new journey
   const handleNewJourney = useCallback(async () => {

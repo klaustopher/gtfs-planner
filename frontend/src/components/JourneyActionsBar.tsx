@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlus, faFolderOpen, faSave, faFileExport, faCog } from '@fortawesome/free-solid-svg-icons'
+import { faRotateLeft, faFolderOpen, faSave, faFileExport, faCog } from '@fortawesome/free-solid-svg-icons'
 import { useTranslation } from 'react-i18next'
 
 interface JourneyActionsBarProps {
@@ -33,10 +33,11 @@ export default function JourneyActionsBar({
         <button
           className="journey-btn journey-btn--icon"
           onClick={onNewJourney}
+          disabled={savedTripsCount === 0}
           title={t('journey.actions.newTooltip')}
           aria-label={t('journey.actions.newTooltip')}
         >
-          <FontAwesomeIcon icon={faPlus} />
+          <FontAwesomeIcon icon={faRotateLeft} />
         </button>
         <button
           className="journey-btn journey-btn--icon"
