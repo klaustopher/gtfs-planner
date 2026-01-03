@@ -3,6 +3,7 @@ import type { ChangeEvent } from 'react'
 import MapGL, { ViewStateChangeEvent, Source, Layer, Popup, MapRef } from 'react-map-gl/maplibre'
 import type {
   CircleLayerSpecification,
+  SymbolLayerSpecification,
   MapLayerMouseEvent,
 } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -66,16 +67,28 @@ const SEARCH_FOCUS_ZOOM = 12
 const MAPTILER_API_KEY='REDACTED_MAPTILER_KEY'
 const MAPTILER_STYLE_URL = `https://api.maptiler.com/maps/dataviz-dark/style.json?key=${MAPTILER_API_KEY}`
 
-const stopsLayerStyle: CircleLayerSpecification = {
+// SVG for bus stop sign icon
+const BUS_STOP_ICON = `
+<svg width="28" height="36" viewBox="-2 -2 28 36" xmlns="http://www.w3.org/2000/svg">
+  <!-- Pin shape -->
+  <path d="M12 0C5.37 0 0 5.37 0 12c0 8 12 20 12 20s12-12 12-20c0-6.63-5.37-12-12-12z"
+        fill="#10b981" stroke="#ffffff" stroke-width="2"/>
+  <!-- H sign for bus stop -->
+  <rect x="7" y="7" width="10" height="10" rx="1" fill="#ffffff"/>
+  <text x="12" y="15.5" font-family="Arial, sans-serif" font-size="10" font-weight="bold"
+        text-anchor="middle" fill="#10b981">H</text>
+</svg>
+`
+
+const stopsLayerStyle: SymbolLayerSpecification = {
   id: 'stops-layer',
-  type: 'circle',
+  type: 'symbol',
   source: 'stops',
-  paint: {
-    'circle-radius': 6,
-    'circle-color': '#e74c3c',
-    'circle-stroke-width': 2,
-    'circle-stroke-color': '#ffffff',
-    'circle-opacity': 0.7,
+  layout: {
+    'icon-image': 'bus-stop-marker',
+    'icon-size': 0.8,
+    'icon-allow-overlap': true,
+    'icon-anchor': 'bottom',
   },
 }
 
@@ -245,6 +258,15 @@ export default function Map({
   const handleLoad = useCallback(() => {
     const map = mapRef.current?.getMap()
     if (map) {
+      // Add custom bus stop icon
+      const img = new Image(28, 36)
+      img.onload = () => {
+        if (!map.hasImage('bus-stop-marker')) {
+          map.addImage('bus-stop-marker', img)
+        }
+      }
+      img.src = 'data:image/svg+xml;base64,' + btoa(BUS_STOP_ICON)
+
       const bounds = map.getBounds()
       if (bounds) {
         boundsRef.current = {
