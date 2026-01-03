@@ -23,6 +23,8 @@ import TransportFilterDropdown from './map/TransportFilterDropdown'
 import { useFitBounds } from './map/hooks/useFitBounds'
 import { useHoverStationPanel } from './map/hooks/useHoverStationPanel'
 import { useDefaultMapLocation } from '../hooks/useDefaultMapLocation'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons'
 import './Map.css'
 
 export interface MapViewState {
@@ -111,7 +113,7 @@ export default function Map({
   availableTransportTypes,
 }: MapProps) {
   const { t } = useTranslation()
-  const defaultLocation = useDefaultMapLocation()
+  const { location: defaultLocation, fetchLocation, isLoading: isLoadingLocation } = useDefaultMapLocation()
 
   // Derived values
   const isInitialMode = planningMode === 'initial' && !hasJourney
@@ -128,6 +130,11 @@ export default function Map({
   useEffect(() => {
     setViewState(defaultLocation)
   }, [defaultLocation])
+
+  // Handle locate button click
+  const handleLocateClick = useCallback(() => {
+    fetchLocation()
+  }, [fetchLocation])
 
   // Fetch viewport stops when no station is selected
   const viewportStops = useStops({
@@ -478,6 +485,17 @@ export default function Map({
           </div>
         ))}
       </MapGL>
+
+      {/* Geolocation button */}
+      <button
+        className="map-locate-button"
+        onClick={handleLocateClick}
+        disabled={isLoadingLocation}
+        title={t('map.locateButton')}
+        aria-label={t('map.locateButton')}
+      >
+        <FontAwesomeIcon icon={faLocationCrosshairs} spin={isLoadingLocation} />
+      </button>
 
       {/* Hover panel for trip selection - hidden in journey view mode */}
       <StationHoverOverlay

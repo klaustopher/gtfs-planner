@@ -159,7 +159,8 @@
       "time": "Time",
       "resetButton": "Reset",
       "resetTooltip": "Reset to current time or last arrival + connection time"
-    }
+    },
+    "locateButton": "Show my location"
   },
   "gtfsSetup": {
     "title": "GTFS Database Required",

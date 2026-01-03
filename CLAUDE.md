@@ -45,16 +45,19 @@ gtfs-manager import          # Import GTFS feed into SQLite database
 ### Backend (Go)
 
 **Entry Points:**
+
 - `main.go` - Wails app initialization
 - `app.go` - Main `App` struct with Wails-bound methods
 - `cmd/gtfs-manager/` - CLI tool for GTFS data management
 
 **Key Packages:**
+
 - `internal/db/` - All database queries (~800 lines)
 - `internal/models/` - Data structures with JSON tags
 - `internal/timeutil/` - GTFS time normalization utilities
 
 **GTFS Manager CLI (`cmd/gtfs-manager/`):**
+
 - `main.go` - Cobra CLI entry point and command registration
 - `config.go` - YAML config file loader
 - `status.go` - Database status check with date range display
@@ -62,6 +65,7 @@ gtfs-manager import          # Import GTFS feed into SQLite database
 - `import.go` - GTFS import via `npx gtfs-import`
 
 **Wails Bindings (app.go:29-80):**
+
 ```go
 GetStops(n, s, e, w float64)              // Stations in bounding box
 GetStationDetails(stopID string)           // Station info + routes
@@ -74,12 +78,14 @@ GetTripDetails(tripID, serviceDate)        // Full trip itinerary
 ### Frontend (React + TypeScript)
 
 **Main Components:**
+
 - `App.tsx` - State management, journey planning logic
 - `components/Map.tsx` - MapLibre map with search, station selection
 - `components/TripDetailModal.tsx` - Trip itinerary viewer
 - `components/Sidebar.tsx` - Journey planning panel, departures list
 
 **Custom Hooks (`components/map/`):**
+
 - `useStops.ts` - Fetches stations in viewport (debounced)
 - `useTrips.ts` - Fetches upcoming trips for selected station
 - `useRoutes.ts` - Fetches route geometries
@@ -103,12 +109,15 @@ User clicks station → GetStationDetails → GetUpcomingTrips
 ## GTFS Specifics
 
 ### Time Handling
+
 GTFS allows times >= 24:00:00 for overnight trips (e.g., 25:30:00 = next day 01:30:00). The `internal/timeutil` package normalizes these to ISO 8601 format.
 
 **Key function:** `timeutil.NormalizeGTFSTime(gtfsTime, serviceDate)` converts "25:30:00" + "20240115" → "2024-01-16T01:30:00"
 
 ### Service Calendar Logic
+
 When querying trips, the code checks:
+
 1. `calendar` table - weekday flags (monday, tuesday, etc.)
 2. `calendar_dates` table - exceptions (type 1=add service, 2=remove service)
 3. Date range validity (start_date, end_date)
@@ -116,6 +125,7 @@ When querying trips, the code checks:
 **Implementation:** See `internal/db/db.go:150-350` for the complex calendar filtering logic.
 
 ### Database Tables Used
+
 - `stops` - location_type=1 for parent stations
 - `routes` - route_color, route_type
 - `trips` - trip_id, service_id, trip_headsign
@@ -144,21 +154,26 @@ Use `--config` flag to specify an alternate config file location.
 ## Key Implementation Details
 
 ### Parent/Child Stops
+
 GTFS has parent stations (location_type=1) and child platforms. The code normalizes to parent stations:
+
 ```go
 // internal/db/db.go - getParentStationID()
 SELECT COALESCE(parent_station, stop_id) FROM stops WHERE stop_id = ?
 ```
 
 ### Route Visualization
+
 Routes are styled with different colors, line widths, and dash patterns to distinguish overlapping routes. See `frontend/src/components/map/geojson.ts:getTripColor()` and style variants.
 
 ### Trip Filtering
+
 Trips are excluded when the selected station is the final destination (no onward journey possible). See `internal/db/db.go:280-320`.
 
 ## Testing
 
 The database module has comprehensive tests covering:
+
 - Bounding box queries
 - Overnight trip handling (times >= 24:00)
 - Calendar-based service filtering
@@ -177,16 +192,57 @@ Run with: `go test -v ./internal/db/`
 ## Common Modifications
 
 **Adding a new Wails binding:**
+
 1. Add method to `App` struct in `app.go`
 2. Run `wails generate module`
 3. Import from `wailsjs/go/main/App` in frontend
 
 **Adding new data to trips:**
+
 1. Update `models.go` struct
 2. Update SQL query in `db.go`
 3. Update TypeScript types in frontend
 
 **Changing map styling:**
+
 - Station markers: `Map.tsx` Source/Layer definitions
 - Route lines: `geojson.ts` style variants
 - Colors: `geojson.ts` FALLBACK_COLORS
+
+## Code Style Guidelines
+
+### CSS Styling Rules
+
+**CRITICAL: Color Definitions**
+
+- **ALL color definitions MUST be in `frontend/src/variables.css` ONLY**
+- **NEVER use hardcoded colors** (e.g., `#ffffff`, `rgba(0,0,0,0.5)`) in any other CSS file
+- Always use CSS custom properties: `var(--color-name)`
+- This includes:
+  - Colors in `color`, `background-color`, `border-color`
+  - Colors in `box-shadow`, `text-shadow`
+  - Colors in gradients
+  - Any `rgba()`, `rgb()`, `#hex` values
+
+**Example - WRONG:**
+
+```css
+.button {
+  background: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+}
+```
+
+**Example - CORRECT:**
+
+```css
+.button {
+  background: var(--color-accent-primary);
+  box-shadow: var(--shadow-button);
+}
+```
+
+**Adding new colors:**
+
+1. Add to `frontend/src/variables.css` with semantic name
+2. Use the new variable in component CSS files

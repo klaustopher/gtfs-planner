@@ -275,3 +275,38 @@
 .journey-marker-popup .maplibregl-popup-tip {
   border-top-color: var(--color-text-primary);
 }
+
+/* Geolocation button */
+.map-locate-button {
+  position: absolute;
+  bottom: 40px;
+  right: var(--space-sm);
+  z-index: 1;
+  width: 29px;
+  height: 29px;
+  border: none;
+  border-radius: var(--space-xs);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: var(--shadow-button);
+  transition: var(--transition-fast);
+}
+
+.map-locate-button svg {
+  color: var(--color-text-primary);
+}
+
+.map-locate-button:hover:not(:disabled) {
+  background: var(--color-bg-hover);
+  box-shadow: var(--shadow-button-hover);
+}
+
+.map-locate-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

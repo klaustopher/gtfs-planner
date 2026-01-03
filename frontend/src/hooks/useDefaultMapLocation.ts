@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import { GetUserLocation } from '../../wailsjs/go/main/App'
 
 const FALLBACK_LOCATION = {
@@ -9,15 +9,10 @@ const FALLBACK_LOCATION = {
 
 export function useDefaultMapLocation() {
   const [location, setLocation] = useState(FALLBACK_LOCATION)
-  const fetchedRef = useRef(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  useEffect(() => {
-    // Prevent double fetching in React Strict Mode
-    if (fetchedRef.current) {
-      return
-    }
-    fetchedRef.current = true
-
+  const fetchLocation = useCallback(() => {
+    setIsLoading(true)
     // Fetch location from Go backend
     GetUserLocation()
       .then((result) => {
@@ -32,7 +27,10 @@ export function useDefaultMapLocation() {
         console.warn('Failed to get location from backend:', error)
         // Keep fallback location
       })
+      .finally(() => {
+        setIsLoading(false)
+      })
   }, [])
 
-  return location
+  return { location, fetchLocation, isLoading }
 }
