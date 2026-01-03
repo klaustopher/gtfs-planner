@@ -1,4 +1,4 @@
-package main
+package geolocation
 
 import (
 	"encoding/json"
@@ -19,7 +19,7 @@ type LocationResult struct {
 }
 
 // GetUserLocation attempts to get the user's location using multiple methods
-func (a *App) GetUserLocation() LocationResult {
+func GetUserLocation() LocationResult {
 	// Try platform-specific native location first
 	if loc, err := getNativeLocation(); err == nil {
 		loc.Source = "native"

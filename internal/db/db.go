@@ -2,7 +2,6 @@
 package db
 
 import (
-	"database/sql"
 	"fmt"
 	"math"
 	"strings"
@@ -10,17 +9,18 @@ import (
 	"bus-planning/internal/models"
 	"bus-planning/internal/timeutil"
 
+	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// DB wraps a sql.DB connection with GTFS-specific operations.
+// DB wraps a sqlx.DB connection with GTFS-specific operations.
 type DB struct {
-	conn *sql.DB
+	conn *sqlx.DB
 }
 
 // Open opens a connection to the SQLite database at the given path.
 func Open(path string) (*DB, error) {
-	conn, err := sql.Open("sqlite3", path+"?mode=ro")
+	conn, err := sqlx.Open("sqlite3", path+"?mode=ro")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -52,23 +52,10 @@ func (db *DB) GetStops(north, south, east, west float64) ([]models.Stop, error) 
 		  AND location_type = 1
 	`
 
-	rows, err := db.conn.Query(query, south, north, west, east)
+	var stops []models.Stop
+	err := db.conn.Select(&stops, query, south, north, west, east)
 	if err != nil {
 		return nil, fmt.Errorf("query failed: %w", err)
-	}
-	defer rows.Close()
-
-	var stops []models.Stop
-	for rows.Next() {
-		var s models.Stop
-		if err := rows.Scan(&s.StopID, &s.StopName, &s.StopLat, &s.StopLon); err != nil {
-			return nil, fmt.Errorf("scan failed: %w", err)
-		}
-		stops = append(stops, s)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows error: %w", err)
 	}
 
 	return stops, nil
@@ -204,7 +191,9 @@ func (db *DB) SearchStations(query string, limit int) ([]models.Stop, error) {
 	}
 
 	searchTerm := "%" + trimmed + "%"
-	rows, err := db.conn.Query(`
+
+	var results []models.Stop
+	err := db.conn.Select(&results, `
 		SELECT stop_id, stop_name, stop_lat, stop_lon
 		FROM stops
 		WHERE location_type = 1
@@ -214,20 +203,6 @@ func (db *DB) SearchStations(query string, limit int) ([]models.Stop, error) {
 	`, searchTerm, limit)
 	if err != nil {
 		return nil, fmt.Errorf("station search failed: %w", err)
-	}
-	defer rows.Close()
-
-	var results []models.Stop
-	for rows.Next() {
-		var stop models.Stop
-		if err := rows.Scan(&stop.StopID, &stop.StopName, &stop.StopLat, &stop.StopLon); err != nil {
-			return nil, fmt.Errorf("search scan failed: %w", err)
-		}
-		results = append(results, stop)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("search rows error: %w", err)
 	}
 
 	return results, nil
@@ -562,40 +537,9 @@ func (db *DB) queryTripsForMultipleStations(stopIDs []string, date, minTime, day
 		return nil, fmt.Errorf("invalid time format: %w", err)
 	}
 
-	// Build placeholders for IN clause
-	placeholders := make([]string, len(stopIDs))
-	args := []interface{}{date} // First arg is date for calendar_dates
-
-	for i := range stopIDs {
-		placeholders[i] = "?"
-	}
-	placeholdersStr := strings.Join(placeholders, ", ")
-
-	// Add stopIDs twice (for parent_station and stop_id checks)
-	for _, stopID := range stopIDs {
-		args = append(args, stopID)
-	}
-	for _, stopID := range stopIDs {
-		args = append(args, stopID)
-	}
-
-	// Add remaining parameters (use timestamp instead of time string)
-	args = append(args, minTimestamp, date, date, limit)
-
-	// Build route type filter if specified
-	routeTypeFilter := ""
-	if len(routeTypes) > 0 {
-		routeTypeFilter = " WHERE r.route_type IN ("
-		for i, rt := range routeTypes {
-			if i > 0 {
-				routeTypeFilter += ", "
-			}
-			routeTypeFilter += fmt.Sprintf("%d", rt)
-		}
-		routeTypeFilter += ")"
-	}
-
-	query := `
+	// Base query with placeholders for IN clauses
+	// Note: We use the same stopIDs list twice (for parent_station and stop_id)
+	baseQuery := `
 		WITH station_departures AS (
 			SELECT
 				t.trip_id,
@@ -609,7 +553,7 @@ func (db *DB) queryTripsForMultipleStations(stopIDs []string, date, minTime, day
 			JOIN trips t ON t.trip_id = st.trip_id
 			LEFT JOIN calendar c ON c.service_id = t.service_id
 			LEFT JOIN calendar_dates cd ON cd.service_id = t.service_id AND cd.date = ?
-			WHERE (s.parent_station IN (` + placeholdersStr + `) OR s.stop_id IN (` + placeholdersStr + `))
+			WHERE (s.parent_station IN (?) OR s.stop_id IN (?))
 			  AND st.departure_timestamp >= ?
 			  AND (
 			      -- Include if calendar_dates says this service runs on this date (exception_type=1)
@@ -638,11 +582,35 @@ func (db *DB) queryTripsForMultipleStations(stopIDs []string, date, minTime, day
 			sd.trip_headsign,
 			sd.stop_sequence
 		FROM station_departures sd
-		JOIN routes r ON r.route_id = sd.route_id` + routeTypeFilter + `
-		ORDER BY sd.departure_timestamp
-	`
+		JOIN routes r ON r.route_id = sd.route_id`
 
-	rows, err := db.conn.Query(query, args...)
+	// Add route type filter if specified
+	if len(routeTypes) > 0 {
+		baseQuery += `
+		WHERE r.route_type IN (?)`
+	}
+
+	baseQuery += `
+		ORDER BY sd.departure_timestamp`
+
+	// Prepare args slice
+	args := []interface{}{date, stopIDs, stopIDs, minTimestamp, date, date, limit}
+	
+	// Add route types if specified
+	if len(routeTypes) > 0 {
+		args = append(args, routeTypes)
+	}
+
+	// Use sqlx.In to expand the IN clauses
+	query, expandedArgs, err := sqlx.In(baseQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to expand query: %w", err)
+	}
+
+	// Rebind for SQLite (? placeholders)
+	query = db.conn.Rebind(query)
+
+	rows, err := db.conn.Query(query, expandedArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("trips query failed: %w", err)
 	}

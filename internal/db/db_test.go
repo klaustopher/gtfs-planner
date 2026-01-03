@@ -465,13 +465,13 @@ func TestCalendarWeekdayFiltering(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GetUpcomingTripsForStations failed: %v", err)
 		}
-		
+
 		// Check if the trip appears in results
 		for _, trip := range data.Trips {
 			if trip.TripID == tripID {
 				// Trip found - verify it's from Monday (next day), not Sunday
 				if trip.DepartureDateTime >= "2026-01-11T00:00:00" && trip.DepartureDateTime < "2026-01-12T00:00:00" {
-					t.Errorf("Expected trip %s to NOT be returned on Sunday 2026-01-11, but it was found with departure time %s", 
+					t.Errorf("Expected trip %s to NOT be returned on Sunday 2026-01-11, but it was found with departure time %s",
 						tripID, trip.DepartureDateTime)
 				}
 				// If it's from Monday or later, that's expected behavior (next-day filling)

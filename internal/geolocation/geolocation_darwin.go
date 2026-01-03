@@ -1,7 +1,7 @@
 //go:build darwin
 // +build darwin
 
-package main
+package geolocation
 
 /*
 #cgo CFLAGS: -x objective-c
@@ -29,8 +29,16 @@ static LocationData getLocationSync() {
     CLLocationManager *manager = [[CLLocationManager alloc] init];
     manager.desiredAccuracy = kCLLocationAccuracyKilometer;
 
-    // Check authorization status
-    CLAuthorizationStatus status = [CLLocationManager authorizationStatus];
+    // Check authorization status (use instance method, not deprecated class method)
+    CLAuthorizationStatus status;
+    if (@available(macOS 11.0, *)) {
+        status = [manager authorizationStatus];
+    } else {
+        #pragma clang diagnostic push
+        #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+        status = [CLLocationManager authorizationStatus];
+        #pragma clang diagnostic pop
+    }
 
     // If authorization has not been determined, request it and give user time to respond
     if (status == kCLAuthorizationStatusNotDetermined) {
@@ -41,7 +49,14 @@ static LocationData getLocationSync() {
             // This gives the user enough time to interact with the dialog
             for (int i = 0; i < 20; i++) {
                 [NSThread sleepForTimeInterval:0.5];
-                status = [CLLocationManager authorizationStatus];
+                if (@available(macOS 11.0, *)) {
+                    status = [manager authorizationStatus];
+                } else {
+                    #pragma clang diagnostic push
+                    #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+                    status = [CLLocationManager authorizationStatus];
+                    #pragma clang diagnostic pop
+                }
                 if (status != kCLAuthorizationStatusNotDetermined) {
                     break;
                 }

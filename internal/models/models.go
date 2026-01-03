@@ -3,10 +3,10 @@ package models
 
 // Stop represents a GTFS stop
 type Stop struct {
-	StopID   string  `json:"stop_id"`
-	StopName string  `json:"stop_name"`
-	StopLat  float64 `json:"stop_lat"`
-	StopLon  float64 `json:"stop_lon"`
+	StopID   string  `json:"stop_id" db:"stop_id"`
+	StopName string  `json:"stop_name" db:"stop_name"`
+	StopLat  float64 `json:"stop_lat" db:"stop_lat"`
+	StopLon  float64 `json:"stop_lon" db:"stop_lon"`
 }
 
 // Route represents a GTFS route

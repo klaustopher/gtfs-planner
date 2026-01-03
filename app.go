@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"bus-planning/internal/db"
+	"bus-planning/internal/geolocation"
 	"bus-planning/internal/models"
 
 	"codeberg.org/go-pdf/fpdf"
@@ -86,6 +87,11 @@ func (a *App) GetNearbyStations(stopID string, radiusMeters float64) ([]models.S
 		return nil, fmt.Errorf("database not connected")
 	}
 	return a.db.GetNearbyStations(stopID, radiusMeters)
+}
+
+// GetUserLocation attempts to get the user's location using multiple methods
+func (a *App) GetUserLocation() geolocation.LocationResult {
+	return geolocation.GetUserLocation()
 }
 
 // GetUpcomingTripsForStations returns upcoming trips from multiple stations.
