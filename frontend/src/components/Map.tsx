@@ -72,6 +72,8 @@ const SEARCH_DEBOUNCE_MS = 250
 const SEARCH_RESULT_LIMIT = 8
 const SEARCH_MIN_LENGTH = 2
 const SEARCH_FOCUS_ZOOM = 12
+const MAPTILER_API_KEY='REDACTED_MAPTILER_KEY'
+const MAPTILER_STYLE_URL = `https://api.maptiler.com/maps/dataviz-v4/style.json?key=${MAPTILER_API_KEY}`
 
 const stopsLayerStyle: CircleLayerSpecification = {
   id: 'stops-layer',
@@ -652,24 +654,7 @@ export default function Map({
         interactiveLayerIds={['stops-layer']}
         cursor={isLoadingStation ? 'wait' : hoveredStation ? 'pointer' : 'auto'}
         style={{ width: '100%', height: '100%' }}
-        mapStyle={{
-          version: 8,
-          sources: {
-            osm: {
-              type: 'raster',
-              tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-              tileSize: 256,
-              attribution: '© OpenStreetMap contributors',
-            },
-          },
-          layers: [
-            {
-              id: 'osm',
-              type: 'raster',
-              source: 'osm',
-            },
-          ],
-        }}
+        mapStyle={MAPTILER_STYLE_URL}
       >
         {/* Trip lines layer - only shown when a station is selected and NOT in journey view */}
         {tripsData && !isViewingMode && (
