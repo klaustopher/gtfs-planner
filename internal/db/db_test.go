@@ -289,7 +289,7 @@ func TestGetUpcomingTrips(t *testing.T) {
 	var tripsData *models.UpcomingTripsData
 	var testedStation string
 	for _, stop := range stops {
-		data, err := db.GetUpcomingTrips(stop.StopID, datetime, limit, nil)
+		data, err := db.GetUpcomingTripsForStations([]string{stop.StopID}, datetime, limit, nil)
 		if err != nil {
 			continue
 		}
@@ -383,7 +383,7 @@ func TestGetUpcomingTripsDisplayNameNotEmpty(t *testing.T) {
 	foundTripsWithName := false
 	for _, stop := range stops[:min(20, len(stops))] { // Test first 20 stations
 		for _, datetime := range datetimes {
-			data, err := db.GetUpcomingTrips(stop.StopID, datetime, 5, nil)
+			data, err := db.GetUpcomingTripsForStations([]string{stop.StopID}, datetime, 5, nil)
 			if err != nil {
 				continue
 			}
@@ -437,9 +437,9 @@ func TestCalendarWeekdayFiltering(t *testing.T) {
 
 	// Test 1: Monday 20260113 should include the trip (monday=1)
 	t.Run("trip runs on Monday", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2026-01-13T08:00:00", 50, nil)
+		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-13T08:00:00", 50, nil)
 		if err != nil {
-			t.Fatalf("GetUpcomingTrips failed: %v", err)
+			t.Fatalf("GetUpcomingTripsForStations failed: %v", err)
 		}
 		if !tripInResults(data, tripID) {
 			t.Errorf("Expected trip %s to be returned on Monday 2026-01-13, but it was not", tripID)
@@ -448,9 +448,9 @@ func TestCalendarWeekdayFiltering(t *testing.T) {
 
 	// Test 2: Saturday 20260110 should NOT include the trip (saturday=0)
 	t.Run("trip does not run on Saturday", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2026-01-10T08:00:00", 50, nil)
+		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-10T08:00:00", 50, nil)
 		if err != nil {
-			t.Fatalf("GetUpcomingTrips failed: %v", err)
+			t.Fatalf("GetUpcomingTripsForStations failed: %v", err)
 		}
 		if tripInResults(data, tripID) {
 			t.Errorf("Expected trip %s to NOT be returned on Saturday 2026-01-10, but it was", tripID)
@@ -459,9 +459,9 @@ func TestCalendarWeekdayFiltering(t *testing.T) {
 
 	// Test 3: Sunday 20260111 should NOT include the trip (sunday=0)
 	t.Run("trip does not run on Sunday", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2026-01-11T08:00:00", 50, nil)
+		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-11T08:00:00", 50, nil)
 		if err != nil {
-			t.Fatalf("GetUpcomingTrips failed: %v", err)
+			t.Fatalf("GetUpcomingTripsForStations failed: %v", err)
 		}
 		if tripInResults(data, tripID) {
 			t.Errorf("Expected trip %s to NOT be returned on Sunday 2026-01-11, but it was", tripID)
@@ -482,9 +482,9 @@ func TestCalendarDateExclusion(t *testing.T) {
 
 	// Test 1: Friday 20260109 (normal Friday) should include the trip
 	t.Run("trip runs on normal Friday", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2026-01-09T08:00:00", 50, nil)
+		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-09T08:00:00", 50, nil)
 		if err != nil {
-			t.Fatalf("GetUpcomingTrips failed: %v", err)
+			t.Fatalf("GetUpcomingTripsForStations failed: %v", err)
 		}
 		if !tripInResults(data, tripID) {
 			t.Errorf("Expected trip %s to be returned on Friday 2026-01-09, but it was not", tripID)
@@ -493,9 +493,9 @@ func TestCalendarDateExclusion(t *testing.T) {
 
 	// Test 2: Friday 20251226 (exception removes service) should NOT include the trip
 	t.Run("trip excluded on exception date", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2025-12-26T08:00:00", 50, nil)
+		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2025-12-26T08:00:00", 50, nil)
 		if err != nil {
-			t.Fatalf("GetUpcomingTrips failed: %v", err)
+			t.Fatalf("GetUpcomingTripsForStations failed: %v", err)
 		}
 		if tripInResults(data, tripID) {
 			t.Errorf("Expected trip %s to NOT be returned on Friday 2025-12-26 (exception_type=2), but it was", tripID)
@@ -516,9 +516,9 @@ func TestCalendarDateAddition(t *testing.T) {
 
 	// Test 1: Monday 20260105 (exception adds service) should include the trip
 	t.Run("trip added on exception date", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2026-01-05T10:00:00", 50, nil)
+		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-05T10:00:00", 50, nil)
 		if err != nil {
-			t.Fatalf("GetUpcomingTrips failed: %v", err)
+			t.Fatalf("GetUpcomingTripsForStations failed: %v", err)
 		}
 		if !tripInResults(data, tripID) {
 			t.Errorf("Expected trip %s to be returned on Monday 2026-01-05 (exception_type=1), but it was not", tripID)
@@ -527,9 +527,9 @@ func TestCalendarDateAddition(t *testing.T) {
 
 	// Test 2: Monday 20251229 (normal Monday, no service) should NOT include the trip
 	t.Run("trip does not run on normal Monday", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2025-12-29T10:00:00", 50, nil)
+		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2025-12-29T10:00:00", 50, nil)
 		if err != nil {
-			t.Fatalf("GetUpcomingTrips failed: %v", err)
+			t.Fatalf("GetUpcomingTripsForStations failed: %v", err)
 		}
 		if tripInResults(data, tripID) {
 			t.Errorf("Expected trip %s to NOT be returned on Monday 2025-12-29, but it was", tripID)
@@ -559,9 +559,9 @@ func TestOvernightTrips(t *testing.T) {
 	// This should find trip 1214020 which departs at 24:05:00 on Sunday 2025-12-21's service
 	// (24:05:00 on Sunday = 00:05:00 on Monday)
 	t.Run("finds overnight trip from previous day service", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2025-12-22T00:05:00", 50, nil)
+		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2025-12-22T00:05:00", 50, nil)
 		if err != nil {
-			t.Fatalf("GetUpcomingTrips failed: %v", err)
+			t.Fatalf("GetUpcomingTripsForStations failed: %v", err)
 		}
 		if !tripInResults(data, tripID) {
 			t.Errorf("Expected trip %s (24:05:00 on Sunday's service) to be returned when querying at 00:05 on Monday, but it was not", tripID)
@@ -571,9 +571,9 @@ func TestOvernightTrips(t *testing.T) {
 	// Query at 00:04 on Monday 2025-12-22
 	// This should NOT find trip 1214020 since 24:05 > 00:04
 	t.Run("does not find overnight trip before its departure", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2025-12-22T00:04:00", 50, nil)
+		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2025-12-22T00:04:00", 50, nil)
 		if err != nil {
-			t.Fatalf("GetUpcomingTrips failed: %v", err)
+			t.Fatalf("GetUpcomingTripsForStations failed: %v", err)
 		}
 		// Trip 1214020 departs at 24:05, but we're querying at 00:04
 		// However, there might be trips at 24:00-24:04 that should appear
@@ -590,9 +590,9 @@ func TestOvernightTrips(t *testing.T) {
 	// Query at 23:55 on Sunday 2025-12-21
 	// Trip 1214020 departs at 24:05 which is AFTER 23:55, so it should be found
 	t.Run("finds overnight trip when querying before midnight", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2025-12-21T23:55:00", 50, nil)
+		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2025-12-21T23:55:00", 50, nil)
 		if err != nil {
-			t.Fatalf("GetUpcomingTrips failed: %v", err)
+			t.Fatalf("GetUpcomingTripsForStations failed: %v", err)
 		}
 		if !tripInResults(data, tripID) {
 			t.Errorf("Expected trip %s (24:05:00) to be returned when querying at 23:55, but it was not", tripID)
@@ -619,9 +619,9 @@ func TestExcludeTripsEndingAtStation(t *testing.T) {
 	// Trip 1014198 (SB4) departs at 10:39 but Siegen ZOB is its FINAL stop
 	// Trip 1493872 (C105) departs at 10:24 and Siegen ZOB is its FIRST stop
 	t.Run("excludes trips ending at station", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2026-01-12T10:00:00", 50, nil)
+		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-12T10:00:00", 50, nil)
 		if err != nil {
-			t.Fatalf("GetUpcomingTrips failed: %v", err)
+			t.Fatalf("GetUpcomingTripsForStations failed: %v", err)
 		}
 
 		// No trip should have only 1 stop - that means the station is the final destination

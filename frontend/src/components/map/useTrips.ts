@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { GetUpcomingTrips, GetUpcomingTripsForStations } from '../../../wailsjs/go/main/App'
+import { GetUpcomingTripsForStations } from '../../../wailsjs/go/main/App'
 import { models } from '../../../wailsjs/go/models'
 
 export interface TripQueryParams {

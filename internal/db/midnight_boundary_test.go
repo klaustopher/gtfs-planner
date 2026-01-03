@@ -24,9 +24,9 @@ func TestMidnightBoundary_LateNightTrips(t *testing.T) {
 	// Query at 23:00 on 2026-01-01
 	// Should find trips at 23:00, 23:30, 23:50, 23:55 from same day
 	t.Run("at 23:00 finds late night trips", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2026-01-01T23:00:00", 50, nil)
+		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-01T23:00:00", 50, nil)
 		if err != nil {
-			t.Fatalf("GetUpcomingTrips failed: %v", err)
+			t.Fatalf("GetUpcomingTripsForStations failed: %v", err)
 		}
 
 		expectedTrips := []string{"trip_2300", "trip_2330", "trip_2350", "trip_2355"}
@@ -43,9 +43,9 @@ func TestMidnightBoundary_LateNightTrips(t *testing.T) {
 	// Should find trips at 23:50, 23:55 from same day
 	// And should also include overnight trips (24:00+) from previous day (2025-12-31)
 	t.Run("at 23:50 finds remaining late night trips", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2026-01-01T23:50:00", 50, nil)
+		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-01T23:50:00", 50, nil)
 		if err != nil {
-			t.Fatalf("GetUpcomingTrips failed: %v", err)
+			t.Fatalf("GetUpcomingTripsForStations failed: %v", err)
 		}
 
 		expectedTrips := []string{"trip_2350", "trip_2355"}
@@ -68,9 +68,9 @@ func TestMidnightBoundary_OvernightTrips24PlusNotation(t *testing.T) {
 	// - 2026-01-02 with times >= 00:00 (trip_0000, trip_0030, etc.)
 	// - 2026-01-01 with times >= 24:00 (trip_2400, trip_2430, trip_2500, etc.)
 	t.Run("at 00:00 finds overnight trips from previous day service", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2026-01-02T00:00:00", 50, nil)
+		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-02T00:00:00", 50, nil)
 		if err != nil {
-			t.Fatalf("GetUpcomingTrips failed: %v", err)
+			t.Fatalf("GetUpcomingTripsForStations failed: %v", err)
 		}
 
 		// Overnight trips from 2026-01-01's service (24:00+ notation)
@@ -96,9 +96,9 @@ func TestMidnightBoundary_OvernightTrips24PlusNotation(t *testing.T) {
 	// Should find trips at 00:30, 01:00, 01:30, 02:00 from current day
 	// And 24:30, 25:00, 25:30, 26:00 from previous day
 	t.Run("at 00:30 finds trips after midnight", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2026-01-02T00:30:00", 50, nil)
+		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-02T00:30:00", 50, nil)
 		if err != nil {
-			t.Fatalf("GetUpcomingTrips failed: %v", err)
+			t.Fatalf("GetUpcomingTripsForStations failed: %v", err)
 		}
 
 		// Should include trip_2430 (24:30), trip_2500 (25:00), etc. from previous day
@@ -122,9 +122,9 @@ func TestMidnightBoundary_OvernightTrips24PlusNotation(t *testing.T) {
 	// Should find trips at 01:00, 01:30, 02:00 from current day
 	// And 25:00, 25:30, 26:00 from previous day
 	t.Run("at 01:00 finds early morning trips", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2026-01-02T01:00:00", 50, nil)
+		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-02T01:00:00", 50, nil)
 		if err != nil {
-			t.Fatalf("GetUpcomingTrips failed: %v", err)
+			t.Fatalf("GetUpcomingTripsForStations failed: %v", err)
 		}
 
 		// Overnight trips from previous day

@@ -79,16 +79,6 @@ func (a *App) SearchStations(query string, limit int) ([]models.Stop, error) {
 	return a.db.SearchStations(query, limit)
 }
 
-// GetUpcomingTrips returns the next trips departing from a station at or after the given datetime.
-// datetime should be in ISO 8601 format: "2006-01-02T15:04:05".
-// routeTypes is an optional filter for specific GTFS route types (empty array = no filter).
-func (a *App) GetUpcomingTrips(stopID string, datetime string, limit int, routeTypes []int) (*models.UpcomingTripsData, error) {
-	if a.db == nil {
-		return nil, fmt.Errorf("database not connected")
-	}
-	return a.db.GetUpcomingTrips(stopID, datetime, limit, routeTypes)
-}
-
 // GetNearbyStations returns all parent stations within radiusMeters of the given station.
 // radiusMeters should be between 0 and 200.
 func (a *App) GetNearbyStations(stopID string, radiusMeters float64) ([]models.Stop, error) {
@@ -119,11 +109,6 @@ func (a *App) GetTripDetails(tripID string, serviceDate string) (*models.TripDet
 		return nil, fmt.Errorf("database not connected")
 	}
 	return a.db.GetTripDetails(tripID, serviceDate)
-}
-
-// Greet returns a greeting for the given name
-func (a *App) Greet(name string) string {
-	return fmt.Sprintf("Hello %s, It's show time!", name)
 }
 
 // GetRouteByID returns route details for a given route_id.

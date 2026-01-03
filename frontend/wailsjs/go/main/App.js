@@ -34,20 +34,12 @@ export function GetTripDetails(arg1, arg2) {
   return window['go']['main']['App']['GetTripDetails'](arg1, arg2);
 }
 
-export function GetUpcomingTrips(arg1, arg2, arg3, arg4) {
-  return window['go']['main']['App']['GetUpcomingTrips'](arg1, arg2, arg3, arg4);
-}
-
 export function GetUpcomingTripsForStations(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['GetUpcomingTripsForStations'](arg1, arg2, arg3, arg4);
 }
 
 export function GetUserLocation() {
   return window['go']['main']['App']['GetUserLocation']();
-}
-
-export function Greet(arg1) {
-  return window['go']['main']['App']['Greet'](arg1);
 }
 
 export function LoadJourney() {
