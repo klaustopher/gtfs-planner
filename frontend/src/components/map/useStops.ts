@@ -17,14 +17,20 @@ interface UseStopsOptions {
   enabled?: boolean
 }
 
+export interface UseStopsResult {
+  stops: models.Stop[]
+  isLoading: boolean
+}
+
 export function useStops({
   zoom,
   bounds,
   zoomThreshold = 8,
   debounceMs = 300,
   enabled = true,
-}: UseStopsOptions): models.Stop[] {
+}: UseStopsOptions): UseStopsResult {
   const [stops, setStops] = useState<models.Stop[]>([])
+  const [isLoading, setIsLoading] = useState(false)
   const debounceTimerRef = useRef<number | null>(null)
   const requestIdRef = useRef(0)
 
@@ -41,6 +47,9 @@ export function useStops({
     if (zoom >= zoomThreshold && bounds) {
       const { north, south, east, west } = bounds
 
+      // Set loading state immediately when bounds change
+      setIsLoading(true)
+
       // Debounce the fetch request
       debounceTimerRef.current = window.setTimeout(() => {
         // Increment request ID to track the latest request
@@ -51,16 +60,19 @@ export function useStops({
             // Only update if this is still the latest request
             if (currentRequestId === requestIdRef.current) {
               setStops(fetchedStops || [])
+              setIsLoading(false)
             }
           })
           .catch((err) => {
             if (currentRequestId === requestIdRef.current) {
               console.error('Failed to fetch stops:', err)
+              setIsLoading(false)
             }
           })
       }, debounceMs)
     } else {
       setStops([])
+      setIsLoading(false)
     }
 
     // Cleanup on unmount or before next effect
@@ -71,5 +83,5 @@ export function useStops({
     }
   }, [zoom, bounds, zoomThreshold, debounceMs, enabled])
 
-  return stops
+  return { stops, isLoading }
 }

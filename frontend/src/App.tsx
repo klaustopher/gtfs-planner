@@ -575,6 +575,7 @@ function App() {
           onStationSelect={setSelectedStation}
           selectedStation={selectedStation}
           tripsData={tripsData}
+          isLoadingTrips={isLoadingTrips}
           savedTrips={savedTrips}
           selectedDate={selectedDate}
           selectedTime={selectedTime}

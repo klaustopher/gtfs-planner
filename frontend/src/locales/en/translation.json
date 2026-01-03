@@ -160,7 +160,13 @@
       "resetButton": "Reset",
       "resetTooltip": "Reset to current time or last arrival + connection time"
     },
-    "locateButton": "Show my location"
+    "locateButton": "Show my location",
+    "loading": {
+      "stops": "Loading stops",
+      "stationDetails": "Loading station details",
+      "trips": "Loading trips",
+      "location": "Determining location"
+    }
   },
   "gtfsSetup": {
     "title": "GTFS Database Required",

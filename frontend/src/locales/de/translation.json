@@ -160,7 +160,13 @@
       "resetButton": "Zurücksetzen",
       "resetTooltip": "Auf aktuelle Zeit oder letzte Ankunft + Umsteigezeit zurücksetzen"
     },
-    "locateButton": "Meinen Standort anzeigen"
+    "locateButton": "Meinen Standort anzeigen",
+    "loading": {
+      "stops": "Haltestellen werden geladen",
+      "stationDetails": "Haltestellendetails werden geladen",
+      "trips": "Fahrten werden geladen",
+      "location": "Standort wird ermittelt"
+    }
   },
   "gtfsSetup": {
     "title": "GTFS-Datenbank erforderlich",

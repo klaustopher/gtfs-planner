@@ -24,7 +24,7 @@ import { useFitBounds } from './map/hooks/useFitBounds'
 import { useHoverStationPanel } from './map/hooks/useHoverStationPanel'
 import { useDefaultMapLocation } from '../hooks/useDefaultMapLocation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons'
+import { faLocationCrosshairs, faSpinner } from '@fortawesome/free-solid-svg-icons'
 import './Map.css'
 
 export interface MapViewState {
@@ -41,6 +41,7 @@ interface MapProps {
   onStationSelect?: (station: models.StationDetails | null) => void
   selectedStation?: models.StationDetails | null
   tripsData?: models.UpcomingTripsData | null
+  isLoadingTrips?: boolean
   savedTrips: SavedTrip[]
   selectedDate: string
   selectedTime: string
@@ -82,6 +83,19 @@ const BUS_STOP_ICON = `
 </svg>
 `
 
+// SVG for selected station marker - larger and highlighted
+const SELECTED_STOP_ICON = `
+<svg width="36" height="44" viewBox="-2 -2 36 44" xmlns="http://www.w3.org/2000/svg">
+  <!-- Pin shape -->
+  <path d="M16 0C7.16 0 0 7.16 0 16c0 10.67 16 26.67 16 26.67s16-16 16-26.67C32 7.16 24.84 0 16 0z"
+        fill="#3b82f6" stroke="#ffffff" stroke-width="3"/>
+  <!-- H sign for bus stop -->
+  <rect x="9" y="9" width="14" height="14" rx="1.5" fill="#ffffff"/>
+  <text x="16" y="20" font-family="Arial, sans-serif" font-size="14" font-weight="bold"
+        text-anchor="middle" fill="#3b82f6">H</text>
+</svg>
+`
+
 const stopsLayerStyle: SymbolLayerSpecification = {
   id: 'stops-layer',
   type: 'symbol',
@@ -99,6 +113,7 @@ export default function Map({
   onStationSelect,
   selectedStation,
   tripsData,
+  isLoadingTrips = false,
   selectedDate,
   selectedTime,
   onDateChange,
@@ -137,7 +152,7 @@ export default function Map({
   }, [fetchLocation])
 
   // Fetch viewport stops when no station is selected
-  const viewportStops = useStops({
+  const { stops: viewportStops, isLoading: isLoadingStops } = useStops({
     zoom: viewState.zoom,
     bounds: boundsRef.current,
     zoomThreshold: ZOOM_THRESHOLD,
@@ -167,6 +182,17 @@ export default function Map({
   }, [isViewingMode, journeyViewData, tripsData, viewportStops])
 
   const stopsGeojsonData = useMemo(() => stopsToGeoJSON(displayStops), [displayStops])
+
+  // Separate GeoJSON for selected station with different icon
+  const selectedStationGeojsonData = useMemo(() => {
+    if (!selectedStation || isViewingMode) return stopsToGeoJSON([])
+    return stopsToGeoJSON([{
+      stop_id: selectedStation.stop_id,
+      stop_name: selectedStation.stop_name,
+      stop_lat: selectedStation.stop_lat,
+      stop_lon: selectedStation.stop_lon,
+    }])
+  }, [selectedStation, isViewingMode])
 
   // Trips are already filtered by backend based on selectedTransportTypes
   const tripLinesGeojsonData = useMemo(() => {
@@ -274,6 +300,15 @@ export default function Map({
       }
       img.src = 'data:image/svg+xml;base64,' + btoa(BUS_STOP_ICON)
 
+      // Add selected stop icon
+      const selectedImg = new Image(36, 44)
+      selectedImg.onload = () => {
+        if (!map.hasImage('selected-stop-marker')) {
+          map.addImage('selected-stop-marker', selectedImg)
+        }
+      }
+      selectedImg.src = 'data:image/svg+xml;base64,' + btoa(SELECTED_STOP_ICON)
+
       const bounds = map.getBounds()
       if (bounds) {
         boundsRef.current = {
@@ -294,12 +329,19 @@ export default function Map({
       if (features && features.length > 0) {
         const feature = features[0]
         const stopId = feature.properties?.stop_id
-        if (stopId && !selectedStation) {
+        // Only allow selecting station in initial mode without journey
+        if (stopId && !selectedStation && !hasJourney) {
           selectStationById(stopId)
+        }
+      } else {
+        // Clicked on map, not on a station
+        // Deselect station only if no journey exists
+        if (!hasJourney && selectedStation && onStationSelect) {
+          onStationSelect(null)
         }
       }
     },
-    [selectStationById, selectedStation]
+    [selectStationById, selectedStation, hasJourney, onStationSelect]
   )
 
   const handleClosePopup = useCallback(() => {
@@ -357,6 +399,26 @@ export default function Map({
     }
   }, [selectedStation])
 
+  // Determine what is currently loading
+  const loadingStatus = useMemo(() => {
+    const statuses: string[] = []
+    if (isLoadingStops && !selectedStation && viewState.zoom >= ZOOM_THRESHOLD) {
+      statuses.push(t('map.loading.stops'))
+    }
+    if (isLoadingStation) {
+      statuses.push(t('map.loading.stationDetails'))
+    }
+    if (isLoadingTrips) {
+      statuses.push(t('map.loading.trips'))
+    }
+    if (isLoadingLocation) {
+      statuses.push(t('map.loading.location'))
+    }
+    return statuses
+  }, [isLoadingStops, isLoadingStation, isLoadingTrips, isLoadingLocation, selectedStation, viewState.zoom, t])
+
+  const isLoading = loadingStatus.length > 0
+
   return (
     <div className="map-shell">
       <div className="map-controls-wrapper">
@@ -409,6 +471,9 @@ export default function Map({
         cursor={isLoadingStation ? 'wait' : hoveredStation ? 'pointer' : 'auto'}
         style={{ width: '100%', height: '100%' }}
         mapStyle={MAPTILER_STYLE_URL}
+        dragRotate={false}
+        touchZoomRotate={false}
+        touchPitch={false}
       >
         {tripsData && !isViewingMode && (
           <TripLayers data={tripLinesGeojsonData} lineOpacity={ROUTE_LINE_OPACITY} />
@@ -426,17 +491,21 @@ export default function Map({
           <Layer {...stopsLayerStyle} />
         </Source>
 
+        {/* Selected station with different icon */}
         {selectedStation && !isViewingMode && (
-          <Popup
-            longitude={selectedStation.stop_lon}
-            latitude={selectedStation.stop_lat}
-            anchor="bottom"
-            onClose={isInitialMode ? handleClosePopup : undefined}
-            closeButton={isInitialMode}
-            closeOnClick={false}
-          >
-            <strong>{selectedStation.stop_name}</strong>
-          </Popup>
+          <Source id="selected-stop" type="geojson" data={selectedStationGeojsonData}>
+            <Layer
+              id="selected-stop-layer"
+              type="symbol"
+              source="selected-stop"
+              layout={{
+                'icon-image': 'selected-stop-marker',
+                'icon-size': 1,
+                'icon-allow-overlap': true,
+                'icon-anchor': 'bottom',
+              }}
+            />
+          </Source>
         )}
 
         {/* Journey markers - small dots that can be hovered */}
@@ -506,6 +575,14 @@ export default function Map({
         onMouseEnter={handlePanelMouseEnter}
         onMouseLeave={handlePanelMouseLeave}
       />
+
+      {/* Loading indicator */}
+      {isLoading && (
+        <div className="map-loading-indicator">
+          <FontAwesomeIcon icon={faSpinner} spin className="map-loading-indicator__spinner" />
+          <span className="map-loading-indicator__text">{loadingStatus.join(', ')}</span>
+        </div>
+      )}
     </div>
   )
 }
