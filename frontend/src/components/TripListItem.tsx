@@ -10,6 +10,7 @@ interface TripListItemProps {
   selectedStation: models.StationDetails | null
   onTripClick: (trip: models.UpcomingTrip, tripIndex: number) => void
   timeLocale: string
+  selectedDateTime: string
 }
 
 export default function TripListItem({
@@ -18,10 +19,22 @@ export default function TripListItem({
   selectedStation,
   onTripClick,
   timeLocale,
+  selectedDateTime,
 }: TripListItemProps) {
   const { t } = useTranslation()
   const tripColor = getTripColor(trip, index)
   const isNearbyTrip = selectedStation && trip.start_station_id !== selectedStation.stop_id
+
+  // Calculate day offset - compare dates only, not times
+  // This handles GTFS 24+ hour notation correctly (e.g., 25:00 on day 1 becomes 01:00 on day 2)
+  const selectedDate = new Date(selectedDateTime)
+  const tripDate = new Date(trip.departure_datetime)
+
+  // Normalize to midnight for date-only comparison
+  const selectedDateOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
+  const tripDateOnly = new Date(tripDate.getFullYear(), tripDate.getMonth(), tripDate.getDate())
+
+  const daysDiff = Math.round((tripDateOnly.getTime() - selectedDateOnly.getTime()) / (1000 * 60 * 60 * 24))
 
   return (
     <button
@@ -47,6 +60,11 @@ export default function TripListItem({
           {isNearbyTrip && (
             <span className="trip-nearby-badge" title={trip.start_station_name}>
               ↔ <span className="trip-nearby-station">{trip.start_station_name}</span>
+            </span>
+          )}
+          {daysDiff > 0 && (
+            <span className="trip-day-offset-badge" title={t('stationSection.dayOffsetTitle', { days: daysDiff })}>
+              +{daysDiff}d
             </span>
           )}
         </div>

@@ -37,6 +37,8 @@ interface SidebarProps {
   accumulatedTrips: models.UpcomingTrip[]
   onLoadMore: () => void
   isLoadingMore: boolean
+  selectedDate: string
+  selectedTime: string
 }
 
 export default function Sidebar({
@@ -63,10 +65,16 @@ export default function Sidebar({
   accumulatedTrips,
   onLoadMore,
   isLoadingMore,
+  selectedDate,
+  selectedTime,
 }: SidebarProps) {
   const { t, i18n } = useTranslation()
   const rawLanguage = i18n.resolvedLanguage || i18n.language || 'en'
   const timeLocale = i18n.language || rawLanguage
+
+  // Combine date and time for selectedDateTime
+  const selectedDateTime = `${selectedDate}T${selectedTime}:00`
+
   const {
     isSettingsOpen,
     isExportModalOpen,
@@ -106,8 +114,7 @@ export default function Sidebar({
           onToggleNearbyStation={onToggleNearbyStation}
           accumulatedTrips={accumulatedTrips}
           onLoadMore={onLoadMore}
-          isLoadingMore={isLoadingMore}
-        />
+          isLoadingMore={isLoadingMore}          selectedDateTime={selectedDateTime}        />
       )}
 
       {/* Planned Journey - shown after station card in planning mode, or first in viewing mode */}

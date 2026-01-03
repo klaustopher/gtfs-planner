@@ -77,7 +77,8 @@
     "nearbyStationAria": "Abfahrt von Nachbarstation",
     "nearbyStations": "Nahegelegene Stationen (innerhalb 200m)",
     "loadMore": "Weitere Abfahrten laden",
-    "loadingMore": "Lade weitere Abfahrten..."
+    "loadingMore": "Lade weitere Abfahrten...",
+    "dayOffsetTitle": "Abfahrt {{days}} Tag(e) später"
   },
   "map": {
     "search": {

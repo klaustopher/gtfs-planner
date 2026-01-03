@@ -577,30 +577,28 @@ func (db *DB) GetUpcomingTripsForStations(stationIDs []string, datetime string, 
 		return nil, fmt.Errorf("invalid previous date format: %w", err)
 	}
 
-	// Query trips from all stations
+	// Query trips from all stations in a single query
 	var allTripInfos []tripInfo
 	seenTrips := make(map[string]bool)
 
-	for _, stationID := range stationIDs {
-		// Query current day trips
-		tripInfos, err := db.queryTripsForDate(stationID, date, timeStr, dayOfWeek, limit)
-		if err != nil {
-			continue // Skip stations with errors
-		}
+	// Query current day trips for all stations
+	tripInfos, err := db.queryTripsForMultipleStations(stationIDs, date, timeStr, dayOfWeek, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query current day trips: %w", err)
+	}
 
-		// Query overnight trips
-		overnightTripInfos, err := db.queryTripsForDate(stationID, prevDate, overnightTime, prevDayOfWeek, limit)
-		if err != nil {
-			// Continue with current day trips only
-			overnightTripInfos = []tripInfo{}
-		}
+	// Query overnight trips for all stations
+	overnightTripInfos, err := db.queryTripsForMultipleStations(stationIDs, prevDate, overnightTime, prevDayOfWeek, limit)
+	if err != nil {
+		// Continue with current day trips only
+		overnightTripInfos = []tripInfo{}
+	}
 
-		// Combine and deduplicate
-		for _, info := range append(tripInfos, overnightTripInfos...) {
-			if !seenTrips[info.tripID] {
-				seenTrips[info.tripID] = true
-				allTripInfos = append(allTripInfos, info)
-			}
+	// Combine and deduplicate
+	for _, info := range append(tripInfos, overnightTripInfos...) {
+		if !seenTrips[info.tripID] {
+			seenTrips[info.tripID] = true
+			allTripInfos = append(allTripInfos, info)
 		}
 	}
 
@@ -658,12 +656,19 @@ type tripInfo struct {
 
 // queryTripsForDate queries trips departing from a station on a specific service date
 func (db *DB) queryTripsForDate(stopID, date, minTime, dayOfWeek string, limit int) ([]tripInfo, error) {
+	// Convert time string to timestamp for accurate comparison
+	minTimestamp, err := timeToTimestamp(minTime)
+	if err != nil {
+		return nil, fmt.Errorf("invalid time format: %w", err)
+	}
+
 	query := `
 		WITH station_departures AS (
 			SELECT
 				t.trip_id,
 				t.route_id,
 				st.departure_time,
+				st.departure_timestamp,
 				st.stop_sequence,
 				COALESCE(t.trip_headsign, '') as trip_headsign
 			FROM stop_times st
@@ -672,7 +677,7 @@ func (db *DB) queryTripsForDate(stopID, date, minTime, dayOfWeek string, limit i
 			LEFT JOIN calendar c ON c.service_id = t.service_id
 			LEFT JOIN calendar_dates cd ON cd.service_id = t.service_id AND cd.date = ?
 			WHERE (s.parent_station = ? OR s.stop_id = ?)
-			  AND st.departure_time >= ?
+			  AND st.departure_timestamp >= ?
 			  AND (
 			      -- Include if calendar_dates says this service runs on this date
 			      cd.exception_type = 1
@@ -684,7 +689,7 @@ func (db *DB) queryTripsForDate(stopID, date, minTime, dayOfWeek string, limit i
 			          AND ` + dayOfWeek + ` = 1
 			      )
 			  )
-			ORDER BY st.departure_time
+			ORDER BY st.departure_timestamp
 			LIMIT ?
 		)
 		SELECT
@@ -699,10 +704,10 @@ func (db *DB) queryTripsForDate(stopID, date, minTime, dayOfWeek string, limit i
 			sd.stop_sequence
 		FROM station_departures sd
 		JOIN routes r ON r.route_id = sd.route_id
-		ORDER BY sd.departure_time
+		ORDER BY sd.departure_timestamp
 	`
 
-	rows, err := db.conn.Query(query, date, stopID, stopID, minTime, date, date, limit)
+	rows, err := db.conn.Query(query, date, stopID, stopID, minTimestamp, date, date, limit)
 	if err != nil {
 		return nil, fmt.Errorf("trips query failed: %w", err)
 	}
@@ -726,6 +731,123 @@ func (db *DB) queryTripsForDate(stopID, date, minTime, dayOfWeek string, limit i
 	}
 
 	return tripInfos, nil
+}
+
+// queryTripsForMultipleStations queries trips departing from multiple stations on a specific service date in a single SQL query
+func (db *DB) queryTripsForMultipleStations(stopIDs []string, date, minTime, dayOfWeek string, limit int) ([]tripInfo, error) {
+	if len(stopIDs) == 0 {
+		return []tripInfo{}, nil
+	}
+
+	// Convert time string to timestamp for accurate comparison
+	minTimestamp, err := timeToTimestamp(minTime)
+	if err != nil {
+		return nil, fmt.Errorf("invalid time format: %w", err)
+	}
+
+	// Build placeholders for IN clause
+	placeholders := make([]string, len(stopIDs))
+	args := []interface{}{date} // First arg is date for calendar_dates
+
+	for i := range stopIDs {
+		placeholders[i] = "?"
+	}
+	placeholdersStr := strings.Join(placeholders, ", ")
+
+	// Add stopIDs twice (for parent_station and stop_id checks)
+	for _, stopID := range stopIDs {
+		args = append(args, stopID)
+	}
+	for _, stopID := range stopIDs {
+		args = append(args, stopID)
+	}
+
+	// Add remaining parameters (use timestamp instead of time string)
+	args = append(args, minTimestamp, date, date, limit)
+
+	query := `
+		WITH station_departures AS (
+			SELECT
+				t.trip_id,
+				t.route_id,
+				st.departure_time,
+				st.departure_timestamp,
+				st.stop_sequence,
+				COALESCE(t.trip_headsign, '') as trip_headsign
+			FROM stop_times st
+			JOIN stops s ON s.stop_id = st.stop_id
+			JOIN trips t ON t.trip_id = st.trip_id
+			LEFT JOIN calendar c ON c.service_id = t.service_id
+			LEFT JOIN calendar_dates cd ON cd.service_id = t.service_id AND cd.date = ?
+			WHERE (s.parent_station IN (` + placeholdersStr + `) OR s.stop_id IN (` + placeholdersStr + `))
+			  AND st.departure_timestamp >= ?
+			  AND (
+			      -- Include if calendar_dates says this service runs on this date
+			      cd.exception_type = 1
+			      OR (
+			          -- Or if calendar says it runs on this day and no exception removes it
+			          cd.exception_type IS NULL
+			          AND c.start_date <= ?
+			          AND c.end_date >= ?
+			          AND ` + dayOfWeek + ` = 1
+			      )
+			  )
+			ORDER BY st.departure_timestamp
+			LIMIT ?
+		)
+		SELECT
+			sd.trip_id,
+			sd.route_id,
+			r.route_type,
+			COALESCE(r.route_short_name, '') as route_short_name,
+			COALESCE(r.route_long_name, '') as route_long_name,
+			COALESCE(r.route_color, '') as route_color,
+			sd.departure_time,
+			sd.trip_headsign,
+			sd.stop_sequence
+		FROM station_departures sd
+		JOIN routes r ON r.route_id = sd.route_id
+		ORDER BY sd.departure_timestamp
+	`
+
+	rows, err := db.conn.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("trips query failed: %w", err)
+	}
+	defer rows.Close()
+
+	var tripInfos []tripInfo
+	for rows.Next() {
+		var info tripInfo
+		info.serviceDate = date
+		if err := rows.Scan(
+			&info.tripID, &info.routeID, &info.routeType, &info.shortName, &info.longName,
+			&info.color, &info.departureTime, &info.headsign, &info.stopSequence,
+		); err != nil {
+			return nil, fmt.Errorf("trip scan failed: %w", err)
+		}
+		tripInfos = append(tripInfos, info)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("trips rows error: %w", err)
+	}
+
+	return tripInfos, nil
+}
+
+// timeToTimestamp converts a time string (HH:MM:SS) to a timestamp (seconds since midnight)
+// This matches the logic used in the departure_timestamp computed column
+func timeToTimestamp(timeStr string) (int, error) {
+	// Parse HH:MM:SS format
+	var hours, minutes, seconds int
+	_, err := fmt.Sscanf(timeStr, "%d:%d:%d", &hours, &minutes, &seconds)
+	if err != nil {
+		return 0, fmt.Errorf("invalid time format: %w", err)
+	}
+
+	// Calculate seconds since midnight (handles 24+ hour notation for overnight trips)
+	return hours*3600 + minutes*60 + seconds, nil
 }
 
 // sortTripsByDepartureDateTime sorts trips by their departure datetime (already in ISO 8601 format)

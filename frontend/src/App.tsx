@@ -478,22 +478,41 @@ function App() {
   const handleLoadMore = useCallback(async () => {
     if (!selectedStation || accumulatedTrips.length === 0 || isLoadingMore) return
 
-    const lastTrip = accumulatedTrips[accumulatedTrips.length - 1]
+    // Find the trip with the latest departure time
+    const latestTrip = accumulatedTrips.reduce((latest, trip) => {
+      return trip.departure_datetime > latest.departure_datetime ? trip : latest
+    }, accumulatedTrips[0])
+
     const stationIds = [selectedStation.stop_id, ...Array.from(selectedNearbyStationIds)]
+
+    // Add one second to the latest trip's departure time to avoid loading the same trip again
+    const latestTripTime = new Date(latestTrip.departure_datetime)
+    latestTripTime.setSeconds(latestTripTime.getSeconds() + 1)
+
+    // Format as local time (not UTC) to match backend expectations
+    const year = latestTripTime.getFullYear()
+    const month = String(latestTripTime.getMonth() + 1).padStart(2, '0')
+    const day = String(latestTripTime.getDate()).padStart(2, '0')
+    const hours = String(latestTripTime.getHours()).padStart(2, '0')
+    const minutes = String(latestTripTime.getMinutes()).padStart(2, '0')
+    const seconds = String(latestTripTime.getSeconds()).padStart(2, '0')
+    const nextLoadTime = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
 
     setIsLoadingMore(true)
     try {
       const moreTrips = await GetUpcomingTripsForStations(
         stationIds,
-        lastTrip.departure_datetime,
+        nextLoadTime,
         UPCOMING_TRIPS_LIMIT
       )
       if (moreTrips && moreTrips.trips && moreTrips.trips.length > 0) {
-        // Filter out the first trip if it's the same as the last trip we already have
-        const newTrips = moreTrips.trips.filter(
-          (trip: models.UpcomingTrip) => trip.trip_id !== lastTrip.trip_id || trip.departure_datetime !== lastTrip.departure_datetime
-        )
-        setAccumulatedTrips(prev => [...prev, ...newTrips])
+        setAccumulatedTrips(prev => {
+          const combined = [...prev, ...moreTrips.trips]
+          // Sort by departure_datetime to ensure chronological order
+          return combined.sort((a, b) =>
+            a.departure_datetime.localeCompare(b.departure_datetime)
+          )
+        })
       }
     } catch (err) {
       console.error('Failed to load more trips:', err)
@@ -579,6 +598,8 @@ function App() {
         accumulatedTrips={accumulatedTrips}
         onLoadMore={handleLoadMore}
         isLoadingMore={isLoadingMore}
+        selectedDate={selectedDate}
+        selectedTime={selectedTime}
       />
       {tripModalData && selectedStation && (
         <TripDetailModal

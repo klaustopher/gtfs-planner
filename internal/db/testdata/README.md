@@ -42,15 +42,15 @@ sqlite3 internal/db/testdata/test.sqlite < internal/db/testdata/testdata.sql
 
 Key tables for testing:
 
-| Table | Purpose |
-|-------|---------|
-| `stops` | Stations and platforms. `location_type=1` is a parent station |
-| `routes` | Transit routes with color and type |
-| `trips` | Individual trips linking routes to services |
-| `stop_times` | When trips stop at each station |
-| `calendar` | Weekly service schedules (which days a service runs) |
+| Table            | Purpose                                                           |
+| ---------------- | ----------------------------------------------------------------- |
+| `stops`          | Stations and platforms. `location_type=1` is a parent station     |
+| `routes`         | Transit routes with color and type                                |
+| `trips`          | Individual trips linking routes to services                       |
+| `stop_times`     | When trips stop at each station                                   |
+| `calendar`       | Weekly service schedules (which days a service runs)              |
 | `calendar_dates` | Exceptions to the calendar (add/remove service on specific dates) |
-| `shapes` | Route geometry for map display |
+| `shapes`         | Route geometry for map display                                    |
 
 ### 2. Adding a New Station
 
@@ -122,13 +122,13 @@ INSERT INTO stop_times (trip_id, arrival_time, departure_time, stop_id, stop_seq
 
 ## Test Case Reference
 
-| Test | Station ID | Trip ID | Service ID | Key Feature |
-|------|------------|---------|------------|-------------|
-| `TestCalendarWeekdayFiltering` | 610626 | 1036941 | 191 | Mon-Fri only |
-| `TestCalendarDateExclusion` | 32830 | 154627 | 101 | Exception removes service on 2025-12-26 |
-| `TestCalendarDateAddition` | 278696 | 991667 | 1030 | Exception adds service on 2026-01-05 |
-| `TestOvernightTrips` | 494889 | 1214020 | 940 | Departure at 24:05:00 |
-| `TestExcludeTripsEndingAtStation` | 419232 | 1014198/1493872 | 191 | Trip ending vs starting at station |
+| Test                              | Station ID | Trip ID         | Service ID | Key Feature                             |
+| --------------------------------- | ---------- | --------------- | ---------- | --------------------------------------- |
+| `TestCalendarWeekdayFiltering`    | 610626     | 1036941         | 191        | Mon-Fri only                            |
+| `TestCalendarDateExclusion`       | 32830      | 154627          | 101        | Exception removes service on 2025-12-26 |
+| `TestCalendarDateAddition`        | 278696     | 991667          | 1030       | Exception adds service on 2026-01-05    |
+| `TestOvernightTrips`              | 494889     | 1214020         | 940        | Departure at 24:05:00                   |
+| `TestExcludeTripsEndingAtStation` | 419232     | 1014198/1493872 | 191        | Trip ending vs starting at station      |
 
 ## Verifying Test Data
 

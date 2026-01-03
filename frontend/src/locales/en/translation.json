@@ -77,7 +77,8 @@
     "nearbyStationAria": "Departing from nearby station",
     "nearbyStations": "Nearby stations (within 200m)",
     "loadMore": "Load more departures",
-    "loadingMore": "Loading more departures..."
+    "loadingMore": "Loading more departures...",
+    "dayOffsetTitle": "Departure {{days}} day(s) later"
   },
   "map": {
     "search": {

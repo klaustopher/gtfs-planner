@@ -236,3 +236,73 @@ INSERT INTO shapes (shape_id, shape_pt_lat, shape_pt_lon, shape_pt_sequence) VAL
     ('shape_siegen_1', 50.875, 8.015, 0),
     ('shape_siegen_1', 50.876, 8.017, 1),
     ('shape_siegen_1', 50.877, 8.019, 2);
+
+-- ============================================================================
+-- MIDNIGHT BOUNDARY TEST DATA
+-- ============================================================================
+-- Test data to validate that trip loading works correctly across day boundaries
+
+-- Station for midnight boundary tests
+INSERT INTO stops (stop_id, stop_name, stop_lat, stop_lon, location_type, parent_station) VALUES
+    ('midnight_test', 'Midnight Test Station', 50.500, 8.500, 1, NULL),
+    ('midnight_end_1', 'Midnight End Station 1', 50.550, 8.550, 1, NULL),
+    ('midnight_end_2', 'Midnight End Station 2', 50.560, 8.560, 1, NULL);
+
+-- Route for midnight boundary tests
+INSERT INTO routes (route_id, route_short_name, route_long_name, route_type, route_color) VALUES
+    ('route_midnight', 'N1', 'Night Line 1', 3, 'FF00FF');
+
+-- Service runs daily from 2026-01-01 to 2026-01-10
+INSERT INTO calendar (service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday, start_date, end_date) VALUES
+    ('service_midnight', 1, 1, 1, 1, 1, 1, 1, '20260101', '20260110');
+
+-- Trips with various times around midnight
+INSERT INTO trips (trip_id, route_id, service_id, trip_headsign, direction_id) VALUES
+    ('trip_2300', 'route_midnight', 'service_midnight', 'Late Night Trip 23:00', 0),
+    ('trip_2330', 'route_midnight', 'service_midnight', 'Late Night Trip 23:30', 0),
+    ('trip_2350', 'route_midnight', 'service_midnight', 'Late Night Trip 23:50', 0),
+    ('trip_2355', 'route_midnight', 'service_midnight', 'Late Night Trip 23:55', 0),
+    ('trip_2400', 'route_midnight', 'service_midnight', 'Overnight Trip 24:00', 0),
+    ('trip_2430', 'route_midnight', 'service_midnight', 'Overnight Trip 24:30', 0),
+    ('trip_2500', 'route_midnight', 'service_midnight', 'Overnight Trip 25:00', 0),
+    ('trip_2530', 'route_midnight', 'service_midnight', 'Overnight Trip 25:30', 0),
+    ('trip_2600', 'route_midnight', 'service_midnight', 'Overnight Trip 26:00', 0),
+    ('trip_0000', 'route_midnight', 'service_midnight', 'Midnight Trip 00:00', 0),
+    ('trip_0030', 'route_midnight', 'service_midnight', 'Early Morning Trip 00:30', 0),
+    ('trip_0100', 'route_midnight', 'service_midnight', 'Early Morning Trip 01:00', 0),
+    ('trip_0130', 'route_midnight', 'service_midnight', 'Early Morning Trip 01:30', 0),
+    ('trip_0200', 'route_midnight', 'service_midnight', 'Early Morning Trip 02:00', 0),
+    ('trip_0600', 'route_midnight', 'service_midnight', 'Morning Trip 06:00', 0);
+
+-- Stop times for all midnight boundary trips
+INSERT INTO stop_times (trip_id, arrival_time, departure_time, stop_id, stop_sequence) VALUES
+    ('trip_2300', '23:00:00', '23:00:00', 'midnight_test', 0),
+    ('trip_2300', '23:15:00', '23:15:00', 'midnight_end_1', 1),
+    ('trip_2330', '23:30:00', '23:30:00', 'midnight_test', 0),
+    ('trip_2330', '23:45:00', '23:45:00', 'midnight_end_1', 1),
+    ('trip_2350', '23:50:00', '23:50:00', 'midnight_test', 0),
+    ('trip_2350', '24:05:00', '24:05:00', 'midnight_end_1', 1),
+    ('trip_2355', '23:55:00', '23:55:00', 'midnight_test', 0),
+    ('trip_2355', '24:10:00', '24:10:00', 'midnight_end_1', 1),
+    ('trip_2400', '24:00:00', '24:00:00', 'midnight_test', 0),
+    ('trip_2400', '24:20:00', '24:20:00', 'midnight_end_1', 1),
+    ('trip_2430', '24:30:00', '24:30:00', 'midnight_test', 0),
+    ('trip_2430', '24:50:00', '24:50:00', 'midnight_end_1', 1),
+    ('trip_2500', '25:00:00', '25:00:00', 'midnight_test', 0),
+    ('trip_2500', '25:20:00', '25:20:00', 'midnight_end_1', 1),
+    ('trip_2530', '25:30:00', '25:30:00', 'midnight_test', 0),
+    ('trip_2530', '25:50:00', '25:50:00', 'midnight_end_1', 1),
+    ('trip_2600', '26:00:00', '26:00:00', 'midnight_test', 0),
+    ('trip_2600', '26:20:00', '26:20:00', 'midnight_end_1', 1),
+    ('trip_0000', '00:00:00', '00:00:00', 'midnight_test', 0),
+    ('trip_0000', '00:20:00', '00:20:00', 'midnight_end_2', 1),
+    ('trip_0030', '00:30:00', '00:30:00', 'midnight_test', 0),
+    ('trip_0030', '00:50:00', '00:50:00', 'midnight_end_2', 1),
+    ('trip_0100', '01:00:00', '01:00:00', 'midnight_test', 0),
+    ('trip_0100', '01:20:00', '01:20:00', 'midnight_end_2', 1),
+    ('trip_0130', '01:30:00', '01:30:00', 'midnight_test', 0),
+    ('trip_0130', '01:50:00', '01:50:00', 'midnight_end_2', 1),
+    ('trip_0200', '02:00:00', '02:00:00', 'midnight_test', 0),
+    ('trip_0200', '02:20:00', '02:20:00', 'midnight_end_2', 1),
+    ('trip_0600', '06:00:00', '06:00:00', 'midnight_test', 0),
+    ('trip_0600', '06:30:00', '06:30:00', 'midnight_end_2', 1);

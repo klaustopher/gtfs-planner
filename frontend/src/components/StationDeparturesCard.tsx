@@ -15,6 +15,7 @@ interface StationDeparturesCardProps {
   accumulatedTrips: models.UpcomingTrip[]
   onLoadMore: () => void
   isLoadingMore: boolean
+  selectedDateTime: string
 }
 
 export default function StationDeparturesCard({
@@ -30,6 +31,7 @@ export default function StationDeparturesCard({
   accumulatedTrips,
   onLoadMore,
   isLoadingMore,
+  selectedDateTime,
 }: StationDeparturesCardProps) {
   const { t } = useTranslation()
 
@@ -82,6 +84,7 @@ export default function StationDeparturesCard({
                     selectedStation={selectedStation}
                     onTripClick={onTripClick}
                     timeLocale={timeLocale}
+                    selectedDateTime={selectedDateTime}
                   />
                 ))}
               </div>
