@@ -81,11 +81,12 @@ func (a *App) SearchStations(query string, limit int) ([]models.Stop, error) {
 
 // GetUpcomingTrips returns the next trips departing from a station at or after the given datetime.
 // datetime should be in ISO 8601 format: "2006-01-02T15:04:05".
-func (a *App) GetUpcomingTrips(stopID string, datetime string, limit int) (*models.UpcomingTripsData, error) {
+// routeTypes is an optional filter for specific GTFS route types (empty array = no filter).
+func (a *App) GetUpcomingTrips(stopID string, datetime string, limit int, routeTypes []int) (*models.UpcomingTripsData, error) {
 	if a.db == nil {
 		return nil, fmt.Errorf("database not connected")
 	}
-	return a.db.GetUpcomingTrips(stopID, datetime, limit)
+	return a.db.GetUpcomingTrips(stopID, datetime, limit, routeTypes)
 }
 
 // GetNearbyStations returns all parent stations within radiusMeters of the given station.
@@ -100,28 +101,30 @@ func (a *App) GetNearbyStations(stopID string, radiusMeters float64) ([]models.S
 // GetUpcomingTripsForStations returns upcoming trips from multiple stations.
 // datetime should be in ISO 8601 format: "2006-01-02T15:04:05".
 // stopIDs is an array of station IDs to fetch trips from.
-func (a *App) GetUpcomingTripsForStations(stopIDs []string, datetime string, limit int) (*models.UpcomingTripsData, error) {
+// routeTypes is an optional filter for specific GTFS route types (empty array = no filter).
+func (a *App) GetUpcomingTripsForStations(stopIDs []string, datetime string, limit int, routeTypes []int) (*models.UpcomingTripsData, error) {
 	if a.db == nil {
 		return nil, fmt.Errorf("database not connected")
 	}
 	if len(stopIDs) == 0 {
 		return &models.UpcomingTripsData{Trips: []models.UpcomingTrip{}, Stations: []models.Stop{}}, nil
 	}
-	return a.db.GetUpcomingTripsForStations(stopIDs, datetime, limit)
+	return a.db.GetUpcomingTripsForStations(stopIDs, datetime, limit, routeTypes)
 }
 
 // GetUpcomingTripsWithNearby returns upcoming trips from a station and nearby stations.
 // datetime should be in ISO 8601 format: "2006-01-02T15:04:05".
 // radiusMeters should be between 0 and 200 (0 means no nearby stations).
-func (a *App) GetUpcomingTripsWithNearby(stopID string, radiusMeters float64, datetime string, limit int) (*models.UpcomingTripsData, error) {
+// routeTypes is an optional filter for specific GTFS route types (empty array = no filter).
+func (a *App) GetUpcomingTripsWithNearby(stopID string, radiusMeters float64, datetime string, limit int, routeTypes []int) (*models.UpcomingTripsData, error) {
 	if a.db == nil {
 		return nil, fmt.Errorf("database not connected")
 	}
 	// If radius is 0, use the standard method
 	if radiusMeters <= 0 {
-		return a.db.GetUpcomingTrips(stopID, datetime, limit)
+		return a.db.GetUpcomingTrips(stopID, datetime, limit, routeTypes)
 	}
-	return a.db.GetUpcomingTripsWithNearby(stopID, radiusMeters, datetime, limit)
+	return a.db.GetUpcomingTripsWithNearby(stopID, radiusMeters, datetime, limit, routeTypes)
 }
 
 // GetTripDetails returns the full details of a trip including all stops.

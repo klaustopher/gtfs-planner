@@ -27,6 +27,9 @@ const UNKNOWN_TYPE: TransportTypeInfo = {
   shortKey: 'transportType.short.unknown',
 }
 
+// All GTFS route types in order
+export const ALL_TRANSPORT_TYPES = [0, 1, 2, 3, 4, 5, 6, 7, 11, 12]
+
 /**
  * Get transport type information for a GTFS route type
  */

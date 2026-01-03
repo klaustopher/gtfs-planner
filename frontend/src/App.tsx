@@ -8,6 +8,7 @@ import { useTrips, TripQueryParams } from './components/map/useTrips'
 import { useJourneyView } from './hooks/useJourneyView'
 import { useSettings } from './hooks/useSettings'
 import { useTranslation } from 'react-i18next'
+import { ALL_TRANSPORT_TYPES } from './utils/transportType'
 import { normalizeColor, FALLBACK_COLORS } from './components/map/geojson'
 import './App.css'
 
@@ -72,6 +73,9 @@ function App() {
   // Nearby stations state
   const [nearbyStations, setNearbyStations] = useState<models.Stop[]>([])
   const [selectedNearbyStationIds, setSelectedNearbyStationIds] = useState<Set<string>>(new Set())
+
+  // Transport type filter state - always show all GTFS route types
+  const [selectedTransportTypes, setSelectedTransportTypes] = useState<Set<number>>(new Set(ALL_TRANSPORT_TYPES))
 
   // Accumulated trips state for load more functionality
   const [accumulatedTrips, setAccumulatedTrips] = useState<models.UpcomingTrip[]>([])
@@ -456,8 +460,9 @@ function App() {
       stopIds: stationIds,
       datetime: combineToISO8601(selectedDate, selectedTime),
       limit: UPCOMING_TRIPS_LIMIT,
+      routeTypes: Array.from(selectedTransportTypes),
     }
-  }, [selectedStation, selectedDate, selectedTime, selectedNearbyStationIds])
+  }, [selectedStation, selectedDate, selectedTime, selectedNearbyStationIds, selectedTransportTypes])
 
   // Fetch upcoming trips when a station is selected
   const { tripsData, isLoading: isLoadingTrips } = useTrips(tripQueryParams)
@@ -469,9 +474,11 @@ function App() {
     }
   }, [tripsData])
 
-  // Reset accumulated trips when query parameters change
+  // Reset accumulated trips and transport filter when station changes
   useEffect(() => {
     setAccumulatedTrips([])
+    // Reset to all types selected
+    setSelectedTransportTypes(new Set(ALL_TRANSPORT_TYPES))
   }, [selectedStation, selectedDate, selectedTime, selectedNearbyStationIds])
 
   // Handler to load more trips
@@ -503,7 +510,8 @@ function App() {
       const moreTrips = await GetUpcomingTripsForStations(
         stationIds,
         nextLoadTime,
-        UPCOMING_TRIPS_LIMIT
+        UPCOMING_TRIPS_LIMIT,
+        Array.from(selectedTransportTypes)
       )
       if (moreTrips && moreTrips.trips && moreTrips.trips.length > 0) {
         setAccumulatedTrips(prev => {
@@ -519,7 +527,7 @@ function App() {
     } finally {
       setIsLoadingMore(false)
     }
-  }, [selectedStation, selectedNearbyStationIds, accumulatedTrips, isLoadingMore])
+  }, [selectedStation, selectedNearbyStationIds, accumulatedTrips, isLoadingMore, selectedTransportTypes])
 
   // Fetch journey view data when in journey view mode
   const { data: journeyViewData, isLoading: isLoadingJourneyView } = useJourneyView(
@@ -572,6 +580,9 @@ function App() {
           canEditTime={canEditTime}
           hasJourney={hasJourney}
           journeyViewData={journeyViewData}
+          selectedTransportTypes={selectedTransportTypes}
+          onToggleTransportType={setSelectedTransportTypes}
+          availableTransportTypes={ALL_TRANSPORT_TYPES}
         />
       </div>
       <Sidebar

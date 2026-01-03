@@ -163,46 +163,46 @@ func TestParseAndFormatISO8601(t *testing.T) {
 
 func TestGetPreviousDayOvernightParams(t *testing.T) {
 	tests := []struct {
-		name             string
-		datetime         string
-		wantPrevDate     string
+		name              string
+		datetime          string
+		wantPrevDate      string
 		wantOvernightTime string
-		wantErr          bool
+		wantErr           bool
 	}{
 		{
-			name:             "early morning",
-			datetime:         "2025-12-22T00:05:00",
-			wantPrevDate:     "20251221",
+			name:              "early morning",
+			datetime:          "2025-12-22T00:05:00",
+			wantPrevDate:      "20251221",
 			wantOvernightTime: "24:05:00",
-			wantErr:          false,
+			wantErr:           false,
 		},
 		{
-			name:             "midnight",
-			datetime:         "2025-12-22T00:00:00",
-			wantPrevDate:     "20251221",
+			name:              "midnight",
+			datetime:          "2025-12-22T00:00:00",
+			wantPrevDate:      "20251221",
 			wantOvernightTime: "24:00:00",
-			wantErr:          false,
+			wantErr:           false,
 		},
 		{
-			name:             "1am",
-			datetime:         "2025-12-22T01:30:45",
-			wantPrevDate:     "20251221",
+			name:              "1am",
+			datetime:          "2025-12-22T01:30:45",
+			wantPrevDate:      "20251221",
 			wantOvernightTime: "25:30:45",
-			wantErr:          false,
+			wantErr:           false,
 		},
 		{
-			name:             "crossing year boundary",
-			datetime:         "2026-01-01T00:15:00",
-			wantPrevDate:     "20251231",
+			name:              "crossing year boundary",
+			datetime:          "2026-01-01T00:15:00",
+			wantPrevDate:      "20251231",
 			wantOvernightTime: "24:15:00",
-			wantErr:          false,
+			wantErr:           false,
 		},
 		{
-			name:             "invalid format",
-			datetime:         "2025-12-22 00:05:00",
-			wantPrevDate:     "",
+			name:              "invalid format",
+			datetime:          "2025-12-22 00:05:00",
+			wantPrevDate:      "",
 			wantOvernightTime: "",
-			wantErr:          true,
+			wantErr:           true,
 		},
 	}
 

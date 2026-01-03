@@ -24,7 +24,7 @@ func TestMidnightBoundary_LateNightTrips(t *testing.T) {
 	// Query at 23:00 on 2026-01-01
 	// Should find trips at 23:00, 23:30, 23:50, 23:55 from same day
 	t.Run("at 23:00 finds late night trips", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2026-01-01T23:00:00", 50)
+		data, err := db.GetUpcomingTrips(stationID, "2026-01-01T23:00:00", 50, nil)
 		if err != nil {
 			t.Fatalf("GetUpcomingTrips failed: %v", err)
 		}
@@ -43,7 +43,7 @@ func TestMidnightBoundary_LateNightTrips(t *testing.T) {
 	// Should find trips at 23:50, 23:55 from same day
 	// And should also include overnight trips (24:00+) from previous day (2025-12-31)
 	t.Run("at 23:50 finds remaining late night trips", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2026-01-01T23:50:00", 50)
+		data, err := db.GetUpcomingTrips(stationID, "2026-01-01T23:50:00", 50, nil)
 		if err != nil {
 			t.Fatalf("GetUpcomingTrips failed: %v", err)
 		}
@@ -68,7 +68,7 @@ func TestMidnightBoundary_OvernightTrips24PlusNotation(t *testing.T) {
 	// - 2026-01-02 with times >= 00:00 (trip_0000, trip_0030, etc.)
 	// - 2026-01-01 with times >= 24:00 (trip_2400, trip_2430, trip_2500, etc.)
 	t.Run("at 00:00 finds overnight trips from previous day service", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2026-01-02T00:00:00", 50)
+		data, err := db.GetUpcomingTrips(stationID, "2026-01-02T00:00:00", 50, nil)
 		if err != nil {
 			t.Fatalf("GetUpcomingTrips failed: %v", err)
 		}
@@ -96,7 +96,7 @@ func TestMidnightBoundary_OvernightTrips24PlusNotation(t *testing.T) {
 	// Should find trips at 00:30, 01:00, 01:30, 02:00 from current day
 	// And 24:30, 25:00, 25:30, 26:00 from previous day
 	t.Run("at 00:30 finds trips after midnight", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2026-01-02T00:30:00", 50)
+		data, err := db.GetUpcomingTrips(stationID, "2026-01-02T00:30:00", 50, nil)
 		if err != nil {
 			t.Fatalf("GetUpcomingTrips failed: %v", err)
 		}
@@ -122,7 +122,7 @@ func TestMidnightBoundary_OvernightTrips24PlusNotation(t *testing.T) {
 	// Should find trips at 01:00, 01:30, 02:00 from current day
 	// And 25:00, 25:30, 26:00 from previous day
 	t.Run("at 01:00 finds early morning trips", func(t *testing.T) {
-		data, err := db.GetUpcomingTrips(stationID, "2026-01-02T01:00:00", 50)
+		data, err := db.GetUpcomingTrips(stationID, "2026-01-02T01:00:00", 50, nil)
 		if err != nil {
 			t.Fatalf("GetUpcomingTrips failed: %v", err)
 		}
@@ -154,7 +154,7 @@ func TestMidnightBoundary_LoadMoreAcrossMidnight(t *testing.T) {
 	// Simulate the "load more" scenario starting at 23:30
 	t.Run("load more starting at 23:30 crosses midnight", func(t *testing.T) {
 		// First load: starting at 23:30
-		data1, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-01T23:30:00", 3)
+		data1, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-01T23:30:00", 3, nil)
 		if err != nil {
 			t.Fatalf("First load failed: %v", err)
 		}
@@ -172,7 +172,7 @@ func TestMidnightBoundary_LoadMoreAcrossMidnight(t *testing.T) {
 		lastTrip := data1.Trips[len(data1.Trips)-1]
 
 		// Second load: starting from the last trip's departure time
-		data2, err := db.GetUpcomingTripsForStations([]string{stationID}, lastTrip.DepartureDateTime, 3)
+		data2, err := db.GetUpcomingTripsForStations([]string{stationID}, lastTrip.DepartureDateTime, 3, nil)
 		if err != nil {
 			t.Fatalf("Second load failed: %v", err)
 		}
@@ -200,7 +200,7 @@ func TestMidnightBoundary_LoadMoreAcrossMidnight(t *testing.T) {
 	// Simulate starting at 23:50 and loading more through midnight
 	t.Run("load more starting at 23:50 continues into next day", func(t *testing.T) {
 		// First load: starting at 23:50
-		data1, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-01T23:50:00", 5)
+		data1, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-01T23:50:00", 5, nil)
 		if err != nil {
 			t.Fatalf("First load failed: %v", err)
 		}
@@ -213,7 +213,7 @@ func TestMidnightBoundary_LoadMoreAcrossMidnight(t *testing.T) {
 		t.Logf("First load ended at: %s (%s)", lastTrip.TripID, lastTrip.DepartureDateTime)
 
 		// Second load: should get trips from next day
-		data2, err := db.GetUpcomingTripsForStations([]string{stationID}, lastTrip.DepartureDateTime, 5)
+		data2, err := db.GetUpcomingTripsForStations([]string{stationID}, lastTrip.DepartureDateTime, 5, nil)
 		if err != nil {
 			t.Fatalf("Second load failed: %v", err)
 		}
@@ -227,7 +227,7 @@ func TestMidnightBoundary_LoadMoreAcrossMidnight(t *testing.T) {
 		// Third load: should continue to get more trips
 		if len(data2.Trips) > 0 {
 			lastTrip2 := data2.Trips[len(data2.Trips)-1]
-			data3, err := db.GetUpcomingTripsForStations([]string{stationID}, lastTrip2.DepartureDateTime, 5)
+			data3, err := db.GetUpcomingTripsForStations([]string{stationID}, lastTrip2.DepartureDateTime, 5, nil)
 			if err != nil {
 				t.Fatalf("Third load failed: %v", err)
 			}
@@ -264,7 +264,7 @@ func TestMidnightBoundary_NoDuplicatesAcrossLoads(t *testing.T) {
 		maxLoads := 10
 
 		for i := 0; i < maxLoads; i++ {
-			data, err := db.GetUpcomingTripsForStations([]string{stationID}, startTime, 3)
+			data, err := db.GetUpcomingTripsForStations([]string{stationID}, startTime, 3, nil)
 			if err != nil {
 				t.Fatalf("Load %d failed: %v", i+1, err)
 			}
@@ -314,7 +314,7 @@ func TestMidnightBoundary_NextDayLoading(t *testing.T) {
 	// And when we load more, should get trips from next day (2026-01-02)
 	t.Run("load more after last trip of day gets next day trips", func(t *testing.T) {
 		// First load: at 23:55, should find trip_2355
-		data1, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-01T23:55:00", 5)
+		data1, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-01T23:55:00", 5, nil)
 		if err != nil {
 			t.Fatalf("First load failed: %v", err)
 		}
@@ -340,7 +340,7 @@ func TestMidnightBoundary_NextDayLoading(t *testing.T) {
 		t.Logf("First load: %d trips, last trip: %s at %s", len(data1.Trips), lastTrip.TripID, lastTrip.DepartureDateTime)
 
 		// Second load: should jump to next day and get overnight trips (24:00+) and/or normal trips (00:00+)
-		data2, err := db.GetUpcomingTripsForStations([]string{stationID}, lastTrip.DepartureDateTime, 10)
+		data2, err := db.GetUpcomingTripsForStations([]string{stationID}, lastTrip.DepartureDateTime, 10, nil)
 		if err != nil {
 			t.Fatalf("Second load failed: %v", err)
 		}
@@ -371,7 +371,7 @@ func TestMidnightBoundary_NextDayLoading(t *testing.T) {
 	// Test the specific case where we query very late and immediately need next day
 	t.Run("query at last minute of day immediately gets next day", func(t *testing.T) {
 		// Query at 23:59:59 - should get next day trips if current day exhausted
-		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-01T23:59:59", 10)
+		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-01T23:59:59", 10, nil)
 		if err != nil {
 			t.Fatalf("Query failed: %v", err)
 		}

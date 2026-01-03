@@ -419,11 +419,12 @@ func (db *DB) findLongestTrip(routeID string) (string, error) {
 // GetUpcomingTrips returns the next N trips departing from a station at or after the given datetime.
 // The datetime parameter is in ISO 8601 format: "2006-01-02T15:04:05".
 // Only stops after the selected station are included in the trip geometry.
+// routeTypes is an optional filter for specific GTFS route types (empty slice = no filter).
 //
 // This function handles overnight trips by querying both:
 // 1. Current day's service with times >= query time (e.g., "01:45:00")
 // 2. Previous day's service with times >= overnight equivalent (e.g., "25:45:00")
-func (db *DB) GetUpcomingTrips(stopID string, datetime string, limit int) (*models.UpcomingTripsData, error) {
+func (db *DB) GetUpcomingTrips(stopID string, datetime string, limit int, routeTypes []int) (*models.UpcomingTripsData, error) {
 	if limit <= 0 {
 		limit = 10
 	}
@@ -454,13 +455,13 @@ func (db *DB) GetUpcomingTrips(stopID string, datetime string, limit int) (*mode
 	}
 
 	// Query trips from both current day and previous day (for overnight services)
-	tripInfos, err := db.queryTripsForDate(stopID, date, timeStr, dayOfWeek, limit)
+	tripInfos, err := db.queryTripsForDate(stopID, date, timeStr, dayOfWeek, limit, routeTypes)
 	if err != nil {
 		return nil, err
 	}
 
 	// Also query previous day's overnight trips (times >= 24:00)
-	overnightTripInfos, err := db.queryTripsForDate(stopID, prevDate, overnightTime, prevDayOfWeek, limit)
+	overnightTripInfos, err := db.queryTripsForDate(stopID, prevDate, overnightTime, prevDayOfWeek, limit, routeTypes)
 	if err != nil {
 		return nil, err
 	}
@@ -517,7 +518,7 @@ func (db *DB) GetUpcomingTrips(stopID string, datetime string, limit int) (*mode
 
 // GetUpcomingTripsWithNearby returns upcoming trips from the station and nearby stations.
 // Similar to GetUpcomingTrips but queries multiple stations and merges results.
-func (db *DB) GetUpcomingTripsWithNearby(stopID string, radiusMeters float64, datetime string, limit int) (*models.UpcomingTripsData, error) {
+func (db *DB) GetUpcomingTripsWithNearby(stopID string, radiusMeters float64, datetime string, limit int, routeTypes []int) (*models.UpcomingTripsData, error) {
 	if limit <= 0 {
 		limit = 10
 	}
@@ -529,7 +530,7 @@ func (db *DB) GetUpcomingTripsWithNearby(stopID string, radiusMeters float64, da
 	nearbyStations, err := db.GetNearbyStations(stopID, radiusMeters)
 	if err != nil {
 		// If nearby query fails, fall back to single station
-		return db.GetUpcomingTrips(stopID, datetime, limit)
+		return db.GetUpcomingTrips(stopID, datetime, limit, routeTypes)
 	}
 
 	// Build list of all station IDs to query (including the original)
@@ -538,12 +539,12 @@ func (db *DB) GetUpcomingTripsWithNearby(stopID string, radiusMeters float64, da
 		stationIDs = append(stationIDs, station.StopID)
 	}
 
-	return db.GetUpcomingTripsForStations(stationIDs, datetime, limit)
+	return db.GetUpcomingTripsForStations(stationIDs, datetime, limit, routeTypes)
 }
 
 // GetUpcomingTripsForStations returns upcoming trips from multiple stations.
 // This is the core implementation that fetches and merges trips from multiple station IDs.
-func (db *DB) GetUpcomingTripsForStations(stationIDs []string, datetime string, limit int) (*models.UpcomingTripsData, error) {
+func (db *DB) GetUpcomingTripsForStations(stationIDs []string, datetime string, limit int, routeTypes []int) (*models.UpcomingTripsData, error) {
 	if limit <= 0 {
 		limit = 10
 	}
@@ -592,13 +593,13 @@ func (db *DB) GetUpcomingTripsForStations(stationIDs []string, datetime string, 
 	seenTrips := make(map[string]bool)
 
 	// Query current day trips for all stations
-	tripInfos, err := db.queryTripsForMultipleStations(stationIDs, date, timeStr, dayOfWeek, limit)
+	tripInfos, err := db.queryTripsForMultipleStations(stationIDs, date, timeStr, dayOfWeek, limit, routeTypes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query current day trips: %w", err)
 	}
 
 	// Query overnight trips for all stations (24+ notation from previous day)
-	overnightTripInfos, err := db.queryTripsForMultipleStations(stationIDs, prevDate, overnightTime, prevDayOfWeek, limit)
+	overnightTripInfos, err := db.queryTripsForMultipleStations(stationIDs, prevDate, overnightTime, prevDayOfWeek, limit, routeTypes)
 	if err != nil {
 		// Continue with current day trips only
 		overnightTripInfos = []tripInfo{}
@@ -608,7 +609,7 @@ func (db *DB) GetUpcomingTripsForStations(stationIDs []string, datetime string, 
 	// This handles cases where there are no more trips on the current day
 	nextDayTripInfos := []tripInfo{}
 	if len(tripInfos)+len(overnightTripInfos) < limit {
-		nextDayTripInfos, err = db.queryTripsForMultipleStations(stationIDs, nextDate, "00:00:00", nextDayOfWeek, limit)
+		nextDayTripInfos, err = db.queryTripsForMultipleStations(stationIDs, nextDate, "00:00:00", nextDayOfWeek, limit, routeTypes)
 		if err != nil {
 			// Continue without next day trips
 			nextDayTripInfos = []tripInfo{}
@@ -676,11 +677,24 @@ type tripInfo struct {
 }
 
 // queryTripsForDate queries trips departing from a station on a specific service date
-func (db *DB) queryTripsForDate(stopID, date, minTime, dayOfWeek string, limit int) ([]tripInfo, error) {
+func (db *DB) queryTripsForDate(stopID, date, minTime, dayOfWeek string, limit int, routeTypes []int) ([]tripInfo, error) {
 	// Convert time string to timestamp for accurate comparison
 	minTimestamp, err := timeToTimestamp(minTime)
 	if err != nil {
 		return nil, fmt.Errorf("invalid time format: %w", err)
+	}
+
+	// Build route type filter if specified
+	routeTypeFilter := ""
+	if len(routeTypes) > 0 {
+		routeTypeFilter = " AND r.route_type IN ("
+		for i, rt := range routeTypes {
+			if i > 0 {
+				routeTypeFilter += ", "
+			}
+			routeTypeFilter += fmt.Sprintf("%d", rt)
+		}
+		routeTypeFilter += ")"
 	}
 
 	query := `
@@ -725,6 +739,7 @@ func (db *DB) queryTripsForDate(stopID, date, minTime, dayOfWeek string, limit i
 			sd.stop_sequence
 		FROM station_departures sd
 		JOIN routes r ON r.route_id = sd.route_id
+		WHERE 1=1` + routeTypeFilter + `
 		ORDER BY sd.departure_timestamp
 	`
 
@@ -755,7 +770,7 @@ func (db *DB) queryTripsForDate(stopID, date, minTime, dayOfWeek string, limit i
 }
 
 // queryTripsForMultipleStations queries trips departing from multiple stations on a specific service date in a single SQL query
-func (db *DB) queryTripsForMultipleStations(stopIDs []string, date, minTime, dayOfWeek string, limit int) ([]tripInfo, error) {
+func (db *DB) queryTripsForMultipleStations(stopIDs []string, date, minTime, dayOfWeek string, limit int, routeTypes []int) ([]tripInfo, error) {
 	if len(stopIDs) == 0 {
 		return []tripInfo{}, nil
 	}
@@ -785,6 +800,19 @@ func (db *DB) queryTripsForMultipleStations(stopIDs []string, date, minTime, day
 
 	// Add remaining parameters (use timestamp instead of time string)
 	args = append(args, minTimestamp, date, date, limit)
+
+	// Build route type filter if specified
+	routeTypeFilter := ""
+	if len(routeTypes) > 0 {
+		routeTypeFilter = " WHERE r.route_type IN ("
+		for i, rt := range routeTypes {
+			if i > 0 {
+				routeTypeFilter += ", "
+			}
+			routeTypeFilter += fmt.Sprintf("%d", rt)
+		}
+		routeTypeFilter += ")"
+	}
 
 	query := `
 		WITH station_departures AS (
@@ -827,7 +855,7 @@ func (db *DB) queryTripsForMultipleStations(stopIDs []string, date, minTime, day
 			sd.trip_headsign,
 			sd.stop_sequence
 		FROM station_departures sd
-		JOIN routes r ON r.route_id = sd.route_id
+		JOIN routes r ON r.route_id = sd.route_id` + routeTypeFilter + `
 		ORDER BY sd.departure_timestamp
 	`
 

@@ -80,24 +80,6 @@
     "loadingMore": "Lade weitere Abfahrten...",
     "dayOffsetTitle": "Abfahrt {{days}} Tag(e) später"
   },
-  "map": {
-    "search": {
-      "label": "Station suchen",
-      "placeholder": "Station suchen...",
-      "clearButton": "Suche löschen",
-      "status": {
-        "searching": "Suche läuft...",
-        "empty": "Keine Station gefunden"
-      },
-      "resultsAria": "Stationsempfehlungen"
-    },
-    "datetime": {
-      "date": "Datum",
-      "time": "Zeit",
-      "resetButton": "Zurücksetzen",
-      "resetTooltip": "Auf aktuelle Zeit oder letzte Ankunft + Umsteigezeit zurücksetzen"
-    }
-  },
   "tripModal": {
     "loading": "Lade Verbindungsdetails...",
     "error": "Verbindungsdetails konnten nicht geladen werden",
@@ -151,6 +133,32 @@
       "trolleybus": "Oberleitungsbus",
       "monorail": "Monorail",
       "unknown": "Unbekannt ({{routeType}})"
+    }
+  },
+  "map": {
+    "search": {
+      "label": "Station suchen",
+      "placeholder": "Station suchen...",
+      "clearButton": "Suche löschen",
+      "resultsAria": "Suchergebnisse",
+      "status": {
+        "searching": "Suche läuft...",
+        "empty": "Keine Stationen gefunden"
+      }
+    },
+    "transportFilter": {
+      "label": "Verkehrsmittel filtern",
+      "title": "Verkehrsmittel",
+      "selectAll": "Alle auswählen",
+      "deselectAll": "Alle abwählen",
+      "all": "Alle",
+      "none": "Keine"
+    },
+    "datetime": {
+      "date": "Datum",
+      "time": "Zeit",
+      "resetButton": "Zurücksetzen",
+      "resetTooltip": "Auf aktuelle Zeit oder letzte Ankunft + Umsteigezeit zurücksetzen"
     }
   }
 }

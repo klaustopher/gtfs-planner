@@ -6,6 +6,7 @@ export interface TripQueryParams {
   stopIds: string[] // Array of station IDs to query
   datetime: string // ISO 8601 format: "2006-01-02T15:04:05"
   limit?: number
+  routeTypes?: number[] // Optional filter for specific GTFS route types
 }
 
 export interface UseTripsResult {
@@ -34,7 +35,7 @@ export function useTrips(params: TripQueryParams | null): UseTripsResult {
       return
     }
 
-    const { stopIds, datetime, limit = DEFAULT_LIMIT } = params
+    const { stopIds, datetime, limit = DEFAULT_LIMIT, routeTypes = [] } = params
 
     if (!stopIds || stopIds.length === 0 || !datetime) {
       setTripsData(null)
@@ -46,7 +47,7 @@ export function useTrips(params: TripQueryParams | null): UseTripsResult {
     setError(null)
 
     // Use new GetUpcomingTripsForStations method
-    GetUpcomingTripsForStations(stopIds, datetime, limit)
+    GetUpcomingTripsForStations(stopIds, datetime, limit, routeTypes)
       .then((data) => {
         setTripsData(data)
         setError(null)

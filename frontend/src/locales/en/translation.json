@@ -80,24 +80,6 @@
     "loadingMore": "Loading more departures...",
     "dayOffsetTitle": "Departure {{days}} day(s) later"
   },
-  "map": {
-    "search": {
-      "label": "Search station",
-      "placeholder": "Search station...",
-      "clearButton": "Clear search",
-      "status": {
-        "searching": "Searching...",
-        "empty": "No stations found"
-      },
-      "resultsAria": "Station suggestions"
-    },
-    "datetime": {
-      "date": "Date",
-      "time": "Time",
-      "resetButton": "Reset",
-      "resetTooltip": "Reset to current time or last arrival + connection time"
-    }
-  },
   "tripModal": {
     "loading": "Loading trip details...",
     "error": "Failed to load trip details",
@@ -151,6 +133,32 @@
       "trolleybus": "Trolleybus",
       "monorail": "Monorail",
       "unknown": "Unknown ({{routeType}})"
+    }
+  },
+  "map": {
+    "search": {
+      "label": "Search for station",
+      "placeholder": "Search station...",
+      "clearButton": "Clear search",
+      "resultsAria": "Search results",
+      "status": {
+        "searching": "Searching...",
+        "empty": "No stations found"
+      }
+    },
+    "transportFilter": {
+      "label": "Filter transport types",
+      "title": "Transport",
+      "selectAll": "Select all",
+      "deselectAll": "Deselect all",
+      "all": "All",
+      "none": "None"
+    },
+    "datetime": {
+      "date": "Date",
+      "time": "Time",
+      "resetButton": "Reset",
+      "resetTooltip": "Reset to current time or last arrival + connection time"
     }
   }
 }

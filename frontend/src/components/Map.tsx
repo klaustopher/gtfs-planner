@@ -18,6 +18,7 @@ import MapSearchPanel from './map/MapSearchPanel'
 import TripLayers from './map/TripLayers'
 import JourneyLayers from './map/JourneyLayers'
 import StationHoverOverlay from './map/StationHoverOverlay'
+import TransportFilterDropdown from './map/TransportFilterDropdown'
 import { useFitBounds } from './map/hooks/useFitBounds'
 import { useHoverStationPanel } from './map/hooks/useHoverStationPanel'
 import { useDefaultMapLocation } from '../hooks/useDefaultMapLocation'
@@ -55,6 +56,9 @@ interface MapProps {
   canEditTime: boolean
   hasJourney: boolean
   journeyViewData?: JourneyViewData | null
+  selectedTransportTypes: Set<number>
+  onToggleTransportType: React.Dispatch<React.SetStateAction<Set<number>>>
+  availableTransportTypes: number[]
 }
 
 const ZOOM_THRESHOLD = 8
@@ -91,6 +95,9 @@ export default function Map({
   canEditTime,
   hasJourney,
   journeyViewData,
+  selectedTransportTypes,
+  onToggleTransportType,
+  availableTransportTypes,
 }: MapProps) {
   const { t } = useTranslation()
   const defaultLocation = useDefaultMapLocation()
@@ -121,7 +128,7 @@ export default function Map({
 
   // Determine which stations to display:
   // - In journey view mode: only show journey stations
-  // - When station is selected: show trip stations
+  // - When station is selected: show trip stations (already filtered by backend)
   // - Otherwise: show all viewport stops
   const displayStops = useMemo(() => {
     if (isViewingMode && journeyViewData?.markers) {
@@ -137,17 +144,16 @@ export default function Map({
         index === self.findIndex(s => s.stop_id === stop.stop_id)
       )
     }
+    // Backend already filters trips by transport type, so stations are also filtered
     return tripsData?.stations ?? viewportStops
   }, [isViewingMode, journeyViewData, tripsData, viewportStops])
 
   const stopsGeojsonData = useMemo(() => stopsToGeoJSON(displayStops), [displayStops])
 
-  const tripLinesGeojsonData = useMemo(
-    () => tripsToGeoJSON(tripsData?.trips ?? []),
-    [tripsData]
-  )
-
-  // Journey view GeoJSON data
+  // Trips are already filtered by backend based on selectedTransportTypes
+  const tripLinesGeojsonData = useMemo(() => {
+    return tripsToGeoJSON(tripsData?.trips ?? [])
+  }, [tripsData])
   const journeyLegsGeojsonData = useMemo(
     () => journeyLegsToGeoJSON(journeyViewData?.legs ?? []),
     [journeyViewData?.legs]
@@ -157,6 +163,19 @@ export default function Map({
     () => walkingConnectionsToGeoJSON(journeyViewData?.walkingConnections ?? []),
     [journeyViewData?.walkingConnections]
   )
+
+  // Toggle transport type selection - use the passed callback
+  const handleToggleTransportType = useCallback((routeType: number) => {
+    onToggleTransportType(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(routeType)) {
+        newSet.delete(routeType)
+      } else {
+        newSet.add(routeType)
+      }
+      return newSet
+    })
+  }, [onToggleTransportType])
 
   // Handle date change
   const handleDateChange = useCallback(
@@ -351,6 +370,15 @@ export default function Map({
           </div>
         </div>
       </div>
+      {availableTransportTypes.length > 0 && !isViewingMode && (
+        <div className="map-controls-right">
+          <TransportFilterDropdown
+            availableTypes={availableTransportTypes}
+            selectedTypes={selectedTransportTypes}
+            onToggleType={handleToggleTransportType}
+          />
+        </div>
+      )}
       <MapGL
         ref={mapRef}
         {...viewState}
