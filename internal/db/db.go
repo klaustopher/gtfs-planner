@@ -516,32 +516,6 @@ func (db *DB) GetUpcomingTrips(stopID string, datetime string, limit int, routeT
 	return result, nil
 }
 
-// GetUpcomingTripsWithNearby returns upcoming trips from the station and nearby stations.
-// Similar to GetUpcomingTrips but queries multiple stations and merges results.
-func (db *DB) GetUpcomingTripsWithNearby(stopID string, radiusMeters float64, datetime string, limit int, routeTypes []int) (*models.UpcomingTripsData, error) {
-	if limit <= 0 {
-		limit = 10
-	}
-	if limit > 50 {
-		limit = 50
-	}
-
-	// Get nearby stations (excluding the reference station)
-	nearbyStations, err := db.GetNearbyStations(stopID, radiusMeters)
-	if err != nil {
-		// If nearby query fails, fall back to single station
-		return db.GetUpcomingTrips(stopID, datetime, limit, routeTypes)
-	}
-
-	// Build list of all station IDs to query (including the original)
-	stationIDs := []string{stopID}
-	for _, station := range nearbyStations {
-		stationIDs = append(stationIDs, station.StopID)
-	}
-
-	return db.GetUpcomingTripsForStations(stationIDs, datetime, limit, routeTypes)
-}
-
 // GetUpcomingTripsForStations returns upcoming trips from multiple stations.
 // This is the core implementation that fetches and merges trips from multiple station IDs.
 func (db *DB) GetUpcomingTripsForStations(stationIDs []string, datetime string, limit int, routeTypes []int) (*models.UpcomingTripsData, error) {
