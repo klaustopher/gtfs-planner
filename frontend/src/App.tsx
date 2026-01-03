@@ -2,8 +2,9 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import Map, { MapViewState } from './components/Map'
 import Sidebar from './components/Sidebar'
 import TripDetailModal from './components/TripDetailModal'
+import GtfsSetupModal from './components/GtfsSetupModal'
 import { models } from '../wailsjs/go/models'
-import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, ShowConfirmDialog, GetNearbyStations, GetUpcomingTripsForStations } from '../wailsjs/go/main/App'
+import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, ShowConfirmDialog, GetNearbyStations, GetUpcomingTripsForStations, CheckDatabaseExists } from '../wailsjs/go/main/App'
 import { useTrips, TripQueryParams } from './components/map/useTrips'
 import { useJourneyView } from './hooks/useJourneyView'
 import { useSettings } from './hooks/useSettings'
@@ -99,8 +100,29 @@ function App() {
     tripIndex: number
   } | null>(null)
 
+  // GTFS Setup Modal state
+  const [showGtfsSetupModal, setShowGtfsSetupModal] = useState(false)
+
   // Planning mode state
   const [planningMode, setPlanningMode] = useState<PlanningMode>('initial')
+
+  // Check if database exists on startup
+  useEffect(() => {
+    const checkDatabase = async () => {
+      try {
+        const dbExists = await CheckDatabaseExists()
+        console.log('Database exists check:', dbExists)
+        if (!dbExists) {
+          console.log('Database not found, showing setup modal')
+          setShowGtfsSetupModal(true)
+        }
+      } catch (err) {
+        console.error('Failed to check database:', err)
+        setShowGtfsSetupModal(true)
+      }
+    }
+    void checkDatabase()
+  }, [])
 
   // Derived values
   const isViewingMode = planningMode === 'viewing'
@@ -621,6 +643,10 @@ function App() {
           onTripSelection={handleTripSelection}
         />
       )}
+      <GtfsSetupModal
+        isOpen={showGtfsSetupModal}
+        onClose={undefined}
+      />
     </div>
   )
 }

@@ -1,0 +1,206 @@
+.gtfs-setup-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 20, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1500;
+  padding: 24px;
+}
+
+.gtfs-setup-modal {
+  width: min(640px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #101422;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 28px;
+}
+
+.gtfs-setup-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.gtfs-setup-modal__header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #f59e0b;
+}
+
+.gtfs-setup-modal__description {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.6;
+}
+
+.gtfs-setup-modal__close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.gtfs-setup-modal__close:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.gtfs-setup-modal__content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.gtfs-setup-modal__section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.gtfs-setup-modal__section-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.gtfs-setup-modal__step {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.gtfs-setup-modal__step-number {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 16px;
+  color: white;
+}
+
+.gtfs-setup-modal__step-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gtfs-setup-modal__step-content h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.gtfs-setup-modal__step-content p {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.6;
+}
+
+.gtfs-setup-modal__code {
+  display: block;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+  font-size: 13px;
+  color: #10b981;
+  overflow-x: auto;
+  margin: 4px 0;
+}
+
+.gtfs-setup-modal__hint {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  font-style: italic;
+  margin: 0;
+}
+
+.gtfs-setup-modal__section--info {
+  padding: 16px;
+  background: rgba(59, 130, 246, 0.08);
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.gtfs-setup-modal__section--info .gtfs-setup-modal__section-title {
+  color: #60a5fa;
+}
+
+.gtfs-setup-modal__section--info p {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.6;
+}
+
+.gtfs-setup-modal__section--note {
+  padding: 16px;
+  background: rgba(245, 158, 11, 0.08);
+  border-radius: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.gtfs-setup-modal__section--note .gtfs-setup-modal__section-title {
+  color: #fbbf24;
+}
+
+.gtfs-setup-modal__section--note p {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.6;
+}
+
+/* Scrollbar styling */
+.gtfs-setup-modal::-webkit-scrollbar {
+  width: 8px;
+}
+
+.gtfs-setup-modal::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+}
+
+.gtfs-setup-modal::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.gtfs-setup-modal::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}

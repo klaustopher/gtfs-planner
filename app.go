@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -14,12 +15,24 @@ import (
 
 	"codeberg.org/go-pdf/fpdf"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"gopkg.in/yaml.v3"
 )
+
+// Config holds the application configuration
+type Config struct {
+	// GTFS feed download URL
+	FeedURL string `yaml:"feed_url"`
+	// Path to download the GTFS zip file
+	FeedPath string `yaml:"feed_path"`
+	// Path to the SQLite database
+	DatabasePath string `yaml:"database_path"`
+}
 
 // App struct
 type App struct {
-	ctx context.Context
-	db  *db.DB
+	ctx    context.Context
+	db     *db.DB
+	config *Config
 }
 
 // NewApp creates a new App application struct
@@ -27,13 +40,43 @@ func NewApp() *App {
 	return &App{}
 }
 
+// loadConfig loads the configuration from gtfs-config.yaml
+func (a *App) loadConfig() error {
+	configPath := "gtfs-config.yaml"
+
+	// Check if config file exists
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return fmt.Errorf("configuration file %s not found", configPath)
+	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	cfg := &Config{}
+	if err := yaml.Unmarshal(data, cfg); err != nil {
+		return fmt.Errorf("failed to parse config file: %w", err)
+	}
+
+	a.config = cfg
+	return nil
+}
+
 // startup is called when the app starts. The context is saved
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
+	// Load configuration
+	if err := a.loadConfig(); err != nil {
+		fmt.Fprintf(os.Stderr, "FATAL: %v\n", err)
+		os.Exit(1)
+	}
+
 	// Open the SQLite database
-	database, err := db.Open("gtfs-data/sqlite/gtfs.sqlite")
+	// With mode=ro, SQLite will not create the file if it doesn't exist
+	database, err := db.Open(a.config.DatabasePath)
 	if err != nil {
 		fmt.Printf("Failed to open database: %v\n", err)
 		return
@@ -46,6 +89,28 @@ func (a *App) shutdown(ctx context.Context) {
 	if a.db != nil {
 		a.db.Close()
 	}
+}
+
+// CheckDatabaseExists checks if the GTFS database file exists
+func (a *App) CheckDatabaseExists() bool {
+	// Ensure config is loaded
+	if a.config == nil {
+		if err := a.loadConfig(); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
+			return false
+		}
+	}
+	_, err := os.Stat(a.config.DatabasePath)
+	return err == nil
+}
+
+// GetAbsolutePath returns the absolute path for a relative path
+func (a *App) GetAbsolutePath(relativePath string) (string, error) {
+	absPath, err := filepath.Abs(relativePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to get absolute path: %w", err)
+	}
+	return absPath, nil
 }
 
 // GetStops returns all stops within the given bounding box

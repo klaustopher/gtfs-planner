@@ -160,5 +160,38 @@
       "resetButton": "Reset",
       "resetTooltip": "Reset to current time or last arrival + connection time"
     }
+  },
+  "gtfsSetup": {
+    "title": "GTFS Database Required",
+    "description": "To use the app, you must first download and import a GTFS database.",
+    "steps": {
+      "title": "Setup Instructions",
+      "openTerminal": {
+        "title": "Open Terminal",
+        "description": "Open a terminal in the project directory."
+      },
+      "download": {
+        "title": "Download GTFS Data",
+        "description": "Download the current GTFS schedule data:",
+        "hint": "This downloads the GTFS data according to the configuration in gtfs-config.yaml."
+      },
+      "import": {
+        "title": "Import Data",
+        "description": "Import the downloaded data into the SQLite database:",
+        "hint": "The import may take several minutes depending on the file size."
+      },
+      "restart": {
+        "title": "Restart App",
+        "description": "Restart the application. The database should now be available and the app ready to use."
+      }
+    },
+    "info": {
+      "title": "Check Status",
+      "description": "To check the database status and available date ranges, use:"
+    },
+    "note": {
+      "title": "Note",
+      "description": "GTFS data is updated regularly. It is recommended to periodically re-download and import the data to get current schedules."
+    }
   }
 }

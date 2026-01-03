@@ -20,7 +20,10 @@ type DB struct {
 
 // Open opens a connection to the SQLite database at the given path.
 func Open(path string) (*DB, error) {
-	conn, err := sqlx.Open("sqlite3", path+"?mode=ro")
+	// Use file: URI scheme with mode=ro to prevent creating the database if it doesn't exist
+	// See: https://github.com/mattn/go-sqlite3#connection-string
+	dsn := fmt.Sprintf("file:%s?mode=ro", path)
+	conn, err := sqlx.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -595,7 +598,7 @@ func (db *DB) queryTripsForMultipleStations(stopIDs []string, date, minTime, day
 
 	// Prepare args slice
 	args := []interface{}{date, stopIDs, stopIDs, minTimestamp, date, date, limit}
-	
+
 	// Add route types if specified
 	if len(routeTypes) > 0 {
 		args = append(args, routeTypes)

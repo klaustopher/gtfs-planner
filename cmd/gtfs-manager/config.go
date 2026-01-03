@@ -18,16 +18,7 @@ type Config struct {
 	DatabasePath string `yaml:"database_path"`
 }
 
-// DefaultConfig returns the default configuration
-func DefaultConfig() *Config {
-	return &Config{
-		FeedURL:      "https://download.gtfs.de/germany/nv_free/latest.zip",
-		FeedPath:     "gtfs-data/feeds/latest.zip",
-		DatabasePath: "gtfs-data/sqlite/gtfs.sqlite",
-	}
-}
-
-// LoadConfig loads configuration from a file, or returns defaults if not found
+// LoadConfig loads configuration from a file
 func LoadConfig(configPath string) (*Config, error) {
 	// If no config path specified, try default locations
 	if configPath == "" {
@@ -43,9 +34,9 @@ func LoadConfig(configPath string) (*Config, error) {
 		}
 	}
 
-	// If still no config file, return defaults
+	// If still no config file, return error
 	if configPath == "" {
-		return DefaultConfig(), nil
+		return nil, fmt.Errorf("configuration file not found (searched for: gtfs-config.yaml, gtfs-config.yml)")
 	}
 
 	data, err := os.ReadFile(configPath)
@@ -53,7 +44,7 @@ func LoadConfig(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	cfg := DefaultConfig()
+	cfg := &Config{}
 	if err := yaml.Unmarshal(data, cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
