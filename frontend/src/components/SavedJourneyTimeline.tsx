@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { SavedTrip } from '../App'
 import { getTransportTypeLabel } from '../utils/transportType'
 import { formatTimeDisplay } from '../utils/time'
+import { getContrastTextColor } from '../utils/colorContrast'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTimes, faWalking } from '@fortawesome/free-solid-svg-icons'
 
@@ -51,7 +52,10 @@ export default function SavedJourneyTimeline({
                   </span>
                   <span
                     className="trip-route-badge"
-                    style={{ backgroundColor: trip.displayColor }}
+                    style={{
+                      backgroundColor: trip.displayColor,
+                      color: getContrastTextColor(trip.displayColor)
+                    }}
                   >
                     {trip.routeShortName || '?'}
                   </span>

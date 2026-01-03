@@ -3,6 +3,7 @@ import { models } from '../../wailsjs/go/models'
 import { getTripColor } from './map/geojson'
 import { getTransportTypeLabel } from '../utils/transportType'
 import { formatTimeDisplay } from '../utils/time'
+import { getContrastTextColor } from '../utils/colorContrast'
 
 interface TripListItemProps {
   trip: models.UpcomingTrip
@@ -52,7 +53,10 @@ export default function TripListItem({
           {trip.display_name && (
             <span
               className="trip-route-badge"
-              style={{ backgroundColor: tripColor }}
+              style={{
+                backgroundColor: tripColor,
+                color: getContrastTextColor(tripColor)
+              }}
             >
               {trip.display_name}
             </span>

@@ -1,18 +1,24 @@
 import { models } from '../../../wailsjs/go/models'
 import { detectOverlaps, applyOffset, type TripForOverlap } from './lineOffset'
 
-// Distinct colors for route lines - chosen to be visually different from each other
+// Bright, high-contrast colors optimized for dark map backgrounds
+// Chosen to be visually distinct and clearly visible on dark surfaces
 export const FALLBACK_COLORS = [
-  '#E63946', // Red
-  '#2A9D8F', // Teal
-  '#5E60CE', // Purple
-  '#F4A261', // Orange
-  '#1D3557', // Navy
-  '#E9C46A', // Yellow
-  '#06D6A0', // Green
-  '#EF476F', // Pink
-  '#118AB2', // Blue
-  '#073B4C', // Dark teal
+  '#FF6B6B', // Bright Red
+  '#4ECDC4', // Bright Teal
+  '#FFA07A', // Light Salmon
+  '#87CEEB', // Sky Blue
+  '#FFD93D', // Bright Yellow
+  '#6BCF7F', // Light Green
+  '#FF8DA1', // Light Pink
+  '#95E1D3', // Mint
+  '#9B72CF', // Light Purple
+  '#FF9E5C', // Peach
+  '#5DADE2', // Dodger Blue
+  '#F8B500', // Amber
+  '#FF7F9C', // Rose Pink
+  '#7FCDBB', // Seafoam
+  '#FFA6C9', // Bubblegum Pink
 ]
 
 const LINE_WIDTH = 6
