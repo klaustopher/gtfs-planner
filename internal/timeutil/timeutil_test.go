@@ -222,3 +222,86 @@ func TestGetPreviousDayOvernightParams(t *testing.T) {
 		})
 	}
 }
+
+func TestGetNextDay(t *testing.T) {
+	tests := []struct {
+		name     string
+		date     string
+		wantDate string
+		wantErr  bool
+	}{
+		{
+			name:     "normal day transition",
+			date:     "20260103",
+			wantDate: "20260104",
+			wantErr:  false,
+		},
+		{
+			name:     "month boundary",
+			date:     "20260131",
+			wantDate: "20260201",
+			wantErr:  false,
+		},
+		{
+			name:     "year boundary",
+			date:     "20251231",
+			wantDate: "20260101",
+			wantErr:  false,
+		},
+		{
+			name:     "leap year February 28 to 29",
+			date:     "20240228",
+			wantDate: "20240229",
+			wantErr:  false,
+		},
+		{
+			name:     "leap year February 29 to March 1",
+			date:     "20240229",
+			wantDate: "20240301",
+			wantErr:  false,
+		},
+		{
+			name:     "non-leap year February 28 to March 1",
+			date:     "20250228",
+			wantDate: "20250301",
+			wantErr:  false,
+		},
+		{
+			name:     "30-day month boundary",
+			date:     "20260430",
+			wantDate: "20260501",
+			wantErr:  false,
+		},
+		{
+			name:     "invalid format - too short",
+			date:     "2026010",
+			wantDate: "",
+			wantErr:  true,
+		},
+		{
+			name:     "invalid format - too long",
+			date:     "202601033",
+			wantDate: "",
+			wantErr:  true,
+		},
+		{
+			name:     "invalid format - non-numeric",
+			date:     "202601ab",
+			wantDate: "",
+			wantErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			nextDate, err := GetNextDay(tt.date)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetNextDay() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if nextDate != tt.wantDate {
+				t.Errorf("GetNextDay() = %v, want %v", nextDate, tt.wantDate)
+			}
+		})
+	}
+}

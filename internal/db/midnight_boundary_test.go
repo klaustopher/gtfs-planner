@@ -297,3 +297,98 @@ func TestMidnightBoundary_NoDuplicatesAcrossLoads(t *testing.T) {
 		t.Logf("Total unique trips loaded: %d", len(seenTrips))
 	})
 }
+
+// TestMidnightBoundary_NextDayLoading explicitly tests the scenario where:
+// - Current day has no more trips
+// - No overnight trips (24+ notation) from previous day
+// - Next day has trips starting from 00:00+
+// This was the bug scenario for "Nenkersdorf Ortsmitte" station
+func TestMidnightBoundary_NextDayLoading(t *testing.T) {
+	db := skipIfNoDatabase(t)
+	defer db.Close()
+
+	stationID := "midnight_test"
+
+	// Query at 23:55 on 2026-01-01
+	// Should find trip_2355 from current day
+	// And when we load more, should get trips from next day (2026-01-02)
+	t.Run("load more after last trip of day gets next day trips", func(t *testing.T) {
+		// First load: at 23:55, should find trip_2355
+		data1, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-01T23:55:00", 5)
+		if err != nil {
+			t.Fatalf("First load failed: %v", err)
+		}
+
+		if len(data1.Trips) == 0 {
+			t.Fatal("Expected to find trip_2355 in first load")
+		}
+
+		// Verify we got trip_2355
+		foundLastTrip := false
+		for _, trip := range data1.Trips {
+			if trip.TripID == "trip_2355" {
+				foundLastTrip = true
+				break
+			}
+		}
+
+		if !foundLastTrip {
+			t.Error("Expected to find trip_2355 in first load")
+		}
+
+		lastTrip := data1.Trips[len(data1.Trips)-1]
+		t.Logf("First load: %d trips, last trip: %s at %s", len(data1.Trips), lastTrip.TripID, lastTrip.DepartureDateTime)
+
+		// Second load: should jump to next day and get overnight trips (24:00+) and/or normal trips (00:00+)
+		data2, err := db.GetUpcomingTripsForStations([]string{stationID}, lastTrip.DepartureDateTime, 10)
+		if err != nil {
+			t.Fatalf("Second load failed: %v", err)
+		}
+
+		if len(data2.Trips) == 0 {
+			t.Fatal("Expected to find trips from next day in second load")
+		}
+
+		t.Logf("Second load: %d trips", len(data2.Trips))
+
+		// Should find trips from the next day (either 24:00+ overnight notation or 00:00+ next day)
+		foundNextDayTrip := false
+
+		for _, trip := range data2.Trips {
+			t.Logf("  - %s at %s", trip.TripID, trip.DepartureDateTime)
+			// Check if we found any trip that is from the next day
+			// This includes both overnight trips (24:00+ from prev day) and normal trips (00:00+ from next day)
+			if trip.DepartureDateTime >= "2026-01-02T00:00:00" {
+				foundNextDayTrip = true
+			}
+		}
+
+		if !foundNextDayTrip {
+			t.Error("Expected to find at least one trip from next day (2026-01-02) in second load")
+		}
+	})
+
+	// Test the specific case where we query very late and immediately need next day
+	t.Run("query at last minute of day immediately gets next day", func(t *testing.T) {
+		// Query at 23:59:59 - should get next day trips if current day exhausted
+		data, err := db.GetUpcomingTripsForStations([]string{stationID}, "2026-01-01T23:59:59", 10)
+		if err != nil {
+			t.Fatalf("Query failed: %v", err)
+		}
+
+		// Should find trips from next day
+		foundNextDayTrip := false
+		for _, trip := range data.Trips {
+			// Check for any trip that starts on the next day
+			if trip.DepartureDateTime >= "2026-01-02T00:00:00" {
+				foundNextDayTrip = true
+				t.Logf("Found next day trip: %s at %s", trip.TripID, trip.DepartureDateTime)
+				break
+			}
+		}
+
+		if !foundNextDayTrip {
+			t.Error("Expected to find trips from next day when querying at 23:59:59")
+		}
+	})
+}
