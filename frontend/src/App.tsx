@@ -129,6 +129,17 @@ function App() {
   const hasJourney = savedTrips.length > 0
   const canEditTime = planningMode === 'initial' && savedTrips.length === 0
 
+  // Handler for station selection that resets time to now when station is cleared
+  const handleStationSelect = useCallback((station: models.StationDetails | null) => {
+    setSelectedStation(station)
+    if (station === null && !hasJourney) {
+      // Reset time to now when deselecting station without journey
+      const now = new Date()
+      setSelectedDate(formatDateForInput(now))
+      setSelectedTime(formatTimeForInput(now))
+    }
+  }, [hasJourney])
+
   // Fetch nearby stations when selected station changes
   useEffect(() => {
     if (!selectedStation) {
@@ -184,7 +195,7 @@ function App() {
       // If all trips removed, return to initial mode and clear station
       if (newTrips.length === 0) {
         setPlanningMode('initial')
-        setSelectedStation(null)
+        handleStationSelect(null)
       }
 
       // If there are remaining trips, reset to the last trip's arrival station
@@ -572,7 +583,7 @@ function App() {
       <div className="map-container">
         <Map
           onViewStateChange={setViewState}
-          onStationSelect={setSelectedStation}
+          onStationSelect={handleStationSelect}
           selectedStation={selectedStation}
           tripsData={tripsData}
           isLoadingTrips={isLoadingTrips}
