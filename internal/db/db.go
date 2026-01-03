@@ -612,7 +612,7 @@ func (db *DB) queryTripsForMultipleStations(stopIDs []string, date, minTime, day
 			WHERE (s.parent_station IN (` + placeholdersStr + `) OR s.stop_id IN (` + placeholdersStr + `))
 			  AND st.departure_timestamp >= ?
 			  AND (
-			      -- Include if calendar_dates says this service runs on this date
+			      -- Include if calendar_dates says this service runs on this date (exception_type=1)
 			      cd.exception_type = 1
 			      OR (
 			          -- Or if calendar says it runs on this day and no exception removes it
@@ -622,6 +622,8 @@ func (db *DB) queryTripsForMultipleStations(stopIDs []string, date, minTime, day
 			          AND ` + dayOfWeek + ` = 1
 			      )
 			  )
+			  -- Explicitly exclude if exception_type = 2 (service removed)
+			  AND (cd.exception_type IS NULL OR cd.exception_type != 2)
 			ORDER BY st.departure_timestamp
 			LIMIT ?
 		)
