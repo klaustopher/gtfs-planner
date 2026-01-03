@@ -540,8 +540,7 @@ func (db *DB) queryTripsForMultipleStations(stopIDs []string, date, minTime, day
 		return nil, fmt.Errorf("invalid time format: %w", err)
 	}
 
-	// Base query with placeholders for IN clauses
-	// Note: We use the same stopIDs list twice (for parent_station and stop_id)
+	// Base query with named parameters
 	baseQuery := `
 		WITH station_departures AS (
 			SELECT
@@ -555,24 +554,23 @@ func (db *DB) queryTripsForMultipleStations(stopIDs []string, date, minTime, day
 			JOIN stops s ON s.stop_id = st.stop_id
 			JOIN trips t ON t.trip_id = st.trip_id
 			LEFT JOIN calendar c ON c.service_id = t.service_id
-			LEFT JOIN calendar_dates cd ON cd.service_id = t.service_id AND cd.date = ?
-			WHERE (s.parent_station IN (?) OR s.stop_id IN (?))
-			  AND st.departure_timestamp >= ?
+			LEFT JOIN calendar_dates cd ON cd.service_id = t.service_id AND cd.date = :date
+			WHERE (s.parent_station IN (:stopIDs) OR s.stop_id IN (:stopIDs))
+			  AND st.departure_timestamp >= :minTimestamp
 			  AND (
 			      -- Include if calendar_dates says this service runs on this date (exception_type=1)
 			      cd.exception_type = 1
 			      OR (
 			          -- Or if calendar says it runs on this day and no exception removes it
 			          cd.exception_type IS NULL
-			          AND c.start_date <= ?
-			          AND c.end_date >= ?
+			          AND c.start_date <= :date
+			          AND c.end_date >= :date
 			          AND ` + dayOfWeek + ` = 1
 			      )
 			  )
 			  -- Explicitly exclude if exception_type = 2 (service removed)
 			  AND (cd.exception_type IS NULL OR cd.exception_type != 2)
 			ORDER BY st.departure_timestamp
-			LIMIT ?
 		)
 		SELECT
 			sd.trip_id,
@@ -587,25 +585,33 @@ func (db *DB) queryTripsForMultipleStations(stopIDs []string, date, minTime, day
 		FROM station_departures sd
 		JOIN routes r ON r.route_id = sd.route_id`
 
+	// Build named parameters map
+	params := map[string]interface{}{
+		"date":         date,
+		"stopIDs":      stopIDs,
+		"minTimestamp": minTimestamp,
+		"limit":        limit,
+	}
+
 	// Add route type filter if specified
 	if len(routeTypes) > 0 {
 		baseQuery += `
-		WHERE r.route_type IN (?)`
+		WHERE r.route_type IN (:routeTypes)`
+		params["routeTypes"] = routeTypes
 	}
 
 	baseQuery += `
-		ORDER BY sd.departure_timestamp`
+		ORDER BY sd.departure_timestamp
+		LIMIT :limit`
 
-	// Prepare args slice
-	args := []interface{}{date, stopIDs, stopIDs, minTimestamp, date, date, limit}
-
-	// Add route types if specified
-	if len(routeTypes) > 0 {
-		args = append(args, routeTypes)
+	// Use sqlx.Named to bind named parameters
+	query, args, err := sqlx.Named(baseQuery, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to bind named parameters: %w", err)
 	}
 
 	// Use sqlx.In to expand the IN clauses
-	query, expandedArgs, err := sqlx.In(baseQuery, args...)
+	query, args, err = sqlx.In(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to expand query: %w", err)
 	}
@@ -613,7 +619,7 @@ func (db *DB) queryTripsForMultipleStations(stopIDs []string, date, minTime, day
 	// Rebind for SQLite (? placeholders)
 	query = db.conn.Rebind(query)
 
-	rows, err := db.conn.Query(query, expandedArgs...)
+	rows, err := db.conn.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("trips query failed: %w", err)
 	}
