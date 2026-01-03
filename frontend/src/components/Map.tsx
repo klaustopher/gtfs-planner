@@ -20,6 +20,7 @@ import JourneyLayers from './map/JourneyLayers'
 import StationHoverOverlay from './map/StationHoverOverlay'
 import { useFitBounds } from './map/hooks/useFitBounds'
 import { useHoverStationPanel } from './map/hooks/useHoverStationPanel'
+import { useDefaultMapLocation } from '../hooks/useDefaultMapLocation'
 import './Map.css'
 
 export interface MapViewState {
@@ -54,12 +55,6 @@ interface MapProps {
   canEditTime: boolean
   hasJourney: boolean
   journeyViewData?: JourneyViewData | null
-}
-
-const INITIAL_VIEW_STATE = {
-  longitude: 8.193903437037271,
-  latitude: 50.896877167303444,
-  zoom: 12,
 }
 
 const ZOOM_THRESHOLD = 8
@@ -98,17 +93,23 @@ export default function Map({
   journeyViewData,
 }: MapProps) {
   const { t } = useTranslation()
+  const defaultLocation = useDefaultMapLocation()
 
   // Derived values
   const isInitialMode = planningMode === 'initial' && !hasJourney
   const isViewingMode = planningMode === 'viewing'
 
-  const [viewState, setViewState] = useState(INITIAL_VIEW_STATE)
+  const [viewState, setViewState] = useState(defaultLocation)
   const [isLoadingStation, setIsLoadingStation] = useState(false)
   const [hoveredJourneyMarkerIndex, setHoveredJourneyMarkerIndex] = useState<number | null>(null)
   const boundsRef = useRef<Bounds | undefined>(undefined)
   const mapRef = useRef<MapRef | null>(null)
   const lastSelectedStationIdRef = useRef<string | null>(null)
+
+  // Update viewState when defaultLocation changes (after geolocation is fetched)
+  useEffect(() => {
+    setViewState(defaultLocation)
+  }, [defaultLocation])
 
   // Fetch viewport stops when no station is selected
   const viewportStops = useStops({

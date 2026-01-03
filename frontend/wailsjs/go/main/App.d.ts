@@ -25,6 +25,8 @@ export function GetUpcomingTripsForStations(arg1:Array<string>,arg2:string,arg3:
 
 export function GetUpcomingTripsWithNearby(arg1:string,arg2:number,arg3:string,arg4:number):Promise<models.UpcomingTripsData>;
 
+export function GetUserLocation():Promise<main.LocationResult>;
+
 export function Greet(arg1:string):Promise<string>;
 
 export function LoadJourney():Promise<main.LoadJourneyResult>;
