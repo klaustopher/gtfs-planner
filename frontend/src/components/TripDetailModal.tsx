@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { models } from '../../wailsjs/go/models'
 import { GetTripDetails } from '../../wailsjs/go/main/App'
 import { normalizeColor, FALLBACK_COLORS } from './map/geojson'
@@ -41,6 +41,8 @@ export default function TripDetailModal({
   const [hasError, setHasError] = useState(false)
   const { t, i18n } = useTranslation()
   const resolvedLanguage = i18n.language || i18n.resolvedLanguage || 'en'
+  const selectedStopRef = useRef<HTMLDivElement>(null)
+  const stopsContainerRef = useRef<HTMLDivElement>(null)
 
   const normalizedColor = normalizeColor(trip.route_color)
   const tripColor = normalizedColor ?? FALLBACK_COLORS[tripIndex % FALLBACK_COLORS.length]
@@ -61,6 +63,25 @@ export default function TripDetailModal({
         setIsLoading(false)
       })
   }, [trip.trip_id, serviceDate])
+
+  // Auto-scroll to selected station (at 1/3 position)
+  useEffect(() => {
+    if (!isLoading && selectedStopRef.current && stopsContainerRef.current) {
+      const container = stopsContainerRef.current
+      const selectedElement = selectedStopRef.current
+
+      // Calculate scroll position to place selected stop at 1/3 of container height
+      const containerHeight = container.clientHeight
+      const elementTop = selectedElement.offsetTop
+      const scrollTo = elementTop - (containerHeight / 3)
+
+      // Smooth scroll to position
+      container.scrollTo({
+        top: scrollTo,
+        behavior: 'smooth'
+      })
+    }
+  }, [isLoading, tripDetails])
 
   // Handle click on backdrop to close
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -107,7 +128,7 @@ export default function TripDetailModal({
           </button>
         </div>
 
-        <div className="trip-detail-modal__stops">
+        <div className="trip-detail-modal__stops" ref={stopsContainerRef}>
           {isLoading && (
             <div className="trip-detail-modal__loading">{t('tripModal.loading')}</div>
           )}
@@ -119,7 +140,9 @@ export default function TripDetailModal({
             const boardingStationId = trip.start_station_id
             const boardingIndex = stopTimes.findIndex(st => st.stop_id === boardingStationId)
 
-            return stopTimes.map((stopTime, index) => {
+            return (
+              <div className="trip-detail-modal__timeline" style={{ borderColor: tripColor }}>
+                {stopTimes.map((stopTime, index) => {
               const isBoarding = stopTime.stop_id === boardingStationId
               const isFirst = index === 0
               const isLast = index === stopTimes.length - 1
@@ -140,12 +163,6 @@ export default function TripDetailModal({
                       className={`trip-detail-modal__stop-dot ${isFirst ? 'trip-detail-modal__stop-dot--first' : ''} ${isLast ? 'trip-detail-modal__stop-dot--last' : ''}`}
                       style={{ borderColor: tripColor, backgroundColor: isBoarding ? tripColor : undefined }}
                     />
-                    {!isLast && (
-                      <div
-                        className="trip-detail-modal__stop-line"
-                        style={{ backgroundColor: tripColor }}
-                      />
-                    )}
                   </div>
                   <div className="trip-detail-modal__stop-times">
                     <span className="trip-detail-modal__stop-arr">
@@ -174,12 +191,15 @@ export default function TripDetailModal({
               ) : (
                 <div
                   key={`${stopTime.stop_id}-${stopTime.stop_sequence}`}
-                  className={`trip-detail-modal__stop ${isBoarding ? 'trip-detail-modal__stop--selected' : ''}`}
+                  ref={isBoarding ? selectedStopRef : null}
+                  className={`trip-detail-modal__stop ${isBoarding ? 'trip-detail-modal__stop--selected' : 'trip-detail-modal__stop--past'}`}
                 >
                   {stopContent}
                 </div>
               )
-            })
+            })}
+              </div>
+            )
           })()}
         </div>
       </div>

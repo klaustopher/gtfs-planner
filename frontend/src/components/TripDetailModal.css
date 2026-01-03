@@ -93,6 +93,12 @@
   flex: 1;
 }
 
+.trip-detail-modal__timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
 .trip-detail-modal__loading,
 .trip-detail-modal__error {
   text-align: center;
@@ -105,105 +111,87 @@
   color: var(--color-accent-danger);
 }
 
+/* Stop items */
 .trip-detail-modal__stop {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-md);
-  min-height: var(--button-height-lg);
-}
-
-.trip-detail-modal__stop--selected {
-  background: var(--modal-border);
-  margin: 0 calc(var(--space-md) * -1);
   padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
+  min-height: 48px;
 }
 
 .trip-detail-modal__stop-indicator {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: var(--space-lg);
-  flex-shrink: 0;
+  display: none;
 }
 
 .trip-detail-modal__stop-dot {
-  width: var(--space-md);
-  height: var(--space-md);
-  border-radius: 50%;
-  border: 3px solid;
-  background: var(--modal-bg);
-  flex-shrink: 0;
-  z-index: 1;
+  display: none;
 }
 
-.trip-detail-modal__stop-dot--first,
-.trip-detail-modal__stop-dot--last {
-  width: 14px;
-  height: 14px;
+/* Selected (boarding) station */
+.trip-detail-modal__stop--selected {
+  background: var(--modal-border);
+  font-weight: var(--font-weight-semibold);
 }
 
-.trip-detail-modal__stop-line {
-  width: 3px;
-  flex: 1;
-  min-height: var(--space-2xl);
-  margin-top: -2px;
+/* Past stops - dezente Darstellung */
+.trip-detail-modal__stop--past {
+  opacity: 0.5;
 }
 
+/* Time display */
 .trip-detail-modal__stop-times {
   display: flex;
   flex-direction: column;
-  min-width: var(--button-height-lg);
+  min-width: 60px;
   font-family: monospace;
   font-size: var(--font-size-sm);
   flex-shrink: 0;
+  gap: 2px;
 }
 
 .trip-detail-modal__stop-arr {
   color: var(--color-text-muted);
-  height: 18px;
+  font-size: var(--font-size-xs);
 }
 
 .trip-detail-modal__stop-dep {
   color: var(--color-accent-secondary);
   font-weight: var(--font-weight-semibold);
-  height: 18px;
 }
 
+/* Station name */
 .trip-detail-modal__stop-name {
-  font-size: var(--font-size-base);
-  color: var(--color-text-primary);
-  padding-top: 2px;
   flex: 1;
-}
-
-.trip-detail-modal__stop--selected .trip-detail-modal__stop-name {
-  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 }
 
-/* Clickable stops (after selected station) */
+/* Clickable stops */
 .trip-detail-modal__stop--clickable {
-  width: 100%;
+  cursor: pointer;
+  transition: var(--transition-fast);
   background: transparent;
   border: none;
+  width: 100%;
   text-align: left;
-  cursor: pointer;
-  margin: 0 calc(var(--space-md) * -1);
-  padding: var(--space-xs) var(--space-md);
-  border-radius: var(--radius-sm);
-  transition: var(--transition-fast);
-  color: inherit;
   font: inherit;
+  color: inherit;
 }
 
 .trip-detail-modal__stop--clickable:hover {
   background: var(--color-overlay-success);
+  transform: translateX(2px);
 }
 
 .trip-detail-modal__stop--clickable:focus {
-  outline: none;
+  outline: 2px solid var(--color-accent-secondary);
+  outline-offset: 2px;
   background: var(--color-overlay-success);
+}
+
+.trip-detail-modal__stop--clickable:hover .trip-detail-modal__stop-name {
+  color: var(--color-accent-secondary);
 }
 
 .trip-detail-modal__stop--clickable .trip-detail-modal__stop-name::after {
@@ -211,6 +199,7 @@
   color: var(--color-accent-secondary);
   opacity: 0;
   transition: opacity 0.15s;
+  margin-left: var(--space-xs);
 }
 
 .trip-detail-modal__stop--clickable:hover .trip-detail-modal__stop-name::after {
