@@ -440,22 +440,6 @@ function App() {
     setHasUnsavedChanges(false)
   }, [hasUnsavedChanges, savedTrips.length, t])
 
-  // Handler to reset time to current time or last arrival + connection time
-  const handleResetTime = useCallback(() => {
-    if (savedTrips.length === 0) {
-      // No saved trips - reset to current time
-      const now = new Date()
-      setSelectedDate(formatDateForInput(now))
-      setSelectedTime(formatTimeForInput(now))
-    } else {
-      // Has saved trips - reset to last arrival + connection time
-      const lastTrip = savedTrips[savedTrips.length - 1]
-      const { date, time } = addMinutesToDateTime(lastTrip.arrivalDateTime, settings.connectionTimeMinutes)
-      setSelectedDate(date)
-      setSelectedTime(time)
-    }
-  }, [savedTrips, settings.connectionTimeMinutes])
-
   // Track previous connection time to detect changes
   const prevConnectionTimeRef = useRef(settings.connectionTimeMinutes)
 
@@ -597,7 +581,6 @@ function App() {
           onDateChange={setSelectedDate}
           onTimeChange={setSelectedTime}
           onTripSelection={handleTripSelection}
-          onResetTime={handleResetTime}
           planningMode={planningMode}
           canEditTime={canEditTime}
           hasJourney={hasJourney}
