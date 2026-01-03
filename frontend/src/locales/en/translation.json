@@ -75,7 +75,9 @@
     "empty": "No departures found for this time",
     "nearbyStationPrefix": "from ",
     "nearbyStationAria": "Departing from nearby station",
-    "nearbyStations": "Nearby stations (within 200m)"
+    "nearbyStations": "Nearby stations (within 200m)",
+    "loadMore": "Load more departures",
+    "loadingMore": "Loading more departures..."
   },
   "map": {
     "search": {

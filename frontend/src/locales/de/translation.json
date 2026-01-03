@@ -75,7 +75,9 @@
     "empty": "Keine Abfahrten für diese Zeit gefunden",
     "nearbyStationPrefix": "ab ",
     "nearbyStationAria": "Abfahrt von Nachbarstation",
-    "nearbyStations": "Nahegelegene Stationen (innerhalb 200m)"
+    "nearbyStations": "Nahegelegene Stationen (innerhalb 200m)",
+    "loadMore": "Weitere Abfahrten laden",
+    "loadingMore": "Lade weitere Abfahrten..."
   },
   "map": {
     "search": {

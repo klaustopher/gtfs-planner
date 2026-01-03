@@ -211,6 +211,35 @@
   flex: 1;
 }
 
+/* Load more button */
+.load-more-button {
+  width: 100%;
+  padding: 10px 16px;
+  margin-top: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.load-more-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.load-more-button:active:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.load-more-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .trip-item {
   display: flex;
   align-items: center;

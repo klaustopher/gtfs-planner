@@ -34,6 +34,9 @@ interface SidebarProps {
   nearbyStations: models.Stop[]
   selectedNearbyStationIds: Set<string>
   onToggleNearbyStation: (stationId: string) => void
+  accumulatedTrips: models.UpcomingTrip[]
+  onLoadMore: () => void
+  isLoadingMore: boolean
 }
 
 export default function Sidebar({
@@ -57,6 +60,9 @@ export default function Sidebar({
   nearbyStations,
   selectedNearbyStationIds,
   onToggleNearbyStation,
+  accumulatedTrips,
+  onLoadMore,
+  isLoadingMore,
 }: SidebarProps) {
   const { t, i18n } = useTranslation()
   const rawLanguage = i18n.resolvedLanguage || i18n.language || 'en'
@@ -98,6 +104,9 @@ export default function Sidebar({
           nearbyStations={nearbyStations}
           selectedNearbyStationIds={selectedNearbyStationIds}
           onToggleNearbyStation={onToggleNearbyStation}
+          accumulatedTrips={accumulatedTrips}
+          onLoadMore={onLoadMore}
+          isLoadingMore={isLoadingMore}
         />
       )}
 

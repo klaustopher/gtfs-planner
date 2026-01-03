@@ -3,7 +3,7 @@ import Map, { MapViewState } from './components/Map'
 import Sidebar from './components/Sidebar'
 import TripDetailModal from './components/TripDetailModal'
 import { models } from '../wailsjs/go/models'
-import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, ShowConfirmDialog, GetNearbyStations } from '../wailsjs/go/main/App'
+import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, ShowConfirmDialog, GetNearbyStations, GetUpcomingTripsForStations } from '../wailsjs/go/main/App'
 import { useTrips, TripQueryParams } from './components/map/useTrips'
 import { useJourneyView } from './hooks/useJourneyView'
 import { useSettings } from './hooks/useSettings'
@@ -73,6 +73,10 @@ function App() {
   const [nearbyStations, setNearbyStations] = useState<models.Stop[]>([])
   const [selectedNearbyStationIds, setSelectedNearbyStationIds] = useState<Set<string>>(new Set())
 
+  // Accumulated trips state for load more functionality
+  const [accumulatedTrips, setAccumulatedTrips] = useState<models.UpcomingTrip[]>([])
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+
   // Date/time state - initialize with current date and time
   const now = useMemo(() => new Date(), [])
   const [selectedDate, setSelectedDate] = useState(() => formatDateForInput(now))
@@ -104,6 +108,7 @@ function App() {
     if (!selectedStation) {
       setNearbyStations([])
       setSelectedNearbyStationIds(new Set())
+      setAccumulatedTrips([])
       return
     }
 
@@ -113,10 +118,12 @@ function App() {
         setNearbyStations(nearby || [])
         // Reset selected nearby stations when main station changes
         setSelectedNearbyStationIds(new Set())
+        setAccumulatedTrips([])
       } catch (err) {
         console.error('Failed to fetch nearby stations:', err)
         setNearbyStations([])
         setSelectedNearbyStationIds(new Set())
+        setAccumulatedTrips([])
       }
     }
 
@@ -455,6 +462,46 @@ function App() {
   // Fetch upcoming trips when a station is selected
   const { tripsData, isLoading: isLoadingTrips } = useTrips(tripQueryParams)
 
+  // Update accumulated trips when new trips are fetched (reset on parameter change)
+  useEffect(() => {
+    if (tripsData && tripsData.trips) {
+      setAccumulatedTrips(tripsData.trips)
+    }
+  }, [tripsData])
+
+  // Reset accumulated trips when query parameters change
+  useEffect(() => {
+    setAccumulatedTrips([])
+  }, [selectedStation, selectedDate, selectedTime, selectedNearbyStationIds])
+
+  // Handler to load more trips
+  const handleLoadMore = useCallback(async () => {
+    if (!selectedStation || accumulatedTrips.length === 0 || isLoadingMore) return
+
+    const lastTrip = accumulatedTrips[accumulatedTrips.length - 1]
+    const stationIds = [selectedStation.stop_id, ...Array.from(selectedNearbyStationIds)]
+
+    setIsLoadingMore(true)
+    try {
+      const moreTrips = await GetUpcomingTripsForStations(
+        stationIds,
+        lastTrip.departure_datetime,
+        UPCOMING_TRIPS_LIMIT
+      )
+      if (moreTrips && moreTrips.trips && moreTrips.trips.length > 0) {
+        // Filter out the first trip if it's the same as the last trip we already have
+        const newTrips = moreTrips.trips.filter(
+          (trip: models.UpcomingTrip) => trip.trip_id !== lastTrip.trip_id || trip.departure_datetime !== lastTrip.departure_datetime
+        )
+        setAccumulatedTrips(prev => [...prev, ...newTrips])
+      }
+    } catch (err) {
+      console.error('Failed to load more trips:', err)
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }, [selectedStation, selectedNearbyStationIds, accumulatedTrips, isLoadingMore])
+
   // Fetch journey view data when in journey view mode
   const { data: journeyViewData, isLoading: isLoadingJourneyView } = useJourneyView(
     savedTrips,
@@ -529,6 +576,9 @@ function App() {
         nearbyStations={nearbyStations}
         selectedNearbyStationIds={selectedNearbyStationIds}
         onToggleNearbyStation={toggleNearbyStation}
+        accumulatedTrips={accumulatedTrips}
+        onLoadMore={handleLoadMore}
+        isLoadingMore={isLoadingMore}
       />
       {tripModalData && selectedStation && (
         <TripDetailModal

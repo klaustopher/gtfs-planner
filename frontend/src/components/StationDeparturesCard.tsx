@@ -12,6 +12,9 @@ interface StationDeparturesCardProps {
   nearbyStations: models.Stop[]
   selectedNearbyStationIds: Set<string>
   onToggleNearbyStation: (stationId: string) => void
+  accumulatedTrips: models.UpcomingTrip[]
+  onLoadMore: () => void
+  isLoadingMore: boolean
 }
 
 export default function StationDeparturesCard({
@@ -24,6 +27,9 @@ export default function StationDeparturesCard({
   nearbyStations,
   selectedNearbyStationIds,
   onToggleNearbyStation,
+  accumulatedTrips,
+  onLoadMore,
+  isLoadingMore,
 }: StationDeparturesCardProps) {
   const { t } = useTranslation()
 
@@ -65,21 +71,30 @@ export default function StationDeparturesCard({
 
           <div className="trips-section">
           {isLoadingTrips && <p className="sidebar-hint">{t('stationSection.loading')}</p>}
-          {!isLoadingTrips && tripsData && tripsData.trips && tripsData.trips.length > 0 && (
-            <div className="trips-list">
-              {tripsData.trips.map((trip, index) => (
-                <TripListItem
-                  key={trip.trip_id}
-                  trip={trip}
-                  index={index}
-                  selectedStation={selectedStation}
-                  onTripClick={onTripClick}
-                  timeLocale={timeLocale}
-                />
-              ))}
-            </div>
+          {!isLoadingTrips && accumulatedTrips && accumulatedTrips.length > 0 && (
+            <>
+              <div className="trips-list">
+                {accumulatedTrips.map((trip, index) => (
+                  <TripListItem
+                    key={`${trip.trip_id}-${trip.departure_datetime}-${index}`}
+                    trip={trip}
+                    index={index}
+                    selectedStation={selectedStation}
+                    onTripClick={onTripClick}
+                    timeLocale={timeLocale}
+                  />
+                ))}
+              </div>
+              <button
+                className="load-more-button"
+                onClick={onLoadMore}
+                disabled={isLoadingMore}
+              >
+                {isLoadingMore ? t('stationSection.loadingMore') : t('stationSection.loadMore')}
+              </button>
+            </>
           )}
-          {!isLoadingTrips && tripsData && (!tripsData.trips || tripsData.trips.length === 0) && (
+          {!isLoadingTrips && (!accumulatedTrips || accumulatedTrips.length === 0) && (
             <p className="sidebar-hint">{t('stationSection.empty')}</p>
           )}
         </div>
