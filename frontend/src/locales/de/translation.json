@@ -74,7 +74,8 @@
     "loading": "Lade Abfahrten...",
     "empty": "Keine Abfahrten für diese Zeit gefunden",
     "nearbyStationPrefix": "ab ",
-    "nearbyStationAria": "Abfahrt von Nachbarstation"
+    "nearbyStationAria": "Abfahrt von Nachbarstation",
+    "nearbyStations": "Nahegelegene Stationen (innerhalb 200m)"
   },
   "map": {
     "search": {
@@ -105,10 +106,6 @@
     "description": "Passe an, wie der Planer funktioniert",
     "languageLabel": "Anzeigesprache",
     "languageHint": "Wähle die Sprache für die Benutzeroberfläche.",
-    "nearbyStationRadiusLabel": "Radius für Nachbarstationen",
-    "nearbyStationRadiusHint": "Abfahrten von Nachbarstationen in diesem Umkreis einbeziehen.",
-    "nearbyStationRadiusDisabled": "Deaktiviert (nur ausgewählte Station anzeigen)",
-    "nearbyStationRadiusValue": "{{meters}} Meter",
     "connectionTimeLabel": "Umsteigezeit",
     "connectionTimeHint": "Pufferzeit nach Ankunft bei der Suche nach Anschlussverbindungen.",
     "connectionTimeValue": "{{minutes}} Minuten",

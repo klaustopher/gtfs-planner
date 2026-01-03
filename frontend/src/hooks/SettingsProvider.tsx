@@ -4,7 +4,6 @@ import { SettingsContext, type Settings } from './settingsContext'
 const STORAGE_KEY = 'bus-planning-settings'
 
 const DEFAULT_SETTINGS: Settings = {
-  nearbyStationRadius: 50,
   connectionTimeMinutes: 5,
 }
 

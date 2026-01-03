@@ -74,7 +74,8 @@
     "loading": "Loading departures...",
     "empty": "No departures found for this time",
     "nearbyStationPrefix": "from ",
-    "nearbyStationAria": "Departing from nearby station"
+    "nearbyStationAria": "Departing from nearby station",
+    "nearbyStations": "Nearby stations (within 200m)"
   },
   "map": {
     "search": {
@@ -105,10 +106,6 @@
     "description": "Tweak how the planner behaves",
     "languageLabel": "Interface language",
     "languageHint": "Choose which language the interface should use.",
-    "nearbyStationRadiusLabel": "Nearby station radius",
-    "nearbyStationRadiusHint": "Include trips from nearby stations within this distance.",
-    "nearbyStationRadiusDisabled": "Disabled (show only selected station)",
-    "nearbyStationRadiusValue": "{{meters}} meters",
     "connectionTimeLabel": "Connection time",
     "connectionTimeHint": "Buffer time added after arrival when looking for connecting trips.",
     "connectionTimeValue": "{{minutes}} minutes",

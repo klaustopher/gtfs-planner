@@ -9,6 +9,9 @@ interface StationDeparturesCardProps {
   isLoadingTrips: boolean
   onTripClick: (trip: models.UpcomingTrip, tripIndex: number) => void
   timeLocale: string
+  nearbyStations: models.Stop[]
+  selectedNearbyStationIds: Set<string>
+  onToggleNearbyStation: (stationId: string) => void
 }
 
 export default function StationDeparturesCard({
@@ -18,6 +21,9 @@ export default function StationDeparturesCard({
   isLoadingTrips,
   onTripClick,
   timeLocale,
+  nearbyStations,
+  selectedNearbyStationIds,
+  onToggleNearbyStation,
 }: StationDeparturesCardProps) {
   const { t } = useTranslation()
 
@@ -38,7 +44,26 @@ export default function StationDeparturesCard({
       )}
 
       {selectedStation && (
-        <div className="trips-section">
+        <>
+          {nearbyStations.length > 0 && (
+            <div className="nearby-stations-section">
+              <h4 className="nearby-stations-title">{t('stationSection.nearbyStations')}</h4>
+              <div className="nearby-stations-list">
+                {nearbyStations.map((station) => (
+                  <label key={station.stop_id} className="nearby-station-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={selectedNearbyStationIds.has(station.stop_id)}
+                      onChange={() => onToggleNearbyStation(station.stop_id)}
+                    />
+                    <span className="nearby-station-name">{station.stop_name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="trips-section">
           {isLoadingTrips && <p className="sidebar-hint">{t('stationSection.loading')}</p>}
           {!isLoadingTrips && tripsData && tripsData.trips && tripsData.trips.length > 0 && (
             <div className="trips-list">
@@ -58,6 +83,7 @@ export default function StationDeparturesCard({
             <p className="sidebar-hint">{t('stationSection.empty')}</p>
           )}
         </div>
+        </>
       )}
     </div>
   )

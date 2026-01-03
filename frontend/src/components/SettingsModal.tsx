@@ -34,13 +34,6 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     void i18n.changeLanguage(event.target.value)
   }
 
-  const handleRadiusChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(event.target.value, 10)
-    if (!isNaN(value)) {
-      updateSettings({ nearbyStationRadius: value })
-    }
-  }
-
   const handleConnectionTimeChange = (event: ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(event.target.value, 10)
     if (!isNaN(value)) {
@@ -89,29 +82,6 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <option value="de">{t('common.language.options.de')}</option>
             <option value="en">{t('common.language.options.en')}</option>
           </select>
-        </section>
-        <section className="settings-modal__section">
-          <label htmlFor="settings-nearby-radius" className="settings-modal__section-title">
-            {t('settings.nearbyStationRadiusLabel')}
-          </label>
-          <p className="settings-modal__hint">{t('settings.nearbyStationRadiusHint')}</p>
-          <div className="settings-modal__slider-container">
-            <input
-              id="settings-nearby-radius"
-              type="range"
-              min="0"
-              max="200"
-              step="10"
-              value={settings.nearbyStationRadius}
-              onChange={handleRadiusChange}
-              className="settings-modal__slider"
-            />
-            <div className="settings-modal__slider-value">
-              {settings.nearbyStationRadius === 0
-                ? t('settings.nearbyStationRadiusDisabled')
-                : <><strong>{settings.nearbyStationRadius}</strong> m</>}
-            </div>
-          </div>
         </section>
         <section className="settings-modal__section">
           <label htmlFor="settings-connection-time" className="settings-modal__section-title">

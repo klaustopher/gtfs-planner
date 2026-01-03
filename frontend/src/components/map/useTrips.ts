@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
-import { GetUpcomingTrips, GetUpcomingTripsWithNearby } from '../../../wailsjs/go/main/App'
+import { GetUpcomingTrips, GetUpcomingTripsForStations } from '../../../wailsjs/go/main/App'
 import { models } from '../../../wailsjs/go/models'
 
 export interface TripQueryParams {
-  stopId: string
+  stopIds: string[] // Array of station IDs to query
   datetime: string // ISO 8601 format: "2006-01-02T15:04:05"
   limit?: number
-  radiusMeters?: number
 }
 
 export interface UseTripsResult {
@@ -35,9 +34,9 @@ export function useTrips(params: TripQueryParams | null): UseTripsResult {
       return
     }
 
-    const { stopId, datetime, limit = DEFAULT_LIMIT, radiusMeters = 0 } = params
+    const { stopIds, datetime, limit = DEFAULT_LIMIT } = params
 
-    if (!stopId || !datetime) {
+    if (!stopIds || stopIds.length === 0 || !datetime) {
       setTripsData(null)
       setError(null)
       return
@@ -46,12 +45,8 @@ export function useTrips(params: TripQueryParams | null): UseTripsResult {
     setIsLoading(true)
     setError(null)
 
-    // Choose method based on radius
-    const fetchPromise = radiusMeters > 0
-      ? GetUpcomingTripsWithNearby(stopId, radiusMeters, datetime, limit)
-      : GetUpcomingTrips(stopId, datetime, limit)
-
-    fetchPromise
+    // Use new GetUpcomingTripsForStations method
+    GetUpcomingTripsForStations(stopIds, datetime, limit)
       .then((data) => {
         setTripsData(data)
         setError(null)

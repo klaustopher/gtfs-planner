@@ -97,6 +97,19 @@ func (a *App) GetNearbyStations(stopID string, radiusMeters float64) ([]models.S
 	return a.db.GetNearbyStations(stopID, radiusMeters)
 }
 
+// GetUpcomingTripsForStations returns upcoming trips from multiple stations.
+// datetime should be in ISO 8601 format: "2006-01-02T15:04:05".
+// stopIDs is an array of station IDs to fetch trips from.
+func (a *App) GetUpcomingTripsForStations(stopIDs []string, datetime string, limit int) (*models.UpcomingTripsData, error) {
+	if a.db == nil {
+		return nil, fmt.Errorf("database not connected")
+	}
+	if len(stopIDs) == 0 {
+		return &models.UpcomingTripsData{Trips: []models.UpcomingTrip{}, Stations: []models.Stop{}}, nil
+	}
+	return a.db.GetUpcomingTripsForStations(stopIDs, datetime, limit)
+}
+
 // GetUpcomingTripsWithNearby returns upcoming trips from a station and nearby stations.
 // datetime should be in ISO 8601 format: "2006-01-02T15:04:05".
 // radiusMeters should be between 0 and 200 (0 means no nearby stations).
@@ -318,8 +331,8 @@ func (a *App) ExportJourneyToICS(journey models.JourneyData) (string, error) {
 		}
 
 		// Fetch trip details to get platform codes
-		serviceDate := trip.DepartureDateTime[0:10]                        // Extract YYYY-MM-DD
-		serviceDate = strings.ReplaceAll(serviceDate, "-", "")             // Convert to YYYYMMDD
+		serviceDate := trip.DepartureDateTime[0:10]            // Extract YYYY-MM-DD
+		serviceDate = strings.ReplaceAll(serviceDate, "-", "") // Convert to YYYYMMDD
 		tripDetails, err := a.db.GetTripDetails(trip.TripID, serviceDate)
 		if err != nil {
 			return "", fmt.Errorf("failed to get trip details: %w", err)
@@ -513,8 +526,8 @@ func (a *App) ExportJourneyToPDF(journey models.JourneyData) (string, error) {
 		}
 
 		// Fetch trip details to get platform codes
-		serviceDate := trip.DepartureDateTime[0:10]                        // Extract YYYY-MM-DD
-		serviceDate = strings.ReplaceAll(serviceDate, "-", "")             // Convert to YYYYMMDD
+		serviceDate := trip.DepartureDateTime[0:10]            // Extract YYYY-MM-DD
+		serviceDate = strings.ReplaceAll(serviceDate, "-", "") // Convert to YYYYMMDD
 		tripDetails, err := a.db.GetTripDetails(trip.TripID, serviceDate)
 		if err != nil {
 			return "", fmt.Errorf("failed to get trip details: %w", err)

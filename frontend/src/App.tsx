@@ -3,7 +3,7 @@ import Map, { MapViewState } from './components/Map'
 import Sidebar from './components/Sidebar'
 import TripDetailModal from './components/TripDetailModal'
 import { models } from '../wailsjs/go/models'
-import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, ShowConfirmDialog } from '../wailsjs/go/main/App'
+import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, ShowConfirmDialog, GetNearbyStations } from '../wailsjs/go/main/App'
 import { useTrips, TripQueryParams } from './components/map/useTrips'
 import { useJourneyView } from './hooks/useJourneyView'
 import { useSettings } from './hooks/useSettings'
@@ -69,6 +69,10 @@ function App() {
   const [viewState, setViewState] = useState<MapViewState | null>(null)
   const [selectedStation, setSelectedStation] = useState<models.StationDetails | null>(null)
 
+  // Nearby stations state
+  const [nearbyStations, setNearbyStations] = useState<models.Stop[]>([])
+  const [selectedNearbyStationIds, setSelectedNearbyStationIds] = useState<Set<string>>(new Set())
+
   // Date/time state - initialize with current date and time
   const now = useMemo(() => new Date(), [])
   const [selectedDate, setSelectedDate] = useState(() => formatDateForInput(now))
@@ -94,6 +98,43 @@ function App() {
   const isViewingMode = planningMode === 'viewing'
   const hasJourney = savedTrips.length > 0
   const canEditTime = planningMode === 'initial' && savedTrips.length === 0
+
+  // Fetch nearby stations when selected station changes
+  useEffect(() => {
+    if (!selectedStation) {
+      setNearbyStations([])
+      setSelectedNearbyStationIds(new Set())
+      return
+    }
+
+    const fetchNearbyStations = async () => {
+      try {
+        const nearby = await GetNearbyStations(selectedStation.stop_id, 200)
+        setNearbyStations(nearby || [])
+        // Reset selected nearby stations when main station changes
+        setSelectedNearbyStationIds(new Set())
+      } catch (err) {
+        console.error('Failed to fetch nearby stations:', err)
+        setNearbyStations([])
+        setSelectedNearbyStationIds(new Set())
+      }
+    }
+
+    void fetchNearbyStations()
+  }, [selectedStation])
+
+  // Handler to toggle nearby station selection
+  const toggleNearbyStation = useCallback((stationId: string) => {
+    setSelectedNearbyStationIds(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(stationId)) {
+        newSet.delete(stationId)
+      } else {
+        newSet.add(stationId)
+      }
+      return newSet
+    })
+  }, [])
 
   // Handler to add a trip to the saved list
   const addSavedTrip = useCallback((trip: SavedTrip) => {
@@ -400,13 +441,16 @@ function App() {
   // Build trip query params when station is selected
   const tripQueryParams: TripQueryParams | null = useMemo(() => {
     if (!selectedStation) return null
+
+    // Build array of station IDs: main station + selected nearby stations
+    const stationIds = [selectedStation.stop_id, ...Array.from(selectedNearbyStationIds)]
+
     return {
-      stopId: selectedStation.stop_id,
+      stopIds: stationIds,
       datetime: combineToISO8601(selectedDate, selectedTime),
       limit: UPCOMING_TRIPS_LIMIT,
-      radiusMeters: settings.nearbyStationRadius,
     }
-  }, [selectedStation, selectedDate, selectedTime, settings.nearbyStationRadius])
+  }, [selectedStation, selectedDate, selectedTime, selectedNearbyStationIds])
 
   // Fetch upcoming trips when a station is selected
   const { tripsData, isLoading: isLoadingTrips } = useTrips(tripQueryParams)
@@ -482,6 +526,9 @@ function App() {
         journeyViewData={journeyViewData}
         isLoadingJourneyView={isLoadingJourneyView}
         journeyData={journeyData}
+        nearbyStations={nearbyStations}
+        selectedNearbyStationIds={selectedNearbyStationIds}
+        onToggleNearbyStation={toggleNearbyStation}
       />
       {tripModalData && selectedStation && (
         <TripDetailModal

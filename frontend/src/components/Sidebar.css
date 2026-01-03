@@ -146,6 +146,55 @@
   font-weight: 700;
 }
 
+/* Nearby stations section */
+.nearby-stations-section {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 12px;
+}
+
+.nearby-stations-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 10px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.nearby-stations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nearby-station-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.nearby-station-checkbox:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.nearby-station-checkbox input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: #007aff;
+}
+
+.nearby-station-name {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  flex: 1;
+}
+
 /* Trips section */
 .trips-section {
   flex: 1;

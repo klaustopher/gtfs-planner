@@ -1,7 +1,6 @@
 import { createContext } from 'react'
 
 export interface Settings {
-  nearbyStationRadius: number // in meters, 0-200
   connectionTimeMinutes: number // in minutes, 0-30
 }
 

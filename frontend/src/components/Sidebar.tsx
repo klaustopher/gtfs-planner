@@ -31,6 +31,9 @@ interface SidebarProps {
   journeyViewData: JourneyViewData | null
   isLoadingJourneyView: boolean
   journeyData: models.JourneyData | null
+  nearbyStations: models.Stop[]
+  selectedNearbyStationIds: Set<string>
+  onToggleNearbyStation: (stationId: string) => void
 }
 
 export default function Sidebar({
@@ -51,6 +54,9 @@ export default function Sidebar({
   journeyViewData,
   isLoadingJourneyView,
   journeyData,
+  nearbyStations,
+  selectedNearbyStationIds,
+  onToggleNearbyStation,
 }: SidebarProps) {
   const { t, i18n } = useTranslation()
   const rawLanguage = i18n.resolvedLanguage || i18n.language || 'en'
@@ -89,6 +95,9 @@ export default function Sidebar({
           isLoadingTrips={isLoadingTrips}
           onTripClick={onTripClick}
           timeLocale={timeLocale}
+          nearbyStations={nearbyStations}
+          selectedNearbyStationIds={selectedNearbyStationIds}
+          onToggleNearbyStation={onToggleNearbyStation}
         />
       )}
 

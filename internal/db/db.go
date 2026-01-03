@@ -538,6 +538,23 @@ func (db *DB) GetUpcomingTripsWithNearby(stopID string, radiusMeters float64, da
 		stationIDs = append(stationIDs, station.StopID)
 	}
 
+	return db.GetUpcomingTripsForStations(stationIDs, datetime, limit)
+}
+
+// GetUpcomingTripsForStations returns upcoming trips from multiple stations.
+// This is the core implementation that fetches and merges trips from multiple station IDs.
+func (db *DB) GetUpcomingTripsForStations(stationIDs []string, datetime string, limit int) (*models.UpcomingTripsData, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 50 {
+		limit = 50
+	}
+
+	if len(stationIDs) == 0 {
+		return &models.UpcomingTripsData{Trips: []models.UpcomingTrip{}, Stations: []models.Stop{}}, nil
+	}
+
 	// Extract date and time from ISO 8601 datetime
 	date, timeStr, err := timeutil.ExtractDateAndTime(datetime)
 	if err != nil {
