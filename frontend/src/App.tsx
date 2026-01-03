@@ -8,9 +8,13 @@ import { useTrips, TripQueryParams } from './components/map/useTrips'
 import { useJourneyView } from './hooks/useJourneyView'
 import { useSettings } from './hooks/useSettings'
 import { useTranslation } from 'react-i18next'
+import { normalizeColor, FALLBACK_COLORS } from './components/map/geojson'
 import './App.css'
 
 const UPCOMING_TRIPS_LIMIT = 10
+
+// Planning mode state
+type PlanningMode = 'initial' | 'planning' | 'viewing'
 
 // Saved trip for the journey planner
 export interface SavedTrip {
@@ -19,7 +23,8 @@ export interface SavedTrip {
   routeId: string
   routeType: number
   routeShortName: string
-  routeColor: string
+  routeColor: string // Raw GTFS route color (may be empty/invalid)
+  displayColor: string // Computed display color (with fallback applied) - always set
   startStationId: string
   startStationName: string
   departureDateTime: string // ISO 8601 format
@@ -82,8 +87,15 @@ function App() {
     tripIndex: number
   } | null>(null)
 
-  // Journey view mode - displays the complete journey on the map
-  const [journeyViewMode, setJourneyViewMode] = useState(false)
+  // Planning mode state
+  const [planningMode, setPlanningMode] = useState<PlanningMode>('initial')
+
+  // Derived values
+  const isInitialMode = planningMode === 'initial' && savedTrips.length === 0
+  const isPlanningMode = planningMode === 'planning' || (planningMode === 'initial' && savedTrips.length > 0)
+  const isViewingMode = planningMode === 'viewing'
+  const hasJourney = savedTrips.length > 0
+  const canEditTime = planningMode === 'initial' && savedTrips.length === 0
 
   // Handler to add a trip to the saved list
   const addSavedTrip = useCallback((trip: SavedTrip) => {
@@ -96,6 +108,12 @@ function App() {
   const removeSavedTrip = useCallback(async (tripId: string) => {
     setSavedTrips(prev => {
       const newTrips = prev.filter(t => t.id !== tripId)
+
+      // If all trips removed, return to initial mode and clear station
+      if (newTrips.length === 0) {
+        setPlanningMode('initial')
+        setSelectedStation(null)
+      }
 
       // If there are remaining trips, reset to the last trip's arrival station
       if (newTrips.length > 0) {
@@ -119,17 +137,35 @@ function App() {
     setHasUnsavedChanges(true)
   }, [settings.connectionTimeMinutes])
 
-  // Handler to clear all saved trips
-  const clearSavedTrips = useCallback(() => {
-    setSavedTrips([])
-    setJourneyViewMode(false)
-    setHasUnsavedChanges(true)
-  }, [])
+  // Enter journey view mode
+  const enterViewMode = useCallback(() => {
+    if (savedTrips.length === 0) return
+    setPlanningMode('viewing')
+  }, [savedTrips.length])
 
-  // Toggle journey view mode
-  const toggleJourneyView = useCallback(() => {
-    setJourneyViewMode(prev => !prev)
-  }, [])
+  // Return to planning mode from viewing
+  const returnToPlanning = useCallback(async () => {
+    setPlanningMode('planning')
+
+    // Auto-select last arrival station
+    if (savedTrips.length > 0) {
+      const lastTrip = savedTrips[savedTrips.length - 1]
+      try {
+        const stationDetails = await GetStationDetails(lastTrip.endStationId)
+        setSelectedStation(stationDetails)
+      } catch (err) {
+        console.error('Failed to fetch station details:', err)
+      }
+
+      // Set time to last arrival + connection time
+      const { date, time } = addMinutesToDateTime(
+        lastTrip.arrivalDateTime,
+        settings.connectionTimeMinutes
+      )
+      setSelectedDate(date)
+      setSelectedTime(time)
+    }
+  }, [savedTrips, settings.connectionTimeMinutes])
 
   // Handler to open trip detail modal
   const handleTripClick = useCallback((trip: models.UpcomingTrip, tripIndex: number) => {
@@ -145,6 +181,8 @@ function App() {
   // This adds the trip to saved list, sets destination as selected station, and advances time
   const handleTripSelection = useCallback(async (
     trip: models.UpcomingTrip,
+    tripIndex: number,
+    displayColor: string,
     destinationStopId: string,
     destinationStopName: string,
     arrivalDateTime: string
@@ -157,6 +195,7 @@ function App() {
       routeType: trip.route_type,
       routeShortName: trip.display_name,
       routeColor: trip.route_color,
+      displayColor: displayColor,
       startStationId: trip.start_station_id,
       startStationName: trip.start_station_name,
       departureDateTime: trip.departure_datetime,
@@ -165,6 +204,11 @@ function App() {
       arrivalDateTime: arrivalDateTime,
     }
     addSavedTrip(savedTrip)
+
+    // Enter planning mode when first trip is added
+    if (savedTrips.length === 0) {
+      setPlanningMode('planning')
+    }
 
     // Fetch destination station details and set as selected
     try {
@@ -178,7 +222,7 @@ function App() {
     const { date, time } = addMinutesToDateTime(arrivalDateTime, settings.connectionTimeMinutes)
     setSelectedDate(date)
     setSelectedTime(time)
-  }, [addSavedTrip, settings.connectionTimeMinutes])
+  }, [addSavedTrip, savedTrips.length, settings.connectionTimeMinutes])
 
   // Save journey to file
   const handleSaveJourney = useCallback(async () => {
@@ -233,13 +277,18 @@ function App() {
 
         // Hydrate saved trips from database
         const hydratedTrips: SavedTrip[] = []
-        for (const tripData of journey.savedTrips) {
+        for (let i = 0; i < journey.savedTrips.length; i++) {
+          const tripData = journey.savedTrips[i]
           try {
             // Fetch route info
             const route = await GetRouteByID(tripData.routeId)
             // Fetch station names
             const startStation = await GetStationDetails(tripData.startStationId)
             const endStation = await GetStationDetails(tripData.endStationId)
+
+            // Compute display color with fallback (using trip index in journey)
+            const normalizedColor = normalizeColor(route.route_color)
+            const displayColor = normalizedColor ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]
 
             hydratedTrips.push({
               id: `${tripData.tripId}-${tripData.endStationId}-${Date.now()}`,
@@ -248,6 +297,7 @@ function App() {
               routeType: route.route_type,
               routeShortName: route.route_short_name,
               routeColor: route.route_color,
+              displayColor: displayColor,
               startStationId: tripData.startStationId,
               startStationName: startStation.stop_name,
               departureDateTime: tripData.departureDateTime,
@@ -286,7 +336,7 @@ function App() {
 
         // Automatically enter journey view mode if there are trips
         if (hydratedTrips.length > 0) {
-          setJourneyViewMode(true)
+          setPlanningMode('viewing')
         }
       }
     } catch (err) {
@@ -296,12 +346,12 @@ function App() {
 
   // Start new journey
   const handleNewJourney = useCallback(async () => {
-    // Warn about unsaved changes
-    if (hasUnsavedChanges) {
-      const confirmed = await ShowConfirmDialog(
-        t('journey.unsaved.title'),
-        t('journey.unsaved.message')
-      )
+    // Warn about unsaved changes or existing journey
+    if (hasUnsavedChanges || savedTrips.length > 0) {
+      const title = hasUnsavedChanges ? t('journey.unsaved.title') : t('journey.clearConfirm.title')
+      const message = hasUnsavedChanges ? t('journey.unsaved.message') : t('journey.clearConfirm.message')
+
+      const confirmed = await ShowConfirmDialog(title, message)
       if (!confirmed) {
         return
       }
@@ -310,13 +360,13 @@ function App() {
     // Reset all journey state
     setSavedTrips([])
     setSelectedStation(null)
-    setJourneyViewMode(false)
+    setPlanningMode('initial')
     const now = new Date()
     setSelectedDate(formatDateForInput(now))
     setSelectedTime(formatTimeForInput(now))
     setCurrentFilePath(null)
     setHasUnsavedChanges(false)
-  }, [hasUnsavedChanges, t])
+  }, [hasUnsavedChanges, savedTrips.length, t])
 
   // Handler to reset time to current time or last arrival + connection time
   const handleResetTime = useCallback(() => {
@@ -366,7 +416,7 @@ function App() {
   // Fetch journey view data when in journey view mode
   const { data: journeyViewData, isLoading: isLoadingJourneyView } = useJourneyView(
     savedTrips,
-    journeyViewMode
+    isViewingMode
   )
 
   // Build journey data for export
@@ -410,7 +460,9 @@ function App() {
           onTimeChange={setSelectedTime}
           onTripSelection={handleTripSelection}
           onResetTime={handleResetTime}
-          journeyViewMode={journeyViewMode}
+          planningMode={planningMode}
+          canEditTime={canEditTime}
+          hasJourney={hasJourney}
           journeyViewData={journeyViewData}
         />
       </div>
@@ -420,15 +472,15 @@ function App() {
         isLoadingTrips={isLoadingTrips}
         savedTrips={savedTrips}
         onRemoveSavedTrip={removeSavedTrip}
-        onClearSavedTrips={clearSavedTrips}
         onTripClick={handleTripClick}
         hasUnsavedChanges={hasUnsavedChanges}
         currentFilePath={currentFilePath}
         onSaveJourney={handleSaveJourney}
         onLoadJourney={handleLoadJourney}
         onNewJourney={handleNewJourney}
-        journeyViewMode={journeyViewMode}
-        onToggleJourneyView={toggleJourneyView}
+        planningMode={planningMode}
+        onEnterViewMode={enterViewMode}
+        onReturnToPlanning={returnToPlanning}
         journeyViewData={journeyViewData}
         isLoadingJourneyView={isLoadingJourneyView}
         journeyData={journeyData}

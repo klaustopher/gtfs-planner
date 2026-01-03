@@ -4,24 +4,37 @@
   height: 100%;
 }
 
-.map-search {
+.map-controls-wrapper {
   position: absolute;
   top: 16px;
   left: 16px;
   width: min(320px, calc(100% - 32px));
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.map-search {
   padding: 12px;
   border-radius: 16px;
   background: rgba(12, 15, 30, 0.8);
   backdrop-filter: blur(8px);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
   color: #f9fafb;
-  z-index: 2;
   font-family: inherit;
+}
+
+.map-search__input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .map-search input {
   width: 100%;
   padding: 10px 12px;
+  padding-right: 36px;
   border: none;
   border-radius: 10px;
   font-size: 0.95rem;
@@ -32,6 +45,35 @@
 .map-search input:focus {
   outline: 2px solid rgba(255, 255, 255, 0.5);
   background: rgba(255, 255, 255, 0.2);
+}
+
+.map-search__clear {
+  position: absolute;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-search__clear:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.map-search__clear:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .map-search__status-row {
@@ -94,13 +136,21 @@
   border: 0;
 }
 
+/* Date/time picker container */
+.map-datetime-container {
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(12, 15, 30, 0.8);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  color: #f9fafb;
+  font-family: inherit;
+}
+
 /* Date/time picker */
 .map-datetime {
   display: flex;
   gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .map-datetime__label {
@@ -126,6 +176,12 @@
 .map-datetime__input:focus {
   outline: 2px solid rgba(255, 255, 255, 0.5);
   background: rgba(255, 255, 255, 0.2);
+}
+
+.map-datetime__input:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .map-datetime__reset {

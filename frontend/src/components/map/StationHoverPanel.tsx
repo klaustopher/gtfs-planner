@@ -18,6 +18,8 @@ interface StationHoverPanelProps {
   trips: models.UpcomingTrip[]
   onTripSelect: (
     trip: models.UpcomingTrip,
+    tripIndex: number,
+    displayColor: string,
     destinationStopId: string,
     destinationStopName: string,
     arrivalDateTime: string
@@ -92,7 +94,7 @@ export default function StationHoverPanel({
             <button
               key={`${trip.trip_id}-${stopId}`}
               className="station-hover-panel__trip-btn"
-              onClick={() => onTripSelect(trip, stopId, stopName, arrivalDateTime)}
+              onClick={() => onTripSelect(trip, tripIndex, tripColor, stopId, stopName, arrivalDateTime)}
             >
               <span
                 className="station-hover-panel__badge"

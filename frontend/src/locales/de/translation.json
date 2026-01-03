@@ -27,9 +27,19 @@
     "removeTrip": "Verbindung entfernen",
     "showOnMap": "Auf Karte",
     "hideOnMap": "Ausblenden",
+    "viewJourney": "Reise ansehen",
+    "viewJourneyTooltip": "Vollständige Reise auf Karte anzeigen",
+    "editJourney": "Reise bearbeiten",
+    "returnToPlanning": "Zurück zur Planung",
+    "returnToPlanningTooltip": "Planung ab letzter Ankunft fortsetzen",
+    "footpath": "Fußweg",
     "unsaved": {
       "title": "Ungespeicherte Änderungen",
       "message": "Es gibt ungespeicherte Änderungen. Möchten Sie fortfahren und diese verwerfen?"
+    },
+    "clearConfirm": {
+      "title": "Reise löschen",
+      "message": "Sind Sie sicher, dass Sie alle gespeicherten Fahrten löschen möchten? Dies kann nicht rückgängig gemacht werden."
     },
     "export": {
       "title": "Reise exportieren",
@@ -59,6 +69,7 @@
   },
   "stationSection": {
     "selectPrompt": "Station auswählen",
+    "initialHint": "Suchen Sie eine Station oder klicken Sie auf die Karte, um Ihre Reise zu planen",
     "hint": "Klicke auf eine Station in der Karte, um Abfahrten zu sehen",
     "loading": "Lade Abfahrten...",
     "empty": "Keine Abfahrten für diese Zeit gefunden",
@@ -69,6 +80,7 @@
     "search": {
       "label": "Station suchen",
       "placeholder": "Station suchen...",
+      "clearButton": "Suche löschen",
       "status": {
         "searching": "Suche läuft...",
         "empty": "Keine Station gefunden"

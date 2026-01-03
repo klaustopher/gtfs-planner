@@ -48,14 +48,12 @@ function calculateDuration(start: string, end: string): number {
   return Math.round((endDate.getTime() - startDate.getTime()) / 60000)
 }
 
-// Format duration for display
+// Format duration for display in time format (e.g., "22:45h")
 function formatDuration(minutes: number, t: (key: string) => string): string {
   const hours = Math.floor(minutes / 60)
   const mins = minutes % 60
-  if (hours > 0) {
-    return `${hours} ${t('journey.export.hours')} ${mins} ${t('journey.export.minutes')}`
-  }
-  return `${mins} ${t('journey.export.minutes')}`
+  const paddedMins = mins.toString().padStart(2, '0')
+  return `${hours}:${paddedMins}h`
 }
 
 // Extract service date (YYYYMMDD) from ISO datetime

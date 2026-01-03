@@ -33,6 +33,8 @@ export interface HoveredStationInfo {
   screenY: number
 }
 
+type PlanningMode = 'initial' | 'planning' | 'viewing'
+
 interface MapProps {
   onViewStateChange?: (viewState: MapViewState) => void
   onStationSelect?: (station: models.StationDetails | null) => void
@@ -45,12 +47,16 @@ interface MapProps {
   onTimeChange: (time: string) => void
   onTripSelection?: (
     trip: models.UpcomingTrip,
+    tripIndex: number,
+    displayColor: string,
     destinationStopId: string,
     destinationStopName: string,
     arrivalTime: string
   ) => void
   onResetTime: () => void
-  journeyViewMode?: boolean
+  planningMode: PlanningMode
+  canEditTime: boolean
+  hasJourney: boolean
   journeyViewData?: JourneyViewData | null
 }
 
@@ -91,10 +97,18 @@ export default function Map({
   onTimeChange,
   onTripSelection,
   onResetTime,
-  journeyViewMode,
+  planningMode,
+  canEditTime,
+  hasJourney,
   journeyViewData,
 }: MapProps) {
   const { t } = useTranslation()
+
+  // Derived values
+  const isInitialMode = planningMode === 'initial' && !hasJourney
+  const isPlanningMode = planningMode === 'planning' || (planningMode === 'initial' && hasJourney)
+  const isViewingMode = planningMode === 'viewing'
+
   const [viewState, setViewState] = useState(INITIAL_VIEW_STATE)
   const [isLoadingStation, setIsLoadingStation] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -123,7 +137,7 @@ export default function Map({
   // - When station is selected: show trip stations
   // - Otherwise: show all viewport stops
   const displayStops = useMemo(() => {
-    if (journeyViewMode && journeyViewData?.markers) {
+    if (isViewingMode && journeyViewData?.markers) {
       // Extract unique stations from journey markers
       const journeyStationIds = new Set(journeyViewData.markers.map(m => m.stationId))
       const journeyStops: models.Stop[] = journeyViewData.markers.map(marker => ({
@@ -138,7 +152,7 @@ export default function Map({
       )
     }
     return tripsData?.stations ?? viewportStops
-  }, [journeyViewMode, journeyViewData, tripsData, viewportStops])
+  }, [isViewingMode, journeyViewData, tripsData, viewportStops])
 
   const stopsGeojsonData = useMemo(() => stopsToGeoJSON(displayStops), [displayStops])
 
@@ -326,13 +340,15 @@ export default function Map({
   const handleHoverTripSelect = useCallback(
     (
       trip: models.UpcomingTrip,
+      tripIndex: number,
+      displayColor: string,
       destinationStopId: string,
       destinationStopName: string,
       arrivalTime: string
     ) => {
       setHoveredStation(null)
       if (onTripSelection) {
-        onTripSelection(trip, destinationStopId, destinationStopName, arrivalTime)
+        onTripSelection(trip, tripIndex, displayColor, destinationStopId, destinationStopName, arrivalTime)
       }
     },
     [onTripSelection]
@@ -384,26 +400,48 @@ export default function Map({
     }
   }, [searchTerm])
 
+  // Track last selected station to prevent re-centering
   useEffect(() => {
     if (selectedStation) {
-      if (selectedStation.stop_id === lastSelectedStationIdRef.current) {
-        return
-      }
       lastSelectedStationIdRef.current = selectedStation.stop_id
-      setViewState((prev) => ({
-        ...prev,
-        longitude: selectedStation.stop_lon,
-        latitude: selectedStation.stop_lat,
-        zoom: Math.max(prev.zoom, SEARCH_FOCUS_ZOOM),
-      }))
     } else {
       lastSelectedStationIdRef.current = null
     }
   }, [selectedStation])
 
+  // Fit map to show all trip routes when station is selected
+  useEffect(() => {
+    if (!selectedStation || !tripsData?.stations || tripsData.stations.length === 0 || isViewingMode) {
+      return
+    }
+
+    const map = mapRef.current?.getMap()
+    if (!map) {
+      return
+    }
+
+    // Calculate bounds from all trip stations
+    const bounds = new LngLatBounds()
+
+    // Include selected station
+    bounds.extend([selectedStation.stop_lon, selectedStation.stop_lat])
+
+    // Include all destination stations
+    for (const station of tripsData.stations) {
+      bounds.extend([station.stop_lon, station.stop_lat])
+    }
+
+    // Fit the map to the bounds with padding
+    map.fitBounds(bounds, {
+      padding: { top: 80, bottom: 40, left: 350, right: 40 }, // Extra left padding for sidebar
+      maxZoom: 13,
+      duration: 500,
+    })
+  }, [selectedStation, tripsData, isViewingMode])
+
   // Fit map to journey bounds when entering journey view mode
   useEffect(() => {
-    if (!journeyViewMode || !journeyViewData || journeyViewData.legs.length === 0) {
+    if (!isViewingMode || !journeyViewData || journeyViewData.legs.length === 0) {
       return
     }
 
@@ -432,10 +470,16 @@ export default function Map({
       maxZoom: 14,
       duration: 500,
     })
-  }, [journeyViewMode, journeyViewData])
+  }, [isViewingMode, journeyViewData])
 
   const handleSearchInputChange = useCallback((evt: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(evt.target.value)
+  }, [])
+
+  const handleSearchClear = useCallback(() => {
+    setSearchTerm('')
+    setSearchResults([])
+    setActiveResultIndex(-1)
   }, [])
 
   const handleSearchResultSelect = useCallback(
@@ -504,75 +548,98 @@ export default function Map({
 
   return (
     <div className="map-shell">
-      <div className="map-search" role="search">
-        <label className="map-search__sr-only" htmlFor="map-search-input">
-          {t('map.search.label')}
-        </label>
-        <input
-          id="map-search-input"
-          type="text"
-          placeholder={t('map.search.placeholder')}
-          value={searchTerm}
-          onChange={handleSearchInputChange}
-          onKeyDown={handleSearchKeyDown}
-          autoComplete="off"
-          spellCheck={false}
-        />
-        {(isSearching || showEmptyState) && (
-          <div className="map-search__status-row">
-            {isSearching && <span className="map-search__status">{t('map.search.status.searching')}</span>}
-            {showEmptyState && <span className="map-search__status">{t('map.search.status.empty')}</span>}
+      <div className="map-controls-wrapper">
+        {isInitialMode && (
+          <div className="map-search" role="search">
+            <label className="map-search__sr-only" htmlFor="map-search-input">
+              {t('map.search.label')}
+            </label>
+            <div className="map-search__input-wrapper">
+              <input
+                id="map-search-input"
+                type="text"
+                placeholder={t('map.search.placeholder')}
+                value={searchTerm}
+                onChange={handleSearchInputChange}
+                onKeyDown={handleSearchKeyDown}
+                autoComplete="off"
+                spellCheck={false}
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  className="map-search__clear"
+                  onClick={handleSearchClear}
+                  aria-label={t('map.search.clearButton')}
+                  title={t('map.search.clearButton')}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            {(isSearching || showEmptyState) && (
+              <div className="map-search__status-row">
+                {isSearching && <span className="map-search__status">{t('map.search.status.searching')}</span>}
+                {showEmptyState && <span className="map-search__status">{t('map.search.status.empty')}</span>}
+              </div>
+            )}
+            {showResults && (
+              <ul className="map-search__results" role="listbox" aria-label={t('map.search.resultsAria')}>
+                {searchResults.map((stop, index) => {
+                  const isActive = index === activeResultIndex
+                  return (
+                    <li key={stop.stop_id}>
+                      <button
+                        type="button"
+                        className={`map-search__result${isActive ? ' is-active' : ''}`}
+                        onClick={() => handleSearchResultSelect(stop)}
+                        onMouseEnter={() => setActiveResultIndex(index)}
+                      >
+                        <span className="map-search__result-name">{stop.stop_name}</span>
+                        <span className="map-search__result-meta">{stop.stop_id}</span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </div>
         )}
-        <div className="map-datetime">
-          <label className="map-datetime__label">
-            <span>{t('map.datetime.date')}</span>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={handleDateChange}
-              className="map-datetime__input"
-            />
-          </label>
-          <label className="map-datetime__label">
-            <span>{t('map.datetime.time')}</span>
-            <input
-              type="time"
-              value={selectedTime}
-              onChange={handleTimeChange}
-              className="map-datetime__input"
-            />
-          </label>
-          <button
-            type="button"
-            className="map-datetime__reset"
-            onClick={onResetTime}
-            title={t('map.datetime.resetTooltip')}
-            aria-label={t('map.datetime.resetTooltip')}
-          >
-            ↺
-          </button>
+        <div className="map-datetime-container">
+          <div className="map-datetime">
+            <label className="map-datetime__label">
+              <span>{t('map.datetime.date')}</span>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={handleDateChange}
+                disabled={!canEditTime}
+                readOnly={!canEditTime}
+                className="map-datetime__input"
+              />
+            </label>
+            <label className="map-datetime__label">
+              <span>{t('map.datetime.time')}</span>
+              <input
+                type="time"
+                value={selectedTime}
+                onChange={handleTimeChange}
+                disabled={!canEditTime}
+                readOnly={!canEditTime}
+                className="map-datetime__input"
+              />
+            </label>
+            <button
+              type="button"
+              className="map-datetime__reset"
+              onClick={onResetTime}
+              title={t('map.datetime.resetTooltip')}
+              aria-label={t('map.datetime.resetTooltip')}
+            >
+              ↺
+            </button>
+          </div>
         </div>
-        {showResults && (
-          <ul className="map-search__results" role="listbox" aria-label={t('map.search.resultsAria')}>
-            {searchResults.map((stop, index) => {
-              const isActive = index === activeResultIndex
-              return (
-                <li key={stop.stop_id}>
-                  <button
-                    type="button"
-                    className={`map-search__result${isActive ? ' is-active' : ''}`}
-                    onClick={() => handleSearchResultSelect(stop)}
-                    onMouseEnter={() => setActiveResultIndex(index)}
-                  >
-                    <span className="map-search__result-name">{stop.stop_name}</span>
-                    <span className="map-search__result-meta">{stop.stop_id}</span>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        )}
       </div>
       <MapGL
         ref={mapRef}
@@ -605,7 +672,7 @@ export default function Map({
         }}
       >
         {/* Trip lines layer - only shown when a station is selected and NOT in journey view */}
-        {tripsData && !journeyViewMode && (
+        {tripsData && !isViewingMode && (
           <Source id="trip-lines" type="geojson" data={tripLinesGeojsonData}>
             <Layer
               id="trip-lines"
@@ -624,7 +691,7 @@ export default function Map({
         )}
 
         {/* Journey view layers - shown when in journey view mode */}
-        {journeyViewMode && journeyViewData && (
+        {isViewingMode && journeyViewData && (
           <>
             {/* Walking connections - dashed gray lines */}
             <Source id="walking-connections" type="geojson" data={walkingConnectionsGeojsonData}>
@@ -667,12 +734,13 @@ export default function Map({
           <Layer {...stopsLayerStyle} />
         </Source>
 
-        {selectedStation && !journeyViewMode && (
+        {selectedStation && !isViewingMode && (
           <Popup
             longitude={selectedStation.stop_lon}
             latitude={selectedStation.stop_lat}
             anchor="bottom"
-            onClose={handleClosePopup}
+            onClose={isInitialMode ? handleClosePopup : undefined}
+            closeButton={isInitialMode}
             closeOnClick={false}
           >
             <strong>{selectedStation.stop_name}</strong>
@@ -680,7 +748,7 @@ export default function Map({
         )}
 
         {/* Journey markers - small dots that can be hovered */}
-        {journeyViewMode && journeyViewData?.markers.map((marker, index) => (
+        {isViewingMode && journeyViewData?.markers.map((marker, index) => (
           <div key={`journey-marker-${marker.stationId}-${index}`}>
             {/* Invisible hover target */}
             <Popup
@@ -727,7 +795,7 @@ export default function Map({
       </MapGL>
 
       {/* Hover panel for trip selection - hidden in journey view mode */}
-      {!journeyViewMode && hoveredStation && tripsData?.trips && (
+      {!isViewingMode && hoveredStation && tripsData?.trips && (
         <StationHoverPanel
           stopId={hoveredStation.stopId}
           stopName={hoveredStation.stopName}

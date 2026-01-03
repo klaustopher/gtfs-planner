@@ -27,9 +27,19 @@
     "removeTrip": "Remove connection",
     "showOnMap": "Show on map",
     "hideOnMap": "Hide map",
+    "viewJourney": "View Journey",
+    "viewJourneyTooltip": "View complete journey on map",
+    "editJourney": "Edit Journey",
+    "returnToPlanning": "Return to Planning",
+    "returnToPlanningTooltip": "Continue planning from last arrival",
+    "footpath": "Walk",
     "unsaved": {
       "title": "Unsaved changes",
       "message": "There are unsaved changes. Do you want to continue and discard them?"
+    },
+    "clearConfirm": {
+      "title": "Clear journey",
+      "message": "Are you sure you want to clear all saved trips? This cannot be undone."
     },
     "export": {
       "title": "Export Journey",
@@ -59,6 +69,7 @@
   },
   "stationSection": {
     "selectPrompt": "Select a station",
+    "initialHint": "Search for a station or click on the map to start planning your journey",
     "hint": "Click any station on the map to view departures",
     "loading": "Loading departures...",
     "empty": "No departures found for this time",
@@ -69,6 +80,7 @@
     "search": {
       "label": "Search station",
       "placeholder": "Search station...",
+      "clearButton": "Clear search",
       "status": {
         "searching": "Searching...",
         "empty": "No stations found"

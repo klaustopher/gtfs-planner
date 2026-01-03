@@ -92,17 +92,13 @@
 
 /* Journey actions */
 .journey-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px;
 }
 
 .journey-btn {
-  padding: 10px 12px;
-  border-radius: 8px;
   border: none;
-  font-size: 13px;
-  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
@@ -366,6 +362,29 @@
   color: #4ade80;
 }
 
+.journey-view-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.journey-edit-btn {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #60a5fa;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.journey-edit-btn:hover {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.6);
+  color: #93c5fd;
+}
+
 .clear-trips-btn {
   background: transparent;
   border: 1px solid rgba(255, 100, 100, 0.3);
@@ -398,4 +417,82 @@
 
 .remove-trip-btn:hover {
   color: #ff6b6b;
+}
+
+/* Icon-only journey buttons */
+.journey-btn--icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.8);
+  flex-shrink: 0;
+}
+
+.journey-btn--icon:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 1);
+}
+
+/* Trip connection indicators */
+.trip-connection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 0;
+  margin: 0 12px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.trip-connection__footpath {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.trip-connection__icon {
+  font-size: 14px;
+}
+
+.trip-connection__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.trip-connection__wait {
+  display: flex;
+  align-items: center;
+  padding: 2px 6px;
+  background: rgba(74, 222, 128, 0.1);
+  border-radius: 4px;
+  color: rgba(74, 222, 128, 0.8);
+  font-weight: 500;
+}
+
+.trip-connection__time {
+  font-size: 10px;
+}
+
+/* Update saved-trip-details layout (no arrow) */
+.saved-trip-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+/* Remove saved-trip-arrow (no longer used) */
+.saved-trip-arrow {
+  display: none;
 }

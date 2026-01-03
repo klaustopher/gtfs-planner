@@ -14,6 +14,8 @@ interface TripDetailModalProps {
   onClose: () => void
   onTripSelection: (
     trip: models.UpcomingTrip,
+    tripIndex: number,
+    displayColor: string,
     destinationStopId: string,
     destinationStopName: string,
     arrivalDateTime: string
@@ -126,7 +128,7 @@ export default function TripDetailModal({
 
               const handleStopClick = () => {
                 if (isClickable) {
-                  onTripSelection(trip, stopTime.stop_id, stopTime.stop_name, stopTime.arrival_datetime)
+                  onTripSelection(trip, tripIndex, tripColor, stopTime.stop_id, stopTime.stop_name, stopTime.arrival_datetime)
                   onClose()
                 }
               }

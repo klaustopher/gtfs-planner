@@ -13,17 +13,12 @@ function formatTime(isoDateTime: string, locale: string): string {
   return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
-// Format minutes to hours and minutes
+// Format minutes to hours and minutes in time format (e.g., "22:45h")
 function formatDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60)
   const mins = minutes % 60
-  if (hours === 0) {
-    return `${mins} min`
-  }
-  if (mins === 0) {
-    return `${hours} h`
-  }
-  return `${hours} h ${mins} min`
+  const paddedMins = mins.toString().padStart(2, '0')
+  return `${hours}:${paddedMins}h`
 }
 
 export default function JourneySummaryPanel({ summary, isLoading }: JourneySummaryPanelProps) {
@@ -42,55 +37,31 @@ export default function JourneySummaryPanel({ summary, isLoading }: JourneySumma
 
   return (
     <div className="journey-summary">
-      <div className="journey-summary__times">
-        <div className="journey-summary__time-block">
-          <span className="journey-summary__time-label">{t('journeySummary.departure')}</span>
-          <span className="journey-summary__time-value">
+      <div className="journey-summary__stats">
+        <div className="journey-summary__stat">
+          <span className="journey-summary__stat-label">{t('journeySummary.departure')}</span>
+          <span className="journey-summary__stat-value">
             {formatTime(summary.firstDepartureTime, timeLocale)}
           </span>
         </div>
-        <div className="journey-summary__arrow">→</div>
-        <div className="journey-summary__time-block">
-          <span className="journey-summary__time-label">{t('journeySummary.arrival')}</span>
-          <span className="journey-summary__time-value">
+        <div className="journey-summary__stat">
+          <span className="journey-summary__stat-label">{t('journeySummary.arrival')}</span>
+          <span className="journey-summary__stat-value">
             {formatTime(summary.lastArrivalTime, timeLocale)}
           </span>
         </div>
-      </div>
-
-      <div className="journey-summary__stats">
         <div className="journey-summary__stat">
-          <span className="journey-summary__stat-value">
-            {formatDuration(summary.totalTravelMinutes)}
-          </span>
-          <span className="journey-summary__stat-label">{t('journeySummary.totalTime')}</span>
-        </div>
-        <div className="journey-summary__stat">
-          <span className="journey-summary__stat-value">{summary.numberOfLegs}</span>
           <span className="journey-summary__stat-label">
             {summary.numberOfLegs === 1 ? t('journeySummary.leg') : t('journeySummary.legs')}
           </span>
+          <span className="journey-summary__stat-value">{summary.numberOfLegs}</span>
         </div>
-        {summary.numberOfTransfers > 0 && (
-          <div className="journey-summary__stat">
-            <span className="journey-summary__stat-value">{summary.numberOfTransfers}</span>
-            <span className="journey-summary__stat-label">
-              {summary.numberOfTransfers === 1
-                ? t('journeySummary.transfer')
-                : t('journeySummary.transfers')}
-            </span>
-          </div>
-        )}
-        {summary.numberOfWalkingConnections > 0 && (
-          <div className="journey-summary__stat journey-summary__stat--walking">
-            <span className="journey-summary__stat-value">{summary.numberOfWalkingConnections}</span>
-            <span className="journey-summary__stat-label">
-              {summary.numberOfWalkingConnections === 1
-                ? t('journeySummary.walkingConnection')
-                : t('journeySummary.walkingConnections')}
-            </span>
-          </div>
-        )}
+        <div className="journey-summary__stat">
+          <span className="journey-summary__stat-label">{t('journeySummary.totalTime')}</span>
+          <span className="journey-summary__stat-value">
+            {formatDuration(summary.totalTravelMinutes)}
+          </span>
+        </div>
       </div>
     </div>
   )
