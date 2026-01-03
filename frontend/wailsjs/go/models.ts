@@ -1,3 +1,30 @@
+export namespace geolocation {
+	
+	export class LocationResult {
+	    latitude: number;
+	    longitude: number;
+	    source: string;
+	    city?: string;
+	    country?: string;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new LocationResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.latitude = source["latitude"];
+	        this.longitude = source["longitude"];
+	        this.source = source["source"];
+	        this.city = source["city"];
+	        this.country = source["country"];
+	        this.error = source["error"];
+	    }
+	}
+
+}
+
 export namespace main {
 	
 	export class LoadJourneyResult {
@@ -31,28 +58,6 @@ export namespace main {
 		    }
 		    return a;
 		}
-	}
-	export class LocationResult {
-	    latitude: number;
-	    longitude: number;
-	    source: string;
-	    city?: string;
-	    country?: string;
-	    error?: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new LocationResult(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.latitude = source["latitude"];
-	        this.longitude = source["longitude"];
-	        this.source = source["source"];
-	        this.city = source["city"];
-	        this.country = source["country"];
-	        this.error = source["error"];
-	    }
 	}
 
 }
