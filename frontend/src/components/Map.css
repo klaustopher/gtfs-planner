@@ -267,13 +267,17 @@
 }
 
 .journey-marker-popup .maplibregl-popup-content {
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--space-sm);
-  box-shadow: var(--shadow-lg);
+  background: var(--modal-bg);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--modal-border);
+  color: var(--color-text-primary);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2xl);
 }
 
 .journey-marker-popup .maplibregl-popup-tip {
-  border-top-color: var(--color-text-primary);
+  display: none;
 }
 
 /* Geolocation button */

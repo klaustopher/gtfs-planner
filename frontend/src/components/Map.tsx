@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect, useLayoutEffect } from 'react'
 import type { ChangeEvent } from 'react'
 import MapGL, { ViewStateChangeEvent, Source, Layer, Popup, MapRef } from 'react-map-gl/maplibre'
 import type {
@@ -140,6 +140,84 @@ export default function Map({
   const boundsRef = useRef<Bounds | undefined>(undefined)
   const mapRef = useRef<MapRef | null>(null)
   const lastSelectedStationIdRef = useRef<string | null>(null)
+  const hoverTimeoutRef = useRef<number | null>(null)
+
+  // Debounced hover handlers to prevent flickering
+  const handleMarkerHoverEnter = useCallback((groupIndex: number) => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+    }
+    setHoveredJourneyMarkerIndex(groupIndex)
+  }, [])
+
+  const handleMarkerHoverLeave = useCallback(() => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+    }
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredJourneyMarkerIndex(null)
+    }, 200)
+  }, [])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  // Group markers that belong together (walking transfers create two markers)
+  const groupedMarkers = useMemo(() => {
+    if (!journeyViewData?.markers) return []
+
+    const groups: Array<{
+      indices: number[]
+      markers: typeof journeyViewData.markers
+      centerLon: number
+      centerLat: number
+      isWalkingTransfer: boolean
+    }> = []
+
+    const processed = new Set<number>()
+
+    journeyViewData.markers.forEach((marker, index) => {
+      if (processed.has(index)) return
+
+      // Check if this is a walking transfer marker followed by another walking transfer
+      const nextMarker = journeyViewData.markers[index + 1]
+      const isWalkingGroup = marker.isWalkingTransfer &&
+                            nextMarker?.isWalkingTransfer &&
+                            marker.type === 'transfer' &&
+                            nextMarker.type === 'transfer'
+
+      if (isWalkingGroup && nextMarker) {
+        // Group walking transfer markers together
+        groups.push({
+          indices: [index, index + 1],
+          markers: [marker, nextMarker],
+          centerLon: (marker.lon + nextMarker.lon) / 2,
+          centerLat: (marker.lat + nextMarker.lat) / 2,
+          isWalkingTransfer: true,
+        })
+        processed.add(index)
+        processed.add(index + 1)
+      } else {
+        // Single marker group
+        groups.push({
+          indices: [index],
+          markers: [marker],
+          centerLon: marker.lon,
+          centerLat: marker.lat,
+          isWalkingTransfer: false,
+        })
+        processed.add(index)
+      }
+    })
+
+    return groups
+  }, [journeyViewData?.markers])
 
   // Update viewState when defaultLocation changes (after geolocation is fetched)
   useEffect(() => {
@@ -508,46 +586,50 @@ export default function Map({
           </Source>
         )}
 
-        {/* Journey markers - small dots that can be hovered */}
-        {isViewingMode && journeyViewData?.markers.map((marker, index) => (
-          <div key={`journey-marker-${marker.stationId}-${index}`}>
-            {/* Invisible hover target */}
-            <Popup
-              longitude={marker.lon}
-              latitude={marker.lat}
-              anchor="center"
-              closeButton={false}
-              closeOnClick={false}
-              className="journey-marker-target"
-              onClose={() => {}}
-            >
-              <div
-                onMouseEnter={() => setHoveredJourneyMarkerIndex(index)}
-                onMouseLeave={() => setHoveredJourneyMarkerIndex(null)}
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  cursor: 'pointer',
-                }}
-              />
-            </Popup>
-
-            {/* Popover shown only when hovered */}
-            {hoveredJourneyMarkerIndex === index && (
+        {/* Journey markers - grouped for walking transfers */}
+        {isViewingMode && groupedMarkers.map((group, groupIndex) => (
+          <div key={`journey-marker-group-${groupIndex}`}>
+            {/* Invisible hover targets for each marker in the group */}
+            {group.markers.map((marker, markerIndex) => (
               <Popup
+                key={`hover-target-${groupIndex}-${markerIndex}`}
                 longitude={marker.lon}
                 latitude={marker.lat}
-                anchor={marker.anchor || 'bottom'}
-                offset={marker.offset}
+                anchor="bottom"
+                offset={[0, 0]}
+                closeButton={false}
+                closeOnClick={false}
+                className="journey-marker-target"
+                onClose={() => {}}
+              >
+                <div
+                  onMouseEnter={() => handleMarkerHoverEnter(groupIndex)}
+                  onMouseLeave={handleMarkerHoverLeave}
+                  style={{
+                    width: '48px',
+                    height: '56px',
+                    cursor: 'pointer',
+                  }}
+                />
+              </Popup>
+            ))}
+
+            {/* Single popover for the group, shown when any marker is hovered */}
+            {hoveredJourneyMarkerIndex === groupIndex && (
+              <Popup
+                longitude={group.centerLon}
+                latitude={group.centerLat}
+                anchor={group.isWalkingTransfer ? 'bottom' : (group.markers[0].anchor || 'bottom')}
+                offset={group.isWalkingTransfer ? [0, -15] : group.markers[0].offset}
                 closeButton={false}
                 closeOnClick={false}
                 className="journey-marker-popup"
               >
                 <div
-                  onMouseEnter={() => setHoveredJourneyMarkerIndex(index)}
-                  onMouseLeave={() => setHoveredJourneyMarkerIndex(null)}
+                  onMouseEnter={() => handleMarkerHoverEnter(groupIndex)}
+                  onMouseLeave={handleMarkerHoverLeave}
                 >
-                  <JourneyMarkerPopover marker={marker} />
+                  <JourneyMarkerPopover markers={group.markers} />
                 </div>
               </Popup>
             )}

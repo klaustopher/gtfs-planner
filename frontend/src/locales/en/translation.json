@@ -105,7 +105,8 @@
     "platform": "Pl.",
     "walkTo": "Walk to next station",
     "walkFrom": "Footpath from previous station",
-    "minutes": "min"
+    "minutes": "min",
+    "walkingTransfer": "Transfer with footpath"
   },
   "transportType": {
     "short": {

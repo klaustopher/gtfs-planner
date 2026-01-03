@@ -105,7 +105,8 @@
     "platform": "Gl.",
     "walkTo": "Fußweg zur nächsten Station",
     "walkFrom": "Fußweg von vorheriger Station",
-    "minutes": "min"
+    "minutes": "min",
+    "walkingTransfer": "Umstieg mit Fußweg"
   },
   "transportType": {
     "short": {
