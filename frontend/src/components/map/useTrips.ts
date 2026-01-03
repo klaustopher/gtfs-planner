@@ -64,7 +64,7 @@ export function useTrips(params: TripQueryParams | null): UseTripsResult {
       .finally(() => {
         setIsLoading(false)
       })
-  }, [params?.stopId, params?.datetime, params?.limit, params?.radiusMeters, refetchTrigger])
+  }, [params, refetchTrigger])
 
   return { tripsData, isLoading, error, refetch }
 }

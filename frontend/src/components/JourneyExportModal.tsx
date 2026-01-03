@@ -49,7 +49,7 @@ function calculateDuration(start: string, end: string): number {
 }
 
 // Format duration for display in time format (e.g., "22:45h")
-function formatDuration(minutes: number, t: (key: string) => string): string {
+function formatDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60)
   const mins = minutes % 60
   const paddedMins = mins.toString().padStart(2, '0')
@@ -203,7 +203,7 @@ export default function JourneyExportModal({
                 {t('journey.export.totalDuration')}:
               </span>
               <span className="journey-export-modal__summary-value">
-                {formatDuration(totalDuration, t)}
+                {formatDuration(totalDuration)}
               </span>
             </div>
             {savedTrips.length > 0 && (
@@ -269,8 +269,7 @@ export default function JourneyExportModal({
                   </div>
                   <div className="journey-export-modal__trip-duration">
                     {formatDuration(
-                      calculateDuration(trip.departureDateTime, trip.arrivalDateTime),
-                      t
+                      calculateDuration(trip.departureDateTime, trip.arrivalDateTime)
                     )}
                   </div>
                 </div>

@@ -9,7 +9,6 @@ import './TripDetailModal.css'
 interface TripDetailModalProps {
   trip: models.UpcomingTrip
   tripIndex: number
-  selectedStationId: string
   serviceDate: string // YYYYMMDD format
   onClose: () => void
   onTripSelection: (
@@ -31,7 +30,6 @@ function formatTimeDisplay(isoDateTime: string, locale: string): string {
 export default function TripDetailModal({
   trip,
   tripIndex,
-  selectedStationId,
   serviceDate,
   onClose,
   onTripSelection,

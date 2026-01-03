@@ -69,7 +69,7 @@ export function useStops({
         window.clearTimeout(debounceTimerRef.current)
       }
     }
-  }, [zoom, bounds?.north, bounds?.south, bounds?.east, bounds?.west, zoomThreshold, debounceMs, enabled])
+  }, [zoom, bounds, zoomThreshold, debounceMs, enabled])
 
   return stops
 }

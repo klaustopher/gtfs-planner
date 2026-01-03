@@ -91,8 +91,6 @@ function App() {
   const [planningMode, setPlanningMode] = useState<PlanningMode>('initial')
 
   // Derived values
-  const isInitialMode = planningMode === 'initial' && savedTrips.length === 0
-  const isPlanningMode = planningMode === 'planning' || (planningMode === 'initial' && savedTrips.length > 0)
   const isViewingMode = planningMode === 'viewing'
   const hasJourney = savedTrips.length > 0
   const canEditTime = planningMode === 'initial' && savedTrips.length === 0
@@ -489,7 +487,6 @@ function App() {
         <TripDetailModal
           trip={tripModalData.trip}
           tripIndex={tripModalData.tripIndex}
-          selectedStationId={selectedStation.stop_id}
           serviceDate={selectedDate.replace(/-/g, '')}
           onClose={closeTripModal}
           onTripSelection={handleTripSelection}
