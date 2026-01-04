@@ -10,6 +10,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	ignoreErrors bool
+)
+
 var importCmd = &cobra.Command{
 	Use:   "import",
 	Short: "Import GTFS feed into SQLite database",
@@ -17,10 +21,15 @@ var importCmd = &cobra.Command{
 	Run:   runImport,
 }
 
+func init() {
+	importCmd.Flags().BoolVar(&ignoreErrors, "ignore-errors", false, "Ignore errors during import")
+}
+
 // gtfsConfig is the configuration structure for gtfs-import
 type gtfsConfig struct {
-	Agencies   []gtfsAgency `json:"agencies"`
-	SQLitePath string       `json:"sqlitePath"`
+	Agencies     []gtfsAgency `json:"agencies"`
+	SQLitePath   string       `json:"sqlitePath"`
+	IgnoreErrors bool         `json:"ignoreErrors"`
 }
 
 type gtfsAgency struct {
@@ -74,7 +83,8 @@ func runImport(cmd *cobra.Command, args []string) {
 		Agencies: []gtfsAgency{
 			{Path: feedPathAbs},
 		},
-		SQLitePath: dbPathAbs,
+		SQLitePath:   dbPathAbs,
+		IgnoreErrors: ignoreErrors,
 	}
 
 	configJSON, err := json.MarshalIndent(gtfsCfg, "", "  ")
