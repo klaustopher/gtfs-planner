@@ -491,6 +491,32 @@ function App() {
     }
   }, [tripsData])
 
+  // Build single source of truth for trips data using accumulated trips
+  const currentTripsData = useMemo(() => {
+    if (!tripsData) return null
+
+    // Extract all unique stations from accumulated trips
+    const stationsById: Record<string, models.Stop> = {}
+    for (const trip of accumulatedTrips) {
+      for (const stopTime of trip.stop_times) {
+        if (!stationsById[stopTime.stop_id]) {
+          stationsById[stopTime.stop_id] = new models.Stop({
+            stop_id: stopTime.stop_id,
+            stop_name: stopTime.stop_name,
+            stop_lat: stopTime.stop_lat,
+            stop_lon: stopTime.stop_lon,
+          })
+        }
+      }
+    }
+    const stations = Object.values(stationsById)
+
+    return new models.UpcomingTripsData({
+      trips: accumulatedTrips,
+      stations: stations,
+    })
+  }, [tripsData, accumulatedTrips])
+
   // Reset accumulated trips and transport filter when station changes
   useEffect(() => {
     setAccumulatedTrips([])
@@ -585,7 +611,7 @@ function App() {
           onViewStateChange={setViewState}
           onStationSelect={handleStationSelect}
           selectedStation={selectedStation}
-          tripsData={tripsData}
+          tripsData={currentTripsData}
           isLoadingTrips={isLoadingTrips}
           savedTrips={savedTrips}
           selectedDate={selectedDate}
@@ -604,7 +630,7 @@ function App() {
       </div>
       <Sidebar
         selectedStation={selectedStation}
-        tripsData={tripsData}
+        tripsData={currentTripsData}
         isLoadingTrips={isLoadingTrips}
         savedTrips={savedTrips}
         onRemoveSavedTrip={removeSavedTrip}
@@ -623,7 +649,6 @@ function App() {
         nearbyStations={nearbyStations}
         selectedNearbyStationIds={selectedNearbyStationIds}
         onToggleNearbyStation={toggleNearbyStation}
-        accumulatedTrips={accumulatedTrips}
         onLoadMore={handleLoadMore}
         isLoadingMore={isLoadingMore}
         selectedDate={selectedDate}

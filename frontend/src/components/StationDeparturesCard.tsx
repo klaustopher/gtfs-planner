@@ -12,7 +12,6 @@ interface StationDeparturesCardProps {
   nearbyStations: models.Stop[]
   selectedNearbyStationIds: Set<string>
   onToggleNearbyStation: (stationId: string) => void
-  accumulatedTrips: models.UpcomingTrip[]
   onLoadMore: () => void
   isLoadingMore: boolean
   selectedDateTime: string
@@ -28,7 +27,6 @@ export default function StationDeparturesCard({
   nearbyStations,
   selectedNearbyStationIds,
   onToggleNearbyStation,
-  accumulatedTrips,
   onLoadMore,
   isLoadingMore,
   selectedDateTime,
@@ -73,10 +71,10 @@ export default function StationDeparturesCard({
 
           <div className="trips-section">
           {isLoadingTrips && <p className="sidebar-hint">{t('stationSection.loading')}</p>}
-          {!isLoadingTrips && accumulatedTrips && accumulatedTrips.length > 0 && (
+          {!isLoadingTrips && tripsData?.trips && tripsData.trips.length > 0 && (
             <>
               <div className="trips-list">
-                {accumulatedTrips.map((trip, index) => (
+                {tripsData.trips.map((trip, index) => (
                   <TripListItem
                     key={`${trip.trip_id}-${trip.departure_datetime}-${index}`}
                     trip={trip}
@@ -97,7 +95,7 @@ export default function StationDeparturesCard({
               </button>
             </>
           )}
-          {!isLoadingTrips && (!accumulatedTrips || accumulatedTrips.length === 0) && (
+          {!isLoadingTrips && (!tripsData?.trips || tripsData.trips.length === 0) && (
             <p className="sidebar-hint">{t('stationSection.empty')}</p>
           )}
         </div>

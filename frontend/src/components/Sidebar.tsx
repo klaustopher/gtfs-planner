@@ -34,7 +34,6 @@ interface SidebarProps {
   nearbyStations: models.Stop[]
   selectedNearbyStationIds: Set<string>
   onToggleNearbyStation: (stationId: string) => void
-  accumulatedTrips: models.UpcomingTrip[]
   onLoadMore: () => void
   isLoadingMore: boolean
   selectedDate: string
@@ -62,7 +61,6 @@ export default function Sidebar({
   nearbyStations,
   selectedNearbyStationIds,
   onToggleNearbyStation,
-  accumulatedTrips,
   onLoadMore,
   isLoadingMore,
   selectedDate,
@@ -112,9 +110,10 @@ export default function Sidebar({
           nearbyStations={nearbyStations}
           selectedNearbyStationIds={selectedNearbyStationIds}
           onToggleNearbyStation={onToggleNearbyStation}
-          accumulatedTrips={accumulatedTrips}
           onLoadMore={onLoadMore}
-          isLoadingMore={isLoadingMore}          selectedDateTime={selectedDateTime}        />
+          isLoadingMore={isLoadingMore}
+          selectedDateTime={selectedDateTime}
+        />
       )}
 
       {/* Planned Journey - shown after station card in planning mode, or first in viewing mode */}
