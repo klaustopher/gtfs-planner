@@ -220,7 +220,12 @@ func (db *DB) GetRoutesForStation(stopID string) (*models.RoutesData, error) {
 	return result, nil
 }
 
-// SearchStations returns stations whose names loosely match the provided query text.
+// SearchStations returns stations whose names match the query. The query is
+// split into tokens that must all appear (AND), common German abbreviations are
+// expanded (e.g. "Hbf" also matches "Hauptbahnhof"), and results are ranked so
+// names beginning with the first token come first. This keeps relevant hits
+// (e.g. "Frankfurt Hbf") from being buried under incidental substring matches
+// (e.g. "… Frankfurter Straße") in dense feeds like DELFI.
 func (db *DB) SearchStations(query string, limit int) ([]models.Stop, error) {
 	trimmed := strings.TrimSpace(query)
 	if trimmed == "" {
@@ -234,22 +239,55 @@ func (db *DB) SearchStations(query string, limit int) ([]models.Stop, error) {
 		limit = 50
 	}
 
-	searchTerm := "%" + trimmed + "%"
+	tokens := strings.Fields(trimmed)
+	conditions := make([]string, 0, len(tokens))
+	args := make([]interface{}, 0, len(tokens)+3)
+	for _, tok := range tokens {
+		variants := searchVariants(strings.ToUpper(tok))
+		ors := make([]string, 0, len(variants))
+		for _, v := range variants {
+			ors = append(ors, "UPPER(stop_name) LIKE ?")
+			args = append(args, "%"+v+"%")
+		}
+		conditions = append(conditions, "("+strings.Join(ors, " OR ")+")")
+	}
 
-	var results []models.Stop
-	err := db.conn.Select(&results, `
+	firstToken := strings.ToUpper(tokens[0])
+	sqlQuery := `
 		SELECT stop_id, stop_name, stop_lat, stop_lon
 		FROM stops
 		WHERE location_type = 1
-		  AND UPPER(stop_name) LIKE UPPER(?)
-		ORDER BY stop_name
-		LIMIT ?
-	`, searchTerm, limit)
-	if err != nil {
+		  AND ` + strings.Join(conditions, "\n\t\t  AND ") + `
+		ORDER BY
+			CASE
+				WHEN UPPER(stop_name) LIKE ? THEN 0
+				WHEN UPPER(stop_name) LIKE ? THEN 1
+				ELSE 2
+			END,
+			length(stop_name),
+			stop_name
+		LIMIT ?`
+	args = append(args, firstToken+"%", "% "+firstToken+"%", limit)
+
+	var results []models.Stop
+	if err := db.conn.Select(&results, sqlQuery, args...); err != nil {
 		return nil, fmt.Errorf("station search failed: %w", err)
 	}
 
 	return results, nil
+}
+
+// searchVariants returns the uppercased forms a search token should match,
+// expanding common German station-name abbreviations.
+func searchVariants(tokenUpper string) []string {
+	switch tokenUpper {
+	case "HBF":
+		return []string{"HBF", "HAUPTBAHNHOF"}
+	case "BF":
+		return []string{"BF", "BAHNHOF"}
+	default:
+		return []string{tokenUpper}
+	}
 }
 
 // GetNearbyStations returns all parent stations within radiusMeters of the given station.
