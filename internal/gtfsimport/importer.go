@@ -13,6 +13,8 @@ import (
 	"path"
 	"strconv"
 
+	"gtfs-planner/internal/textfold"
+
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -230,8 +232,8 @@ func (c *countingReader) Read(p []byte) (int, error) {
 
 func (im *Importer) loadStops(ctx context.Context, tx *sql.Tx, f *zip.File) error {
 	stmt, err := tx.Prepare(`INSERT OR IGNORE INTO stops
-		(stop_id, stop_name, stop_lat, stop_lon, location_type, parent_station, platform_code)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`)
+		(stop_id, stop_name, stop_name_fold, stop_lat, stop_lon, location_type, parent_station, platform_code)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
 	if err != nil {
 		return err
 	}
@@ -242,9 +244,11 @@ func (im *Importer) loadStops(ctx context.Context, tx *sql.Tx, f *zip.File) erro
 		if id == "" {
 			return false, nil
 		}
+		name := h.get(row, "stop_name")
 		_, err := stmt.Exec(
 			id,
-			nullStr(h.get(row, "stop_name")),
+			nullStr(name),
+			nullStr(textfold.Fold(name)),
 			nullFloat(h.get(row, "stop_lat")),
 			nullFloat(h.get(row, "stop_lon")),
 			nullInt(h.get(row, "location_type")),

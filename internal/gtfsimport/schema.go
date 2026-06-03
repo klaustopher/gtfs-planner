@@ -30,6 +30,7 @@ var createTableStatements = []string{
 	`CREATE TABLE stops (
 		stop_id        TEXT PRIMARY KEY,
 		stop_name      TEXT COLLATE NOCASE,
+		stop_name_fold TEXT,
 		stop_lat       REAL,
 		stop_lon       REAL,
 		location_type  INTEGER,
@@ -94,6 +95,8 @@ var createIndexStatements = []string{
 	`CREATE INDEX idx_stops_parent ON stops(parent_station)`,
 	// Bounding-box queries always filter location_type = 1.
 	`CREATE INDEX idx_stops_geo ON stops(stop_lat, stop_lon) WHERE location_type = 1`,
+	// Folded name for case-/accent-insensitive station search.
+	`CREATE INDEX idx_stops_name_fold ON stops(stop_name_fold) WHERE location_type = 1`,
 	// routes -> trips -> stop_times joins.
 	`CREATE INDEX idx_trips_route ON trips(route_id)`,
 }

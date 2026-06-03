@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"math"
 	"strings"
+
+	"gtfs-planner/internal/textfold"
 )
 
 // dedupeMaxDelta is the maximum |Δlat|+|Δlon| (degrees, ~0.008° ≈ <1 km) within
@@ -86,7 +88,7 @@ func normalizeStations(tx *sql.Tx) error {
 	// Insert synthetic parent stations (skipped if the id already exists as a
 	// real station, e.g. a major hub like de:06412:10).
 	insertParent, err := tx.Prepare(`INSERT OR IGNORE INTO stops
-		(stop_id, stop_name, stop_lat, stop_lon, location_type) VALUES (?, ?, ?, ?, 1)`)
+		(stop_id, stop_name, stop_name_fold, stop_lat, stop_lon, location_type) VALUES (?, ?, ?, ?, ?, 1)`)
 	if err != nil {
 		return err
 	}
@@ -96,7 +98,7 @@ func normalizeStations(tx *sql.Tx) error {
 			lat = agg.sumLat / float64(agg.coordCount)
 			lon = agg.sumLon / float64(agg.coordCount)
 		}
-		if _, err := insertParent.Exec(prefix, nullStr(agg.name), lat, lon); err != nil {
+		if _, err := insertParent.Exec(prefix, nullStr(agg.name), nullStr(textfold.Fold(agg.name)), lat, lon); err != nil {
 			insertParent.Close()
 			return err
 		}

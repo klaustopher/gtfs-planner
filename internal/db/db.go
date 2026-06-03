@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"gtfs-planner/internal/models"
+	"gtfs-planner/internal/textfold"
 	"gtfs-planner/internal/timeutil"
 
 	"github.com/jmoiron/sqlx"
@@ -239,10 +240,10 @@ func (db *DB) SearchStations(query string, limit int) ([]models.Stop, error) {
 		limit = 50
 	}
 
-	// Names are matched on a folded form (see foldExpr/foldForSearch) so the
-	// search is case- and accent-insensitive: "koln", "köln" and "Köln" all
-	// match "Köln Hbf". SQLite's UPPER/LOWER/NOCASE are ASCII-only (no ICU), so
-	// the folding is done explicitly here rather than relying on them.
+	// Names are matched on the precomputed folded column (stop_name_fold), so the
+	// search is case- and accent-insensitive: "koln", "köln" and "Köln" all match
+	// "Köln Hbf". SQLite's UPPER/LOWER/NOCASE are ASCII-only (no ICU), so the
+	// folding is precomputed by the importer instead of relying on them.
 	tokens := strings.Fields(trimmed)
 	conditions := make([]string, 0, len(tokens))
 	args := make([]interface{}, 0, len(tokens)+3)
@@ -250,26 +251,22 @@ func (db *DB) SearchStations(query string, limit int) ([]models.Stop, error) {
 		variants := searchVariants(strings.ToUpper(tok))
 		ors := make([]string, 0, len(variants))
 		for _, v := range variants {
-			ors = append(ors, "fname LIKE ?")
-			args = append(args, "%"+foldForSearch(v)+"%")
+			ors = append(ors, "stop_name_fold LIKE ?")
+			args = append(args, "%"+textfold.Fold(v)+"%")
 		}
 		conditions = append(conditions, "("+strings.Join(ors, " OR ")+")")
 	}
 
-	firstToken := foldForSearch(tokens[0])
+	firstToken := textfold.Fold(tokens[0])
 	sqlQuery := `
-		WITH folded AS (
-			SELECT stop_id, stop_name, stop_lat, stop_lon, ` + foldExpr("stop_name") + ` AS fname
-			FROM stops
-			WHERE location_type = 1
-		)
 		SELECT stop_id, stop_name, stop_lat, stop_lon
-		FROM folded
-		WHERE ` + strings.Join(conditions, "\n\t\t  AND ") + `
+		FROM stops
+		WHERE location_type = 1
+		  AND ` + strings.Join(conditions, "\n\t\t  AND ") + `
 		ORDER BY
 			CASE
-				WHEN fname LIKE ? THEN 0
-				WHEN fname LIKE ? THEN 1
+				WHEN stop_name_fold LIKE ? THEN 0
+				WHEN stop_name_fold LIKE ? THEN 1
 				ELSE 2
 			END,
 			length(stop_name),
@@ -296,30 +293,6 @@ func searchVariants(tokenUpper string) []string {
 	default:
 		return []string{tokenUpper}
 	}
-}
-
-var searchFolder = strings.NewReplacer("ä", "a", "ö", "o", "ü", "u", "ß", "ss")
-
-// foldForSearch normalizes a string for case- and accent-insensitive matching:
-// Unicode-lower-cased with German umlauts folded to their base letters.
-func foldForSearch(s string) string {
-	return searchFolder.Replace(strings.ToLower(s))
-}
-
-// foldExpr returns the SQL equivalent of foldForSearch for a column. SQLite's
-// lower() folds only ASCII, so each umlaut is folded explicitly in both letter
-// cases.
-func foldExpr(col string) string {
-	expr := "lower(" + col + ")"
-	for _, p := range [][2]string{
-		{"ä", "a"}, {"Ä", "a"},
-		{"ö", "o"}, {"Ö", "o"},
-		{"ü", "u"}, {"Ü", "u"},
-		{"ß", "ss"},
-	} {
-		expr = "replace(" + expr + ", '" + p[0] + "', '" + p[1] + "')"
-	}
-	return expr
 }
 
 // routeTypeCategoryExpr returns a SQL expression mapping a GTFS route_type

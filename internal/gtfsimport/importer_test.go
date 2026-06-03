@@ -270,6 +270,30 @@ func TestImportDedupesStandaloneStopsByNameAndProximity(t *testing.T) {
 	}
 }
 
+func TestSearchFoldsUmlauts(t *testing.T) {
+	files := map[string]string{
+		"stops.txt": "stop_id,stop_name,stop_lat,stop_lon,location_type,parent_station\n" +
+			"K1,Köln Hbf,50.94,6.96,1,\n",
+	}
+	dbPath := runImport(t, files)
+
+	database, err := db.Open(dbPath)
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer database.Close()
+
+	for _, q := range []string{"koln", "köln", "Köln", "KÖLN", "koln hbf"} {
+		res, err := database.SearchStations(q, 5)
+		if err != nil {
+			t.Fatalf("search %q: %v", q, err)
+		}
+		if len(res) == 0 || res[0].StopID != "K1" {
+			t.Errorf("search %q = %+v, want Köln Hbf (K1)", q, res)
+		}
+	}
+}
+
 func TestImportAtomicityLeavesExistingDBOnCorruptZip(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "out.sqlite")
