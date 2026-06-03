@@ -23,6 +23,7 @@ export default function JourneyLayers({ journeyLegs, walkingConnections, lineOpa
         <Layer
           id="walking-connections"
           type="line"
+          beforeId="stops-layer"
           layout={{
             'line-cap': 'round',
             'line-join': 'round',
@@ -40,6 +41,7 @@ export default function JourneyLayers({ journeyLegs, walkingConnections, lineOpa
         <Layer
           id="journey-legs"
           type="line"
+          beforeId="stops-layer"
           layout={{
             'line-cap': 'round',
             'line-join': 'round',

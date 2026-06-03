@@ -23,6 +23,12 @@ export const FALLBACK_COLORS = [
 
 const LINE_WIDTH = 6
 
+// Screen-space separation for overlapping trip lines: a per-line pixel offset
+// (constant across zoom, unlike a metre-based geometry offset that vanishes when
+// zoomed out) so overlapping corridors fan out into clean parallel lines at every
+// zoom level. Mirrors the offset index (0, 1, -1, 2, -2, …) from detectOverlaps.
+const TRIP_OFFSET_PX = 4
+
 export interface StopsGeoJSON {
   type: 'FeatureCollection'
   features: Array<{
@@ -155,6 +161,9 @@ export interface TripLinesGeoJSON {
       headsign: string
       line_color: string
       line_width: number
+      // Perpendicular screen offset (pixels) used to separate overlapping trip
+      // lines; see TripLayers.
+      line_offset: number
     }
   }>
 }
@@ -166,7 +175,7 @@ export function tripsToGeoJSON(trips: models.UpcomingTrip[]): TripLinesGeoJSON {
     coordinates: trip.coordinates.map((c: models.Coordinate) => [c.lon, c.lat] as [number, number]),
   }))
 
-  // Detect overlapping trips and get offset indices
+  // Detect overlapping trips and get offset indices (0, 1, -1, 2, -2, …)
   const offsetIndices = detectOverlaps(tripsForOverlap)
 
   return {
@@ -176,18 +185,17 @@ export function tripsToGeoJSON(trips: models.UpcomingTrip[]): TripLinesGeoJSON {
       const fallbackColor = FALLBACK_COLORS[index % FALLBACK_COLORS.length]
       const lineColor = normalizedColor ?? fallbackColor
 
-      // Get original coordinates
-      const originalCoords = trip.coordinates.map((c: models.Coordinate) => [c.lon, c.lat] as [number, number])
+      // Keep the true geometry; separation happens in screen space (line-offset)
+      // so it survives at every zoom level, unlike a metre-based geometry offset.
+      const coords = trip.coordinates.map((c: models.Coordinate) => [c.lon, c.lat] as [number, number])
 
-      // Apply offset based on overlap detection (keeps endpoints at station positions)
       const offsetIndex = offsetIndices.get(trip.trip_id) ?? 0
-      const offsetCoords = applyOffset(originalCoords, offsetIndex)
 
       return {
         type: 'Feature',
         geometry: {
           type: 'LineString',
-          coordinates: offsetCoords,
+          coordinates: coords,
         },
         properties: {
           trip_id: trip.trip_id,
@@ -199,6 +207,7 @@ export function tripsToGeoJSON(trips: models.UpcomingTrip[]): TripLinesGeoJSON {
           headsign: trip.headsign,
           line_color: lineColor,
           line_width: LINE_WIDTH,
+          line_offset: offsetIndex * TRIP_OFFSET_PX,
         },
       }
     }),

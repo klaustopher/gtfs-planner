@@ -16,6 +16,7 @@ export default function TripLayers({ data, lineOpacity }: TripLayersProps) {
       <Layer
         id="trip-lines"
         type="line"
+        beforeId="stops-layer"
         layout={{
           'line-cap': 'round',
           'line-join': 'round',
@@ -23,6 +24,9 @@ export default function TripLayers({ data, lineOpacity }: TripLayersProps) {
         paint={{
           'line-color': ['get', 'line_color'],
           'line-width': ['get', 'line_width'],
+          // Constant screen-space offset so overlapping lines stay separated at
+          // every zoom level (a metre-based geometry offset vanishes when zoomed out).
+          'line-offset': ['get', 'line_offset'],
           'line-opacity': lineOpacity,
         }}
       />
