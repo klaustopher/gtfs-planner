@@ -49,9 +49,3 @@ func (h headerIndex) get(row []string, name string) string {
 	}
 	return strings.TrimSpace(row[i])
 }
-
-// has reports whether the named column exists in the header.
-func (h headerIndex) has(name string) bool {
-	_, ok := h[name]
-	return ok
-}
