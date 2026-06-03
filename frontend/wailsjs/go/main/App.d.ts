@@ -4,6 +4,8 @@ import {models} from '../models';
 import {main} from '../models';
 import {geolocation} from '../models';
 
+export function CancelGTFS():Promise<void>;
+
 export function CheckDatabaseExists():Promise<boolean>;
 
 export function DeleteDatabase():Promise<void>;

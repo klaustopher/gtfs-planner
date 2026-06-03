@@ -198,7 +198,10 @@
     },
     "downloading": "Lädt herunter… {{percent}}%",
     "downloadComplete": "Download abgeschlossen. Jetzt importieren.",
-    "importing": "Importiere {{file}} ({{rows}} Zeilen)…",
-    "importingStart": "Import wird vorbereitet…"
+    "importingStart": "Import wird vorbereitet…",
+    "cancel": "Abbrechen",
+    "importingFile": "Importiere {{file}}… {{percent}}%",
+    "normalizing": "Normalisiere Stationen…",
+    "indexing": "Erstelle Indizes…"
   }
 }

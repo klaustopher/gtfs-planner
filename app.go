@@ -28,6 +28,7 @@ type App struct {
 	db       *db.DB
 	dbPath   string
 	feedPath string
+	cancelOp context.CancelFunc // cancels the in-flight download or import
 }
 
 // NewApp creates a new App application struct
@@ -198,11 +199,45 @@ func (a *App) DeleteDatabase() error {
 	return nil
 }
 
+// beginOp creates a cancellable context for a download/import and registers its
+// cancel function so CancelGTFS can stop it. The returned finish function clears
+// the registration and releases the context.
+func (a *App) beginOp() (context.Context, func()) {
+	ctx, cancel := context.WithCancel(a.ctx)
+	a.mu.Lock()
+	a.cancelOp = cancel
+	a.mu.Unlock()
+	return ctx, func() {
+		a.mu.Lock()
+		a.cancelOp = nil
+		a.mu.Unlock()
+		cancel()
+	}
+}
+
+// CancelGTFS cancels an in-flight download or import, if any.
+func (a *App) CancelGTFS() {
+	a.mu.Lock()
+	cancel := a.cancelOp
+	a.mu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
+}
+
 // DownloadGTFS downloads the GTFS feed from url into the local feed path,
 // emitting "gtfs:download:*" events for progress.
 func (a *App) DownloadGTFS(url string) error {
+	ctx, finish := a.beginOp()
+	defer finish()
+
 	prog := func(p gtfsimport.Progress) { runtime.EventsEmit(a.ctx, "gtfs:download:progress", p) }
-	if err := gtfsimport.Download(a.ctx, url, a.feedPath, prog); err != nil {
+	err := gtfsimport.Download(ctx, url, a.feedPath, prog)
+	if errors.Is(err, context.Canceled) {
+		runtime.EventsEmit(a.ctx, "gtfs:download:cancelled", nil)
+		return nil
+	}
+	if err != nil {
 		runtime.EventsEmit(a.ctx, "gtfs:download:error", err.Error())
 		return err
 	}
@@ -235,8 +270,16 @@ func (a *App) ImportGTFSFromFile() error {
 }
 
 func (a *App) importFeed(zipPath string) error {
+	ctx, finish := a.beginOp()
+	defer finish()
+
 	prog := func(p gtfsimport.Progress) { runtime.EventsEmit(a.ctx, "gtfs:import:progress", p) }
-	if err := gtfsimport.New(prog).Import(a.ctx, zipPath, a.dbPath); err != nil {
+	err := gtfsimport.New(prog).Import(ctx, zipPath, a.dbPath)
+	if errors.Is(err, context.Canceled) {
+		runtime.EventsEmit(a.ctx, "gtfs:import:cancelled", nil)
+		return nil
+	}
+	if err != nil {
 		runtime.EventsEmit(a.ctx, "gtfs:import:error", err.Error())
 		return err
 	}

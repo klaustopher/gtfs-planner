@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTimes, faDownload, faFileImport, faFolderOpen } from '@fortawesome/free-solid-svg-icons'
-import { DownloadGTFS, ImportGTFS, ImportGTFSFromFile } from '../../wailsjs/go/main/App'
+import { DownloadGTFS, ImportGTFS, ImportGTFSFromFile, CancelGTFS } from '../../wailsjs/go/main/App'
 import { EventsOn } from '../../wailsjs/runtime/runtime'
 import type { main } from '../../wailsjs/go/models'
 import './GtfsSetupModal.css'
@@ -32,7 +32,7 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
   const [url, setUrl] = useState(DEFAULT_FEED_URL)
   const [phase, setPhase] = useState<Phase>('idle')
   const [downloadPct, setDownloadPct] = useState(0)
-  const [importInfo, setImportInfo] = useState<{ file: string; rows: number }>({ file: '', rows: 0 })
+  const [importProg, setImportProg] = useState<{ pct: number; label: string }>({ pct: 0, label: '' })
   const [error, setError] = useState('')
 
   const busy = phase === 'downloading' || phase === 'importing'
@@ -41,6 +41,11 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
   useEffect(() => {
     if (!isOpen) {
       return
+    }
+    const importLabel = (p: GtfsProgress): string => {
+      if (p.message === 'normalize') return t('gtfsSetup.normalizing')
+      if (p.message === 'index') return t('gtfsSetup.indexing')
+      return p.file
     }
     const unsubscribers = [
       EventsOn('gtfs:download:progress', (p: GtfsProgress) => {
@@ -51,8 +56,12 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
         setError(msg)
         setPhase('idle')
       }),
+      EventsOn('gtfs:download:cancelled', () => {
+        setPhase('idle')
+        setDownloadPct(0)
+      }),
       EventsOn('gtfs:import:progress', (p: GtfsProgress) => {
-        setImportInfo({ file: p.file, rows: p.current })
+        setImportProg({ pct: p.total > 0 ? p.current / p.total : 0, label: importLabel(p) })
       }),
       EventsOn('gtfs:import:done', () => {
         setPhase('idle')
@@ -62,11 +71,15 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
         setError(msg)
         setPhase('idle')
       }),
+      EventsOn('gtfs:import:cancelled', () => {
+        setPhase('idle')
+        setImportProg({ pct: 0, label: '' })
+      }),
     ]
     return () => {
       unsubscribers.forEach((unsub) => unsub())
     }
-  }, [isOpen, onImported])
+  }, [isOpen, onImported, t])
 
   useEffect(() => {
     if (!isOpen) {
@@ -101,7 +114,7 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
 
   const handleImport = () => {
     setError('')
-    setImportInfo({ file: '', rows: 0 })
+    setImportProg({ pct: 0, label: '' })
     setPhase('importing')
     void ImportGTFS().catch((err: unknown) => {
       setError(String(err))
@@ -111,12 +124,16 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
 
   const handleOpenFile = () => {
     setError('')
-    setImportInfo({ file: '', rows: 0 })
+    setImportProg({ pct: 0, label: '' })
     setPhase('importing')
     void ImportGTFSFromFile().catch((err: unknown) => {
       setError(String(err))
       setPhase('idle')
     })
+  }
+
+  const handleCancel = () => {
+    void CancelGTFS()
   }
 
   if (!isOpen) {
@@ -193,9 +210,14 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
                     style={{ width: `${Math.round(downloadPct * 100)}%` }}
                   />
                 </div>
-                <span className="gtfs-setup-modal__progress-label">
-                  {t('gtfsSetup.downloading', { percent: Math.round(downloadPct * 100) })}
-                </span>
+                <div className="gtfs-setup-modal__progress-row">
+                  <span className="gtfs-setup-modal__progress-label">
+                    {t('gtfsSetup.downloading', { percent: Math.round(downloadPct * 100) })}
+                  </span>
+                  <button type="button" className="gtfs-setup-modal__cancel" onClick={handleCancel}>
+                    {t('gtfsSetup.cancel')}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -221,14 +243,25 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
 
           {phase === 'importing' && (
             <div className="gtfs-setup-modal__progress">
-              <div className="gtfs-setup-modal__progress-bar gtfs-setup-modal__progress-bar--indeterminate">
-                <div className="gtfs-setup-modal__progress-fill" />
+              <div className="gtfs-setup-modal__progress-bar">
+                <div
+                  className="gtfs-setup-modal__progress-fill"
+                  style={{ width: `${Math.round(importProg.pct * 100)}%` }}
+                />
               </div>
-              <span className="gtfs-setup-modal__progress-label">
-                {importInfo.file
-                  ? t('gtfsSetup.importing', { file: importInfo.file, rows: importInfo.rows.toLocaleString() })
-                  : t('gtfsSetup.importingStart')}
-              </span>
+              <div className="gtfs-setup-modal__progress-row">
+                <span className="gtfs-setup-modal__progress-label">
+                  {importProg.label
+                    ? t('gtfsSetup.importingFile', {
+                        file: importProg.label,
+                        percent: Math.round(importProg.pct * 100),
+                      })
+                    : t('gtfsSetup.importingStart')}
+                </span>
+                <button type="button" className="gtfs-setup-modal__cancel" onClick={handleCancel}>
+                  {t('gtfsSetup.cancel')}
+                </button>
+              </div>
             </div>
           )}
         </div>

@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"strconv"
@@ -20,8 +21,10 @@ const progressEvery = 5000
 
 // Importer builds a SQLite database from a GTFS zip.
 type Importer struct {
-	progress ProgressFunc
-	skipped  int
+	progress   ProgressFunc
+	skipped    int
+	bytesRead  int64 // uncompressed bytes consumed so far across all files
+	totalBytes int64 // sum of uncompressed sizes of the imported files
 }
 
 // New returns an Importer that reports progress via the given callback (may be nil).
@@ -42,6 +45,14 @@ func (im *Importer) Import(ctx context.Context, zipPath, dbPath string) (err err
 	files := make(map[string]*zip.File, len(zr.File))
 	for _, f := range zr.File {
 		files[path.Base(f.Name)] = f
+	}
+
+	// Total uncompressed bytes of the files we import — drives a real progress
+	// bar without a second pass over the (multi-GB) feed.
+	for _, name := range []string{"stops.txt", "routes.txt", "trips.txt", "calendar.txt", "calendar_dates.txt", "stop_times.txt"} {
+		if f := files[name]; f != nil {
+			im.totalBytes += int64(f.UncompressedSize64)
+		}
 	}
 
 	tmpPath := dbPath + ".import.tmp"
@@ -92,6 +103,7 @@ func (im *Importer) Import(ctx context.Context, zipPath, dbPath string) (err err
 		return err
 	}
 
+	im.progress.report(Progress{Phase: PhaseImport, Current: im.totalBytes, Total: im.totalBytes, Message: "normalize"})
 	if err = normalizeStations(tx); err != nil {
 		return err
 	}
@@ -100,6 +112,7 @@ func (im *Importer) Import(ctx context.Context, zipPath, dbPath string) (err err
 		return fmt.Errorf("failed to commit import: %w", err)
 	}
 
+	im.progress.report(Progress{Phase: PhaseImport, Current: im.totalBytes, Total: im.totalBytes, Message: "index"})
 	if err = ApplyIndexes(db); err != nil {
 		return err
 	}
@@ -158,14 +171,14 @@ func (im *Importer) loadFile(ctx context.Context, f *zip.File, handle func(row [
 	}
 	defer rc.Close()
 
-	cr, header, err := newCSVReader(rc)
+	base := path.Base(f.Name)
+	cr, header, err := newCSVReader(&countingReader{r: rc, counter: &im.bytesRead})
 	if err != nil {
-		return fmt.Errorf("failed to read %s header: %w", f.Name, err)
+		return fmt.Errorf("failed to read %s header: %w", base, err)
 	}
 
-	base := path.Base(f.Name)
 	var rows int64
-	im.progress.report(Progress{Phase: PhaseImport, File: base, Current: 0, Total: -1})
+	im.reportBytes(base)
 
 	for {
 		if err := ctx.Err(); err != nil {
@@ -184,12 +197,35 @@ func (im *Importer) loadFile(ctx context.Context, f *zip.File, handle func(row [
 		}
 		rows++
 		if rows%progressEvery == 0 {
-			im.progress.report(Progress{Phase: PhaseImport, File: base, Current: rows, Total: -1})
+			im.reportBytes(base)
 		}
 	}
 
-	im.progress.report(Progress{Phase: PhaseImport, File: base, Current: rows, Total: -1})
+	im.reportBytes(base)
 	return nil
+}
+
+// reportBytes emits import progress as bytes processed out of the total.
+func (im *Importer) reportBytes(file string) {
+	im.progress.report(Progress{
+		Phase:   PhaseImport,
+		File:    file,
+		Current: im.bytesRead,
+		Total:   im.totalBytes,
+	})
+}
+
+// countingReader tallies bytes read from the underlying reader so the import can
+// report real progress against the known uncompressed total.
+type countingReader struct {
+	r       io.Reader
+	counter *int64
+}
+
+func (c *countingReader) Read(p []byte) (int, error) {
+	n, err := c.r.Read(p)
+	*c.counter += int64(n)
+	return n, err
 }
 
 func (im *Importer) loadStops(ctx context.Context, tx *sql.Tx, f *zip.File) error {

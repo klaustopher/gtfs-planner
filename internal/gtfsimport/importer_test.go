@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"context"
 	"database/sql"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -262,6 +263,25 @@ func TestImportAtomicityLeavesExistingDBOnCorruptZip(t *testing.T) {
 	}
 	if _, err := os.Stat(dbPath + ".import.tmp"); !os.IsNotExist(err) {
 		t.Errorf("temp import file was left behind")
+	}
+}
+
+func TestImportCancellation(t *testing.T) {
+	zipPath := writeZip(t, gtfsDEFiles)
+	dbPath := filepath.Join(t.TempDir(), "out.sqlite")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // cancel before the import starts
+
+	err := New(nil).Import(ctx, zipPath, dbPath)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("Import() error = %v, want context.Canceled", err)
+	}
+	if _, err := os.Stat(dbPath); !os.IsNotExist(err) {
+		t.Errorf("database should not be created on cancellation")
+	}
+	if _, err := os.Stat(dbPath + ".import.tmp"); !os.IsNotExist(err) {
+		t.Errorf("temp import file should be cleaned up on cancellation")
 	}
 }
 

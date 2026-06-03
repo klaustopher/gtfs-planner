@@ -198,7 +198,10 @@
     },
     "downloading": "Downloading… {{percent}}%",
     "downloadComplete": "Download complete. Import now.",
-    "importing": "Importing {{file}} ({{rows}} rows)…",
-    "importingStart": "Preparing import…"
+    "importingStart": "Preparing import…",
+    "cancel": "Cancel",
+    "importingFile": "Importing {{file}}… {{percent}}%",
+    "normalizing": "Normalizing stations…",
+    "indexing": "Building indexes…"
   }
 }
