@@ -41,6 +41,9 @@ interface SidebarProps {
   canStepBack: boolean
   selectedDate: string
   selectedTime: string
+  // ISO arrival time at the currently selected station (last booked leg), or null
+  // when this is the journey's first station.
+  currentArrivalDateTime: string | null
 }
 
 export default function Sidebar({
@@ -71,6 +74,7 @@ export default function Sidebar({
   canStepBack,
   selectedDate,
   selectedTime,
+  currentArrivalDateTime,
 }: SidebarProps) {
   const { t, i18n } = useTranslation()
   const rawLanguage = i18n.resolvedLanguage || i18n.language || 'en'
@@ -121,6 +125,7 @@ export default function Sidebar({
           onStepBack={onStepBack}
           canStepBack={canStepBack}
           selectedDateTime={selectedDateTime}
+          currentArrivalDateTime={currentArrivalDateTime}
         />
       )}
 

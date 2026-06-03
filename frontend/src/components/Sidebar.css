@@ -317,7 +317,9 @@
 }
 
 .trip-type-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
   padding: 2px var(--space-sm);
   border-radius: var(--space-xs);
   background: var(--color-border-strong);
@@ -326,6 +328,10 @@
   font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.trip-type-badge__icon {
+  font-size: var(--font-size-xs);
 }
 
 .trip-route-badge {
@@ -375,6 +381,40 @@
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-xs);
   border: 1px solid var(--color-accent-secondary);
+}
+
+.trip-layover-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-sm);
+  border-radius: var(--space-xs);
+  color: var(--color-accent-info);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
+  border: 1px solid var(--color-accent-info);
+}
+
+.trip-layover-badge--missed {
+  color: var(--color-accent-danger);
+  border-color: var(--color-accent-danger);
+}
+
+/* Arrival banner at the top of the departures card during a journey */
+.station-arrival {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-sm);
+  margin-bottom: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-active);
+  border: 1px solid var(--color-border-medium);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.station-arrival__icon {
+  color: var(--color-accent-info);
 }
 
 /* Saved trips / Planned journey */

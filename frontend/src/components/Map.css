@@ -159,6 +159,13 @@
   font-family: inherit;
 }
 
+.map-datetime__title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-sm);
+}
+
 /* Date/time picker */
 .map-datetime {
   display: flex;

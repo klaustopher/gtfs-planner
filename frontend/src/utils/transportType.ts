@@ -2,6 +2,15 @@
 // Based on GTFS specification: https://gtfs.org/schedule/reference/#routestxt
 
 import type { TFunction } from 'i18next'
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
+import {
+  faTrain,
+  faTrainSubway,
+  faTrainTram,
+  faBus,
+  faFerry,
+  faCableCar,
+} from '@fortawesome/free-solid-svg-icons'
 
 export interface TransportTypeInfo {
   nameKey: string      // Translation key for full name (e.g., "transportType.name.tram")
@@ -78,6 +87,31 @@ export function transportCategory(routeType: number): number {
  */
 export function getTransportTypeInfo(routeType: number): TransportTypeInfo {
   return TRANSPORT_TYPES[transportCategory(routeType)] ?? UNKNOWN_TYPE
+}
+
+// FontAwesome icon per transport category (mirrors transportCategory ids).
+const TRANSPORT_ICONS: Record<number, IconDefinition> = {
+  101: faTrain, // long-distance rail
+  106: faTrain, // regional rail
+  2: faTrain, // rail
+  109: faTrain, // S-Bahn
+  12: faTrain, // monorail
+  1: faTrainSubway, // U-Bahn / metro
+  0: faTrainTram, // tram
+  3: faBus, // bus
+  11: faBus, // trolleybus
+  4: faFerry, // ferry
+  5: faCableCar, // cable tram
+  6: faCableCar, // aerial lift
+  7: faCableCar, // funicular
+}
+
+/**
+ * Get a FontAwesome icon matching a GTFS route type, for use next to a
+ * connection. Falls back to the bus icon for unknown types.
+ */
+export function getTransportTypeIcon(routeType: number): IconDefinition {
+  return TRANSPORT_ICONS[transportCategory(routeType)] ?? faBus
 }
 
 /**

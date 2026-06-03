@@ -773,6 +773,7 @@ function App() {
         canStepBack={savedTrips.length > 0 || !!selectedStation}
         selectedDate={selectedDate}
         selectedTime={selectedTime}
+        currentArrivalDateTime={savedTrips.length > 0 ? savedTrips[savedTrips.length - 1].arrivalDateTime : null}
       />
       {tripModalData && selectedStation && (
         <TripDetailModal

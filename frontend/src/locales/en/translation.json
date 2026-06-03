@@ -80,7 +80,12 @@
     "loadingMore": "Loading more departures...",
     "dayOffsetTitle": "Departure {{days}} day(s) later",
     "stepBack": "Back one stop",
-    "clearStation": "Clear station"
+    "clearStation": "Clear station",
+    "arriveHere": "Arriving here at {{time}}",
+    "layover": "{{minutes}} min buffer",
+    "layoverTitle": "Layover at this station before departure",
+    "layoverMissed": "{{minutes}} min too late",
+    "layoverMissedTitle": "This connection departs before you arrive"
   },
   "tripModal": {
     "loading": "Loading trip details...",
@@ -181,10 +186,14 @@
       "none": "None"
     },
     "datetime": {
+      "title": "When do you want to start?",
       "date": "Date",
       "time": "Time",
       "resetButton": "Reset",
       "resetTooltip": "Reset to current time or last arrival + connection time"
+    },
+    "hoverPanel": {
+      "prompt": "Which connection?"
     },
     "locateButton": "Show my location",
     "loading": {

@@ -553,32 +553,35 @@ export default function Map({
             onResultsChange={handleSearchResults}
           />
         )}
-        <div className="map-datetime-container">
-          <div className="map-datetime">
-            <label className="map-datetime__label">
-              <span>{t('map.datetime.date')}</span>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={handleDateChange}
-                disabled={!canEditTime}
-                readOnly={!canEditTime}
-                className="map-datetime__input"
-              />
-            </label>
-            <label className="map-datetime__label">
-              <span>{t('map.datetime.time')}</span>
-              <input
-                type="time"
-                value={selectedTime}
-                onChange={handleTimeChange}
-                disabled={!canEditTime}
-                readOnly={!canEditTime}
-                className="map-datetime__input"
-              />
-            </label>
+        {!hasJourney && (
+          <div className="map-datetime-container">
+            <div className="map-datetime__title">{t('map.datetime.title')}</div>
+            <div className="map-datetime">
+              <label className="map-datetime__label">
+                <span>{t('map.datetime.date')}</span>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={handleDateChange}
+                  disabled={!canEditTime}
+                  readOnly={!canEditTime}
+                  className="map-datetime__input"
+                />
+              </label>
+              <label className="map-datetime__label">
+                <span>{t('map.datetime.time')}</span>
+                <input
+                  type="time"
+                  value={selectedTime}
+                  onChange={handleTimeChange}
+                  disabled={!canEditTime}
+                  readOnly={!canEditTime}
+                  className="map-datetime__input"
+                />
+              </label>
+            </div>
           </div>
-        </div>
+        )}
       </div>
       {availableTransportTypes.length > 0 && !isViewingMode && (
         <div className="map-controls-right">

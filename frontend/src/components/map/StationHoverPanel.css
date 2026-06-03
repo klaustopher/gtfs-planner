@@ -12,19 +12,32 @@
 }
 
 .station-hover-panel__header {
-  padding-bottom: var(--space-sm);
-  margin-bottom: var(--space-sm);
-  border-bottom: 1px solid var(--color-border-strong);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.station-hover-panel__to {
+  color: var(--color-accent-secondary);
+  font-size: var(--font-size-sm);
+  flex-shrink: 0;
 }
 
 .station-hover-panel__name {
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.station-hover-panel__prompt {
+  color: var(--color-text-subtle);
+  font-size: var(--font-size-xs);
+  padding-bottom: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-border-strong);
 }
 
 .station-hover-panel__trips {
@@ -53,7 +66,9 @@
 }
 
 .station-hover-panel__badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
   padding: 2px var(--space-sm);
   border-radius: var(--space-xs);
   color: var(--color-text-primary);
@@ -61,6 +76,11 @@
   font-size: var(--font-size-xs);
   min-width: var(--button-height-sm);
   text-align: center;
+  flex-shrink: 0;
+}
+
+.station-hover-panel__badge-icon {
+  font-size: var(--font-size-xs);
 }
 
 .station-hover-panel__times {

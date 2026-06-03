@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
+import { faArrowLeft, faRightToBracket } from '@fortawesome/free-solid-svg-icons'
 import { models } from '../../wailsjs/go/models'
+import { formatTimeDisplay } from '../utils/time'
 import TripListItem from './TripListItem'
 
 interface StationDeparturesCardProps {
@@ -19,6 +20,7 @@ interface StationDeparturesCardProps {
   onStepBack: () => void
   canStepBack: boolean
   selectedDateTime: string
+  currentArrivalDateTime: string | null
 }
 
 export default function StationDeparturesCard({
@@ -36,6 +38,7 @@ export default function StationDeparturesCard({
   onStepBack,
   canStepBack,
   selectedDateTime,
+  currentArrivalDateTime,
 }: StationDeparturesCardProps) {
   const { t } = useTranslation()
   const stepBackLabel = savedTripsCount > 0
@@ -67,6 +70,13 @@ export default function StationDeparturesCard({
 
       {!selectedStation && savedTripsCount > 0 && (
         <p className="sidebar-hint">{t('stationSection.hint')}</p>
+      )}
+
+      {selectedStation && currentArrivalDateTime && (
+        <div className="station-arrival">
+          <FontAwesomeIcon icon={faRightToBracket} className="station-arrival__icon" />
+          <span>{t('stationSection.arriveHere', { time: formatTimeDisplay(currentArrivalDateTime, timeLocale) })}</span>
+        </div>
       )}
 
       {selectedStation && (
@@ -103,6 +113,7 @@ export default function StationDeparturesCard({
                     onTripClick={onTripClick}
                     timeLocale={timeLocale}
                     selectedDateTime={selectedDateTime}
+                    currentArrivalDateTime={currentArrivalDateTime}
                   />
                 ))}
               </div>

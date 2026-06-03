@@ -80,7 +80,12 @@
     "loadingMore": "Lade weitere Abfahrten...",
     "dayOffsetTitle": "Abfahrt {{days}} Tag(e) später",
     "stepBack": "Einen Halt zurück",
-    "clearStation": "Station schließen"
+    "clearStation": "Station schließen",
+    "arriveHere": "Ankunft hier um {{time}}",
+    "layover": "{{minutes}} Min Puffer",
+    "layoverTitle": "Aufenthalt an dieser Station bis zur Abfahrt",
+    "layoverMissed": "{{minutes}} Min zu spät",
+    "layoverMissedTitle": "Diese Verbindung fährt vor deiner Ankunft ab"
   },
   "tripModal": {
     "loading": "Lade Verbindungsdetails...",
@@ -181,10 +186,14 @@
       "none": "Keine"
     },
     "datetime": {
+      "title": "Wann soll's losgehen?",
       "date": "Datum",
       "time": "Zeit",
       "resetButton": "Zurücksetzen",
       "resetTooltip": "Auf aktuelle Zeit oder letzte Ankunft + Umsteigezeit zurücksetzen"
+    },
+    "hoverPanel": {
+      "prompt": "Mit welcher Verbindung?"
     },
     "locateButton": "Meinen Standort anzeigen",
     "loading": {

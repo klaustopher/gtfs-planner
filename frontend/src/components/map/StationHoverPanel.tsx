@@ -1,9 +1,10 @@
 import { useMemo } from 'react'
 import { models } from '../../../wailsjs/go/models'
 import { getTripColor } from './geojson'
+import { getTransportTypeIcon } from '../../utils/transportType'
 import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faArrowRight } from '@fortawesome/free-solid-svg-icons'
+import { faArrowRight, faArrowRightLong } from '@fortawesome/free-solid-svg-icons'
 import './StationHoverPanel.css'
 
 // Format ISO 8601 datetime to HH:MM display
@@ -46,7 +47,7 @@ export default function StationHoverPanel({
   onMouseEnter,
   onMouseLeave,
 }: StationHoverPanelProps) {
-  const { i18n } = useTranslation()
+  const { t, i18n } = useTranslation()
   const resolvedLanguage = i18n.language || i18n.resolvedLanguage || 'en'
   // Find trips that pass through this station and get their arrival datetimes
   const tripsToStation = useMemo(() => {
@@ -87,8 +88,12 @@ export default function StationHoverPanel({
       onMouseLeave={onMouseLeave}
     >
       <div className="station-hover-panel__header">
+        <span className="station-hover-panel__to">
+          <FontAwesomeIcon icon={faArrowRightLong} />
+        </span>
         <span className="station-hover-panel__name">{stopName}</span>
       </div>
+      <div className="station-hover-panel__prompt">{t('map.hoverPanel.prompt')}</div>
       <div className="station-hover-panel__trips">
         {tripsToStation.map(({ trip, tripIndex, arrivalDateTime }) => {
           const tripColor = getTripColor(trip, tripIndex)
@@ -102,6 +107,10 @@ export default function StationHoverPanel({
                 className="station-hover-panel__badge"
                 style={{ backgroundColor: tripColor }}
               >
+                <FontAwesomeIcon
+                  className="station-hover-panel__badge-icon"
+                  icon={getTransportTypeIcon(trip.route_type)}
+                />
                 {trip.display_name || '?'}
               </span>
               <span className="station-hover-panel__times">
