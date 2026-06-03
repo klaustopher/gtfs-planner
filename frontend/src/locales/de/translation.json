@@ -188,7 +188,7 @@
     "online": {
       "title": "gtfs.de (kostenlos)",
       "description": "Der kostenlose, deutschlandweite GTFS-Feed von gtfs.de — direkt herunterladbar, ideal für den schnellen Start. Deckt allerdings nur rund 30 Tage ab.",
-      "learnMore": "Was ist gtfs.de?",
+      "learnMore": "Welche Feeds bietet gtfs.de?",
       "download": "Herunterladen",
       "import": "Importieren",
       "feeds": {

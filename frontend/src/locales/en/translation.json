@@ -188,7 +188,7 @@
     "online": {
       "title": "gtfs.de (free)",
       "description": "The free, Germany-wide GTFS feed from gtfs.de — directly downloadable, great for a quick start. However it only covers about 30 days.",
-      "learnMore": "What is gtfs.de?",
+      "learnMore": "Which feeds does gtfs.de offer?",
       "download": "Download",
       "import": "Import",
       "feeds": {
