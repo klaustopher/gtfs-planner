@@ -37,6 +37,8 @@ interface SidebarProps {
   onToggleNearbyStation: (stationId: string) => void
   onLoadMore: () => void
   isLoadingMore: boolean
+  onStepBack: () => void
+  canStepBack: boolean
   selectedDate: string
   selectedTime: string
 }
@@ -65,6 +67,8 @@ export default function Sidebar({
   onToggleNearbyStation,
   onLoadMore,
   isLoadingMore,
+  onStepBack,
+  canStepBack,
   selectedDate,
   selectedTime,
 }: SidebarProps) {
@@ -114,6 +118,8 @@ export default function Sidebar({
           onToggleNearbyStation={onToggleNearbyStation}
           onLoadMore={onLoadMore}
           isLoadingMore={isLoadingMore}
+          onStepBack={onStepBack}
+          canStepBack={canStepBack}
           selectedDateTime={selectedDateTime}
         />
       )}

@@ -116,6 +116,8 @@ function App() {
   // Accumulated trips state for load more functionality
   const [accumulatedTrips, setAccumulatedTrips] = useState<models.UpcomingTrip[]>([])
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  // Index of the first newly loaded trip, to scroll it into view after "load more".
+  const pendingScrollIndexRef = useRef<number | null>(null)
 
   // Date/time state - initialize with current date and time
   const now = useMemo(() => new Date(), [])
@@ -599,6 +601,8 @@ function App() {
   const handleLoadMore = useCallback(async () => {
     if (!selectedStation || accumulatedTrips.length === 0 || isLoadingMore) return
 
+    const firstNewIndex = accumulatedTrips.length
+
     // Find the trip with the latest departure time
     const latestTrip = accumulatedTrips.reduce((latest, trip) => {
       return trip.departure_datetime > latest.departure_datetime ? trip : latest
@@ -628,6 +632,7 @@ function App() {
         Array.from(selectedTransportTypes)
       )
       if (moreTrips && moreTrips.trips && moreTrips.trips.length > 0) {
+        pendingScrollIndexRef.current = firstNewIndex
         setAccumulatedTrips(prev => {
           const combined = [...prev, ...moreTrips.trips]
           // Sort by departure_datetime to ensure chronological order
@@ -642,6 +647,27 @@ function App() {
       setIsLoadingMore(false)
     }
   }, [selectedStation, selectedNearbyStationIds, accumulatedTrips, isLoadingMore, selectedTransportTypes])
+
+  // After "load more" completes, scroll the first newly loaded departure into view.
+  useEffect(() => {
+    if (pendingScrollIndexRef.current === null) return
+    const index = pendingScrollIndexRef.current
+    pendingScrollIndexRef.current = null
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-trip-index="${index}"]`)
+      el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }, [accumulatedTrips])
+
+  // Quick "step back": undo the last boarded leg (returning to the previous
+  // station), or clear the current station when nothing is boarded yet.
+  const handleStepBack = useCallback(() => {
+    if (savedTrips.length > 0) {
+      void removeSavedTrip(savedTrips[savedTrips.length - 1].id)
+    } else if (selectedStation) {
+      handleStationSelect(null)
+    }
+  }, [savedTrips, selectedStation, removeSavedTrip, handleStationSelect])
 
   // Fetch journey view data when in journey view mode
   const { data: journeyViewData, isLoading: isLoadingJourneyView } = useJourneyView(
@@ -730,6 +756,8 @@ function App() {
         onToggleNearbyStation={toggleNearbyStation}
         onLoadMore={handleLoadMore}
         isLoadingMore={isLoadingMore}
+        onStepBack={handleStepBack}
+        canStepBack={savedTrips.length > 0 || !!selectedStation}
         selectedDate={selectedDate}
         selectedTime={selectedTime}
       />

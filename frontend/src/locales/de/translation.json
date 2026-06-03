@@ -78,7 +78,9 @@
     "nearbyStations": "Nahegelegene Stationen (innerhalb 200m)",
     "loadMore": "Weitere Abfahrten laden",
     "loadingMore": "Lade weitere Abfahrten...",
-    "dayOffsetTitle": "Abfahrt {{days}} Tag(e) später"
+    "dayOffsetTitle": "Abfahrt {{days}} Tag(e) später",
+    "stepBack": "Einen Halt zurück",
+    "clearStation": "Station schließen"
   },
   "tripModal": {
     "loading": "Lade Verbindungsdetails...",

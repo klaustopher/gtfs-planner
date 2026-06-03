@@ -40,6 +40,7 @@ export default function TripListItem({
   return (
     <button
       className="trip-item"
+      data-trip-index={index}
       style={{ borderLeftColor: tripColor }}
       onClick={() => onTripClick(trip, index)}
       aria-label={isNearbyTrip ? t('stationSection.nearbyStationAria') : undefined}

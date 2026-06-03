@@ -42,6 +42,32 @@
   color: var(--color-text-primary);
 }
 
+.sidebar-card--flex .sidebar-card__header {
+  justify-content: flex-start;
+  gap: var(--space-sm);
+}
+
+.sidebar-card__step-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--color-border-medium);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.sidebar-card__step-back:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-strong);
+}
+
 .sidebar-card__subtitle {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);

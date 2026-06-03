@@ -78,7 +78,9 @@
     "nearbyStations": "Nearby stations (within 200m)",
     "loadMore": "Load more departures",
     "loadingMore": "Loading more departures...",
-    "dayOffsetTitle": "Departure {{days}} day(s) later"
+    "dayOffsetTitle": "Departure {{days}} day(s) later",
+    "stepBack": "Back one stop",
+    "clearStation": "Clear station"
   },
   "tripModal": {
     "loading": "Loading trip details...",

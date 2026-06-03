@@ -1,4 +1,6 @@
 import { useTranslation } from 'react-i18next'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 import { models } from '../../wailsjs/go/models'
 import TripListItem from './TripListItem'
 
@@ -14,6 +16,8 @@ interface StationDeparturesCardProps {
   onToggleNearbyStation: (stationId: string) => void
   onLoadMore: () => void
   isLoadingMore: boolean
+  onStepBack: () => void
+  canStepBack: boolean
   selectedDateTime: string
 }
 
@@ -29,13 +33,29 @@ export default function StationDeparturesCard({
   onToggleNearbyStation,
   onLoadMore,
   isLoadingMore,
+  onStepBack,
+  canStepBack,
   selectedDateTime,
 }: StationDeparturesCardProps) {
   const { t } = useTranslation()
+  const stepBackLabel = savedTripsCount > 0
+    ? t('stationSection.stepBack')
+    : t('stationSection.clearStation')
 
   return (
     <div className="sidebar-card sidebar-card--flex">
       <div className="sidebar-card__header">
+        {canStepBack && (
+          <button
+            type="button"
+            className="sidebar-card__step-back"
+            onClick={onStepBack}
+            title={stepBackLabel}
+            aria-label={stepBackLabel}
+          >
+            <FontAwesomeIcon icon={faArrowLeft} />
+          </button>
+        )}
         <h3 className="sidebar-card__title">
           {selectedStation ? selectedStation.stop_name : t('stationSection.selectPrompt')}
         </h3>
