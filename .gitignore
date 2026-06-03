@@ -7,3 +7,6 @@ gtfs-data
 tmp/
 
 .claude/settings.local.json
+
+# Stray build output (Wails binary)
+/bus-planning

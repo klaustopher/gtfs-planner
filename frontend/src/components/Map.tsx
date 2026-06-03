@@ -67,9 +67,8 @@ interface MapProps {
 const ZOOM_THRESHOLD = 8
 const ROUTE_LINE_OPACITY = 0.8
 const SEARCH_FOCUS_ZOOM = 12
-const MAPTILER_API_KEY='REDACTED_MAPTILER_KEY'
-const MAPTILER_STYLE = 'streets-v4-dark'
-const MAPTILER_STYLE_URL = `https://api.maptiler.com/maps/${MAPTILER_STYLE}/style.json?key=${MAPTILER_API_KEY}`
+// OpenFreeMap: free, unlimited, keyless vector tiles (https://openfreemap.org)
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron'
 
 // SVG for bus stop sign icon
 const BUS_STOP_ICON = `
@@ -549,7 +548,7 @@ export default function Map({
         interactiveLayerIds={['stops-layer']}
         cursor={isLoadingStation ? 'wait' : hoveredStation ? 'pointer' : 'auto'}
         style={{ width: '100%', height: '100%' }}
-        mapStyle={MAPTILER_STYLE_URL}
+        mapStyle={MAP_STYLE_URL}
         dragRotate={false}
         touchZoomRotate={false}
         touchPitch={false}
