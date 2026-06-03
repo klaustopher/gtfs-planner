@@ -135,7 +135,10 @@
       "funicular": "Funicular",
       "trolleybus": "Trolleybus",
       "monorail": "Monorail",
-      "unknown": "?"
+      "unknown": "?",
+      "longDistanceRail": "LD",
+      "regionalRail": "Regional",
+      "suburbanRail": "S-Bahn"
     },
     "name": {
       "tram": "Tram / Light rail",
@@ -148,7 +151,10 @@
       "funicular": "Funicular",
       "trolleybus": "Trolleybus",
       "monorail": "Monorail",
-      "unknown": "Unknown ({{routeType}})"
+      "unknown": "Unknown ({{routeType}})",
+      "longDistanceRail": "Long-distance (ICE/IC)",
+      "regionalRail": "Regional (RE/RB)",
+      "suburbanRail": "Suburban (S-Bahn)"
     }
   },
   "map": {

@@ -58,6 +58,10 @@ export function GetStops(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['GetStops'](arg1, arg2, arg3, arg4);
 }
 
+export function GetTransportCategories() {
+  return window['go']['main']['App']['GetTransportCategories']();
+}
+
 export function GetTripDetails(arg1, arg2) {
   return window['go']['main']['App']['GetTripDetails'](arg1, arg2);
 }

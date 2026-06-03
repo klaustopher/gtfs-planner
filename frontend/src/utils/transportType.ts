@@ -9,6 +9,8 @@ export interface TransportTypeInfo {
   icon?: string        // Optional emoji/icon
 }
 
+// Keyed by transport category id (mirrors routeTypeCategoryExpr in the backend).
+// 101/106/109 are the extended-rail categories split out for feeds like DELFI.
 const TRANSPORT_TYPES: Record<number, TransportTypeInfo> = {
   0: { nameKey: 'transportType.name.tram', shortKey: 'transportType.short.tram' },
   1: { nameKey: 'transportType.name.subway', shortKey: 'transportType.short.subway' },
@@ -20,6 +22,23 @@ const TRANSPORT_TYPES: Record<number, TransportTypeInfo> = {
   7: { nameKey: 'transportType.name.funicular', shortKey: 'transportType.short.funicular' },
   11: { nameKey: 'transportType.name.trolleybus', shortKey: 'transportType.short.trolleybus' },
   12: { nameKey: 'transportType.name.monorail', shortKey: 'transportType.short.monorail' },
+  101: { nameKey: 'transportType.name.longDistanceRail', shortKey: 'transportType.short.longDistanceRail' },
+  106: { nameKey: 'transportType.name.regionalRail', shortKey: 'transportType.short.regionalRail' },
+  109: { nameKey: 'transportType.name.suburbanRail', shortKey: 'transportType.short.suburbanRail' },
+}
+
+// Preferred display order for the filter dropdown (rail grouped first).
+const CATEGORY_ORDER = [101, 106, 109, 2, 1, 0, 3, 4, 11, 12, 5, 6, 7]
+
+/**
+ * Sort transport category ids into the preferred display order; unknown ids go last.
+ */
+export function sortTransportCategories(categories: number[]): number[] {
+  return [...categories].sort((a, b) => {
+    const ia = CATEGORY_ORDER.indexOf(a)
+    const ib = CATEGORY_ORDER.indexOf(b)
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib)
+  })
 }
 
 const UNKNOWN_TYPE: TransportTypeInfo = {
@@ -31,12 +50,16 @@ const UNKNOWN_TYPE: TransportTypeInfo = {
 export const ALL_TRANSPORT_TYPES = [0, 1, 2, 3, 4, 5, 6, 7, 11, 12]
 
 /**
- * Normalize a GTFS route type to its base category. Standard values (0-12) pass
- * through; extended route types (100-1700, used by feeds like DELFI) map onto a
- * base category. See the Google Extended GTFS Route Types.
+ * Map a GTFS route type to its transport category id. Standard values (0-12)
+ * mostly pass through; extended route types (100-1700, used by feeds like DELFI)
+ * map onto a category, with rail split into Fernverkehr (101), Regionalzug (106)
+ * and S-Bahn (109). Mirrors routeTypeCategoryExpr in the backend.
  */
-export function baseRouteType(routeType: number): number {
-  if (routeType >= 100 && routeType < 200) return 2 // rail (ICE, IC, RE, RB, S-Bahn…)
+export function transportCategory(routeType: number): number {
+  if (routeType === 101 || routeType === 102) return 101 // long-distance rail
+  if (routeType === 103 || (routeType >= 106 && routeType <= 108)) return 106 // regional rail
+  if (routeType === 109) return 109 // S-Bahn
+  if (routeType >= 100 && routeType < 200) return 2 // other rail
   if (routeType >= 200 && routeType < 300) return 3 // coach → bus
   if (routeType === 405) return 12 // monorail
   if (routeType >= 400 && routeType < 500) return 1 // metro / urban rail → subway
@@ -54,7 +77,7 @@ export function baseRouteType(routeType: number): number {
  * Get transport type information for a GTFS route type
  */
 export function getTransportTypeInfo(routeType: number): TransportTypeInfo {
-  return TRANSPORT_TYPES[baseRouteType(routeType)] ?? UNKNOWN_TYPE
+  return TRANSPORT_TYPES[transportCategory(routeType)] ?? UNKNOWN_TYPE
 }
 
 /**

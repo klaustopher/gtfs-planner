@@ -4,12 +4,12 @@ import Sidebar from './components/Sidebar'
 import TripDetailModal from './components/TripDetailModal'
 import GtfsSetupModal from './components/GtfsSetupModal'
 import { models, main } from '../wailsjs/go/models'
-import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, ShowConfirmDialog, GetNearbyStations, GetUpcomingTripsForStations, GetDatabaseStatus } from '../wailsjs/go/main/App'
+import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, ShowConfirmDialog, GetNearbyStations, GetUpcomingTripsForStations, GetDatabaseStatus, GetTransportCategories } from '../wailsjs/go/main/App'
 import { useTrips, TripQueryParams } from './components/map/useTrips'
 import { useJourneyView } from './hooks/useJourneyView'
 import { useSettings } from './hooks/useSettings'
 import { useTranslation } from 'react-i18next'
-import { ALL_TRANSPORT_TYPES } from './utils/transportType'
+import { ALL_TRANSPORT_TYPES, sortTransportCategories } from './utils/transportType'
 import { normalizeColor, FALLBACK_COLORS } from './components/map/geojson'
 import './App.css'
 
@@ -76,6 +76,7 @@ function App() {
   const [selectedNearbyStationIds, setSelectedNearbyStationIds] = useState<Set<string>>(new Set())
 
   // Transport type filter state - always show all GTFS route types
+  const [availableTransportTypes, setAvailableTransportTypes] = useState<number[]>(ALL_TRANSPORT_TYPES)
   const [selectedTransportTypes, setSelectedTransportTypes] = useState<Set<number>>(new Set(ALL_TRANSPORT_TYPES))
 
   // Accumulated trips state for load more functionality
@@ -116,6 +117,19 @@ function App() {
       const needsSetup =
         status.state === 'missing' || status.state === 'expired' || status.state === 'critical'
       setShowGtfsSetupModal(needsSetup)
+      if (status.hasData) {
+        // Build the transport filter from the categories actually in this feed.
+        try {
+          const cats = await GetTransportCategories()
+          if (cats && cats.length > 0) {
+            const sorted = sortTransportCategories(cats)
+            setAvailableTransportTypes(sorted)
+            setSelectedTransportTypes(new Set(sorted))
+          }
+        } catch (catErr) {
+          console.error('Failed to get transport categories:', catErr)
+        }
+      }
       return status
     } catch (err) {
       console.error('Failed to get database status:', err)
@@ -544,8 +558,8 @@ function App() {
   useEffect(() => {
     setAccumulatedTrips([])
     // Reset to all types selected
-    setSelectedTransportTypes(new Set(ALL_TRANSPORT_TYPES))
-  }, [selectedStation, selectedDate, selectedTime, selectedNearbyStationIds])
+    setSelectedTransportTypes(new Set(availableTransportTypes))
+  }, [selectedStation, selectedDate, selectedTime, selectedNearbyStationIds, availableTransportTypes])
 
   // Handler to load more trips
   const handleLoadMore = useCallback(async () => {
@@ -648,7 +662,7 @@ function App() {
           journeyViewData={journeyViewData}
           selectedTransportTypes={selectedTransportTypes}
           onToggleTransportType={setSelectedTransportTypes}
-          availableTransportTypes={ALL_TRANSPORT_TYPES}
+          availableTransportTypes={availableTransportTypes}
         />
       </div>
       <Sidebar

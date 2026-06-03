@@ -377,6 +377,15 @@ func (a *App) GetRouteByID(routeID string) (*models.Route, error) {
 	return a.db.GetRouteByID(routeID)
 }
 
+// GetTransportCategories returns the transport category ids present in the feed,
+// for building the transport-type filter.
+func (a *App) GetTransportCategories() ([]int, error) {
+	if a.db == nil {
+		return nil, fmt.Errorf("database not connected")
+	}
+	return a.db.GetTransportCategories()
+}
+
 // SaveJourney opens a save file dialog and writes journey data to the selected file.
 // Returns the saved file path, or empty string if cancelled.
 func (a *App) SaveJourney(journey models.JourneyData) (string, error) {

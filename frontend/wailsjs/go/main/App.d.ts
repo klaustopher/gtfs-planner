@@ -32,6 +32,8 @@ export function GetStationDetails(arg1:string):Promise<models.StationDetails>;
 
 export function GetStops(arg1:number,arg2:number,arg3:number,arg4:number):Promise<Array<models.Stop>>;
 
+export function GetTransportCategories():Promise<Array<number>>;
+
 export function GetTripDetails(arg1:string,arg2:string):Promise<models.TripDetails>;
 
 export function GetUpcomingTripsForStations(arg1:Array<string>,arg2:string,arg3:number,arg4:Array<number>):Promise<models.UpcomingTripsData>;

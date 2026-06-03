@@ -290,13 +290,18 @@ func searchVariants(tokenUpper string) []string {
 	}
 }
 
-// routeTypeBaseExpr returns a SQL expression mapping a GTFS route_type column
-// (a standard 0-12 value or an extended 100-1700 code) to its base GTFS
-// category. This lets the frontend's base-type filter match the extended route
-// types used by feeds like DELFI (e.g. 101/102/106/109 → 2 rail, 700 → 3 bus,
-// 900 → 0 tram). See the Google Extended GTFS Route Types.
-func routeTypeBaseExpr(col string) string {
+// routeTypeCategoryExpr returns a SQL expression mapping a GTFS route_type
+// column (a standard 0-12 value or an extended 100-1700 code) to a transport
+// category id used for filtering and labelling. Most categories reuse the base
+// GTFS code; the extended rail codes split into distinct categories so feeds
+// like DELFI can be filtered by Fernverkehr (101), Regionalzug (106) and S-Bahn
+// (109). See the Google Extended GTFS Route Types. The frontend's
+// transportCategory() mirrors this mapping.
+func routeTypeCategoryExpr(col string) string {
 	return `CASE
+		WHEN ` + col + ` IN (101, 102) THEN 101
+		WHEN ` + col + ` IN (103, 106, 107, 108) THEN 106
+		WHEN ` + col + ` = 109 THEN 109
 		WHEN ` + col + ` BETWEEN 100 AND 199 THEN 2
 		WHEN ` + col + ` BETWEEN 200 AND 299 THEN 3
 		WHEN ` + col + ` = 405 THEN 12
@@ -309,6 +314,23 @@ func routeTypeBaseExpr(col string) string {
 		WHEN ` + col + ` BETWEEN 1400 AND 1499 THEN 7
 		WHEN ` + col + ` BETWEEN 1500 AND 1599 THEN 3
 		ELSE ` + col + ` END`
+}
+
+// GetTransportCategories returns the distinct transport category ids actually
+// present in the feed, so the frontend filter only offers categories that exist
+// (e.g. DELFI exposes S-Bahn/Regional/Fernverkehr, gtfs.de does not).
+func (db *DB) GetTransportCategories() ([]int, error) {
+	var categories []int
+	err := db.conn.Select(&categories, `
+		SELECT DISTINCT `+routeTypeCategoryExpr("route_type")+` AS category
+		FROM routes
+		WHERE route_type IS NOT NULL
+		ORDER BY category
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("transport categories query failed: %w", err)
+	}
+	return categories, nil
 }
 
 // GetNearbyStations returns all parent stations within radiusMeters of the given station.
@@ -694,11 +716,11 @@ func (db *DB) queryTripsForMultipleStations(stopIDs []string, date, minTime, day
 	}
 
 	// Add route type filter if specified. The route_type is normalized to its
-	// base GTFS category first, so the frontend's base-type filter also matches
-	// extended route types (e.g. 101/106/109 → rail) used by feeds like DELFI.
+	// transport category first, so the frontend filters by category (matching the
+	// extended route types used by feeds like DELFI).
 	if len(routeTypes) > 0 {
 		baseQuery += `
-		WHERE ` + routeTypeBaseExpr("r.route_type") + ` IN (:routeTypes)`
+		WHERE ` + routeTypeCategoryExpr("r.route_type") + ` IN (:routeTypes)`
 		params["routeTypes"] = routeTypes
 	}
 

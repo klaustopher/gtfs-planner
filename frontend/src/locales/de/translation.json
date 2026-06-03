@@ -135,7 +135,10 @@
       "funicular": "Standseilbahn",
       "trolleybus": "O-Bus",
       "monorail": "Monorail",
-      "unknown": "?"
+      "unknown": "?",
+      "longDistanceRail": "Fern",
+      "regionalRail": "Regio",
+      "suburbanRail": "S-Bahn"
     },
     "name": {
       "tram": "Tram / Stadtbahn",
@@ -148,7 +151,10 @@
       "funicular": "Standseilbahn",
       "trolleybus": "Oberleitungsbus",
       "monorail": "Monorail",
-      "unknown": "Unbekannt ({{routeType}})"
+      "unknown": "Unbekannt ({{routeType}})",
+      "longDistanceRail": "Fernverkehr (ICE/IC)",
+      "regionalRail": "Regionalzug (RE/RB)",
+      "suburbanRail": "S-Bahn"
     }
   },
   "map": {
