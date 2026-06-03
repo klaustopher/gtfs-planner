@@ -681,9 +681,11 @@ function App() {
   }, [savedTrips, selectedStation, removeSavedTrip, handleStationSelect])
 
   // Fetch journey view data when in journey view mode
+  // Compute journey geometry whenever a journey exists (not only in viewing
+  // mode) so the route so far can be drawn as a faint backdrop while editing.
   const { data: journeyViewData, isLoading: isLoadingJourneyView } = useJourneyView(
     savedTrips,
-    isViewingMode
+    isViewingMode || savedTrips.length > 0
   )
 
   // Build journey data for export

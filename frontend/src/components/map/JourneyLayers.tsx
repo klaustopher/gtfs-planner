@@ -5,9 +5,14 @@ interface JourneyLayersProps {
   journeyLegs: FeatureCollection
   walkingConnections: FeatureCollection
   lineOpacity: number
+  // Render the journey as a faint light-gray backdrop (used while editing the
+  // journey, so the route so far stays visible without dominating the map).
+  ghost?: boolean
 }
 
-export default function JourneyLayers({ journeyLegs, walkingConnections, lineOpacity }: JourneyLayersProps) {
+const GHOST_COLOR = '#b6bcc6'
+
+export default function JourneyLayers({ journeyLegs, walkingConnections, lineOpacity, ghost = false }: JourneyLayersProps) {
   if (!journeyLegs && !walkingConnections) {
     return null
   }
@@ -23,9 +28,9 @@ export default function JourneyLayers({ journeyLegs, walkingConnections, lineOpa
             'line-join': 'round',
           }}
           paint={{
-            'line-color': '#6b7280',
+            'line-color': ghost ? GHOST_COLOR : '#6b7280',
             'line-width': 3,
-            'line-opacity': 0.7,
+            'line-opacity': ghost ? 0.45 : 0.7,
             'line-dasharray': [2, 2],
           }}
         />
@@ -40,9 +45,9 @@ export default function JourneyLayers({ journeyLegs, walkingConnections, lineOpa
             'line-join': 'round',
           }}
           paint={{
-            'line-color': ['get', 'line_color'],
-            'line-width': ['get', 'line_width'],
-            'line-opacity': lineOpacity,
+            'line-color': ghost ? GHOST_COLOR : ['get', 'line_color'],
+            'line-width': ghost ? 5 : ['get', 'line_width'],
+            'line-opacity': ghost ? 0.6 : lineOpacity,
           }}
         />
       </Source>

@@ -546,6 +546,16 @@ export default function Map({
         touchZoomRotate={false}
         touchPitch={false}
       >
+        {/* Current journey as a faint backdrop while editing (under the trips) */}
+        {!isViewingMode && journeyViewData && journeyViewData.legs.length > 0 && (
+          <JourneyLayers
+            journeyLegs={journeyLegsGeojsonData}
+            walkingConnections={walkingConnectionsGeojsonData}
+            lineOpacity={ROUTE_LINE_OPACITY}
+            ghost
+          />
+        )}
+
         {tripsData && !isViewingMode && (
           <TripLayers data={tripLinesGeojsonData} lineOpacity={ROUTE_LINE_OPACITY} />
         )}
