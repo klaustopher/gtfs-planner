@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent } from 'react'
+import { useEffect, useState, type MouseEvent, type ChangeEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -8,7 +8,15 @@ import { EventsOn, BrowserOpenURL } from '../../wailsjs/runtime/runtime'
 import type { main } from '../../wailsjs/go/models'
 import './GtfsSetupModal.css'
 
-const DEFAULT_FEED_URL = 'https://download.gtfs.de/germany/free/latest.zip'
+// The four free GTFS feeds offered by gtfs.de (data provided by DELFI e.V.).
+const FEEDS = [
+  { key: 'full', url: 'https://download.gtfs.de/germany/free/latest.zip' },
+  { key: 'nv', url: 'https://download.gtfs.de/germany/nv_free/latest.zip' },
+  { key: 'fv', url: 'https://download.gtfs.de/germany/fv_free/latest.zip' },
+  { key: 'rv', url: 'https://download.gtfs.de/germany/rv_free/latest.zip' },
+] as const
+
+const DEFAULT_FEED = FEEDS[0]
 const GTFS_DE_INFO_URL = 'https://gtfs.de/de/feeds/'
 const DELFI_URL =
   'https://www.opendata-oepnv.de/ht/de/organisation/delfi/startseite?tx_vrrkit_view%5Baction%5D=details&tx_vrrkit_view%5Bcontroller%5D=View&tx_vrrkit_view%5Bdataset_name%5D=deutschlandweite-sollfahrplandaten-gtfs'
@@ -32,7 +40,8 @@ interface GtfsSetupModalProps {
 
 export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: GtfsSetupModalProps) {
   const { t } = useTranslation()
-  const [url, setUrl] = useState(DEFAULT_FEED_URL)
+  const [feedKey, setFeedKey] = useState<string>(DEFAULT_FEED.key)
+  const [url, setUrl] = useState<string>(DEFAULT_FEED.url)
   const [phase, setPhase] = useState<Phase>('idle')
   const [downloadPct, setDownloadPct] = useState(0)
   const [importProg, setImportProg] = useState<{ pct: number; label: string }>({ pct: 0, label: '' })
@@ -139,6 +148,17 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
     void CancelGTFS()
   }
 
+  const handleFeedChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    const key = event.target.value
+    setFeedKey(key)
+    const preset = FEEDS.find((f) => f.key === key)
+    if (preset) {
+      setUrl(preset.url)
+    }
+  }
+
+  const isCustomFeed = feedKey === 'custom'
+
   if (!isOpen) {
     return null
   }
@@ -186,14 +206,32 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
               >
                 {t('gtfsSetup.online.learnMore')} <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
               </button>
-              <input
-                type="text"
-                className="gtfs-setup-modal__input"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
+              <select
+                className="gtfs-setup-modal__select"
+                value={feedKey}
+                onChange={handleFeedChange}
                 disabled={busy}
-                spellCheck={false}
-              />
+              >
+                {FEEDS.map((f) => (
+                  <option key={f.key} value={f.key}>
+                    {t(`gtfsSetup.online.feeds.${f.key}`)}
+                  </option>
+                ))}
+                <option value="custom">{t('gtfsSetup.online.feeds.custom')}</option>
+              </select>
+              {isCustomFeed ? (
+                <input
+                  type="text"
+                  className="gtfs-setup-modal__input"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  disabled={busy}
+                  placeholder="https://…/latest.zip"
+                  spellCheck={false}
+                />
+              ) : (
+                <p className="gtfs-setup-modal__url-preview">{url}</p>
+              )}
               <div className="gtfs-setup-modal__actions">
                 <button
                   type="button"

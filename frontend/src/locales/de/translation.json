@@ -190,7 +190,14 @@
       "description": "Der kostenlose, deutschlandweite GTFS-Feed von gtfs.de — direkt herunterladbar, ideal für den schnellen Start. Deckt allerdings nur rund 30 Tage ab.",
       "learnMore": "Was ist gtfs.de?",
       "download": "Herunterladen",
-      "import": "Importieren"
+      "import": "Importieren",
+      "feeds": {
+        "full": "Deutschland gesamt (alle Verkehrsmittel)",
+        "nv": "Nahverkehr (U-Bahn, Tram, Bus, Fähre)",
+        "fv": "Schienenfernverkehr (ICE, IC, EC, Nachtzüge)",
+        "rv": "Schienenregionalverkehr (RB, RE, S-Bahn)",
+        "custom": "Eigene URL…"
+      }
     },
     "downloading": "Lädt herunter… {{percent}}%",
     "downloadComplete": "Download abgeschlossen. Jetzt importieren.",

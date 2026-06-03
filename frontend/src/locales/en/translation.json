@@ -190,7 +190,14 @@
       "description": "The free, Germany-wide GTFS feed from gtfs.de — directly downloadable, great for a quick start. However it only covers about 30 days.",
       "learnMore": "What is gtfs.de?",
       "download": "Download",
-      "import": "Import"
+      "import": "Import",
+      "feeds": {
+        "full": "All of Germany (every mode)",
+        "nv": "Local transit (subway, tram, bus, ferry)",
+        "fv": "Long-distance rail (ICE, IC, EC, night trains)",
+        "rv": "Regional rail (RB, RE, S-Bahn)",
+        "custom": "Custom URL…"
+      }
     },
     "downloading": "Downloading… {{percent}}%",
     "downloadComplete": "Download complete. Import now.",
