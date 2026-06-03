@@ -27,7 +27,9 @@ const LINE_WIDTH = 6
 // (constant across zoom, unlike a metre-based geometry offset that vanishes when
 // zoomed out) so overlapping corridors fan out into clean parallel lines at every
 // zoom level. Mirrors the offset index (0, 1, -1, 2, -2, …) from detectOverlaps.
-const TRIP_OFFSET_PX = 4
+// Stepped a touch above the line width so each line's white casing separates it
+// from its neighbours (see TripLayers).
+const TRIP_OFFSET_PX = 7
 
 export interface StopsGeoJSON {
   type: 'FeatureCollection'
