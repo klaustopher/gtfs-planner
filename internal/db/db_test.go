@@ -33,6 +33,25 @@ func TestOpenInvalidPath(t *testing.T) {
 	}
 }
 
+func TestGetServiceDateRange(t *testing.T) {
+	db := skipIfNoDatabase(t)
+	defer db.Close()
+
+	minDate, maxDate, ok, err := db.GetServiceDateRange()
+	if err != nil {
+		t.Fatalf("GetServiceDateRange() error: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected service data in the test database")
+	}
+	if len(minDate) != 8 || len(maxDate) != 8 {
+		t.Errorf("expected YYYYMMDD dates, got min=%q max=%q", minDate, maxDate)
+	}
+	if minDate > maxDate {
+		t.Errorf("min date %q after max date %q", minDate, maxDate)
+	}
+}
+
 func TestGetStops(t *testing.T) {
 	db := skipIfNoDatabase(t)
 	defer db.Close()

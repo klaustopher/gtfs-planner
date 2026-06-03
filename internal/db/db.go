@@ -2,6 +2,7 @@
 package db
 
 import (
+	"database/sql"
 	"fmt"
 	"math"
 	"strings"
@@ -28,13 +29,53 @@ func Open(path string) (*DB, error) {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
+	// Serialize on a single connection so the read-tuning PRAGMAs below apply to
+	// every query. The app's reads are quick point/range lookups, so this is
+	// cheaper than registering a per-connection hook.
+	conn.SetMaxOpenConns(1)
+
 	// Verify connection works
 	if err := conn.Ping(); err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
+	// Read-side tuning for the static, read-only database.
+	pragmas := []string{
+		"PRAGMA query_only=ON",
+		"PRAGMA cache_size=-65536",   // ~64 MB page cache
+		"PRAGMA mmap_size=268435456", // 256 MB memory-mapped I/O
+		"PRAGMA temp_store=MEMORY",
+	}
+	for _, p := range pragmas {
+		if _, err := conn.Exec(p); err != nil {
+			conn.Close()
+			return nil, fmt.Errorf("failed to apply pragma %q: %w", p, err)
+		}
+	}
+
 	return &DB{conn: conn}, nil
+}
+
+// GetServiceDateRange returns the earliest and latest service dates (YYYYMMDD)
+// present in the calendar and calendar_dates tables. ok is false when the
+// database holds no service data.
+func (db *DB) GetServiceDateRange() (minDate, maxDate string, ok bool, err error) {
+	var minVal, maxVal sql.NullString
+	err = db.conn.QueryRow(`
+		SELECT MIN(min_date), MAX(max_date) FROM (
+			SELECT MIN(start_date) AS min_date, MAX(end_date) AS max_date FROM calendar
+			UNION ALL
+			SELECT MIN(date) AS min_date, MAX(date) AS max_date FROM calendar_dates
+		)
+	`).Scan(&minVal, &maxVal)
+	if err != nil {
+		return "", "", false, fmt.Errorf("service date range query failed: %w", err)
+	}
+	if !minVal.Valid || !maxVal.Valid {
+		return "", "", false, nil
+	}
+	return minVal.String, maxVal.String, true, nil
 }
 
 // Close closes the database connection.
@@ -90,11 +131,11 @@ func (db *DB) GetStationDetails(stopID string) (*models.StationDetails, error) {
 		JOIN trips t ON t.route_id = r.route_id
 		JOIN stop_times st ON st.trip_id = t.trip_id
 		JOIN stops child ON child.stop_id = st.stop_id
-		WHERE child.parent_station = ?
+		WHERE child.parent_station = ? OR child.stop_id = ?
 		ORDER BY r.route_short_name, r.route_long_name
 	`
 
-	rows, err := db.conn.Query(routeQuery, stopID)
+	rows, err := db.conn.Query(routeQuery, stopID, stopID)
 	if err != nil {
 		return nil, fmt.Errorf("routes query failed: %w", err)
 	}
@@ -127,10 +168,10 @@ func (db *DB) GetRoutesForStation(stopID string) (*models.RoutesData, error) {
 		JOIN trips t ON t.route_id = r.route_id
 		JOIN stop_times st ON st.trip_id = t.trip_id
 		JOIN stops child ON child.stop_id = st.stop_id
-		WHERE child.parent_station = ?
+		WHERE child.parent_station = ? OR child.stop_id = ?
 	`
 
-	routeRows, err := db.conn.Query(routeIDsQuery, stopID)
+	routeRows, err := db.conn.Query(routeIDsQuery, stopID, stopID)
 	if err != nil {
 		return nil, fmt.Errorf("routes query failed: %w", err)
 	}
