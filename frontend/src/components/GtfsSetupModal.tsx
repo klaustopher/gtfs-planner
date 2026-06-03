@@ -60,7 +60,11 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
   const [url, setUrl] = useState<string>(DEFAULT_FEED.url)
   const [phase, setPhase] = useState<Phase>('idle')
   const [downloadPct, setDownloadPct] = useState(0)
-  const [importProg, setImportProg] = useState<{ pct: number; label: string }>({ pct: 0, label: '' })
+  const [importProg, setImportProg] = useState<{ pct: number; label: string; tail: boolean }>({
+    pct: 0,
+    label: '',
+    tail: false,
+  })
   const [eta, setEta] = useState('')
   const [error, setError] = useState('')
   const opStartRef = useRef(0)
@@ -71,11 +75,6 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
   useEffect(() => {
     if (!isOpen) {
       return
-    }
-    const importLabel = (p: GtfsProgress): string => {
-      if (p.message === 'normalize') return t('gtfsSetup.normalizing')
-      if (p.message === 'index') return t('gtfsSetup.indexing')
-      return p.file
     }
     const unsubscribers = [
       EventsOn('gtfs:download:progress', (p: GtfsProgress) => {
@@ -92,7 +91,18 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
         setDownloadPct(0)
       }),
       EventsOn('gtfs:import:progress', (p: GtfsProgress) => {
-        setImportProg({ pct: p.total > 0 ? p.current / p.total : 0, label: importLabel(p) })
+        if (p.message === 'normalize' || p.message === 'index') {
+          const label = p.message === 'normalize' ? t('gtfsSetup.normalizing') : t('gtfsSetup.indexing')
+          setImportProg({ pct: 1, label, tail: true })
+          setEta('')
+          return
+        }
+        const pct = p.total > 0 ? p.current / p.total : 0
+        setImportProg({
+          pct,
+          label: t('gtfsSetup.importingFile', { file: p.file, percent: Math.round(pct * 100) }),
+          tail: false,
+        })
         setEta(etaFrom(p.current, p.total, opStartRef.current))
       }),
       EventsOn('gtfs:import:done', () => {
@@ -105,7 +115,7 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
       }),
       EventsOn('gtfs:import:cancelled', () => {
         setPhase('idle')
-        setImportProg({ pct: 0, label: '' })
+        setImportProg({ pct: 0, label: '', tail: false })
       }),
     ]
     return () => {
@@ -148,7 +158,7 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
 
   const handleImport = () => {
     setError('')
-    setImportProg({ pct: 0, label: '' })
+    setImportProg({ pct: 0, label: '', tail: false })
     setEta('')
     opStartRef.current = Date.now()
     setPhase('importing')
@@ -160,7 +170,7 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
 
   const handleOpenFile = () => {
     setError('')
-    setImportProg({ pct: 0, label: '' })
+    setImportProg({ pct: 0, label: '', tail: false })
     setEta('')
     opStartRef.current = Date.now()
     setPhase('importing')
@@ -308,25 +318,28 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
 
           {busy && (
             <div className="gtfs-setup-modal__progress">
-              <div className="gtfs-setup-modal__progress-bar">
+              <div
+                className={
+                  importProg.tail
+                    ? 'gtfs-setup-modal__progress-bar gtfs-setup-modal__progress-bar--indeterminate'
+                    : 'gtfs-setup-modal__progress-bar'
+                }
+              >
                 <div
                   className="gtfs-setup-modal__progress-fill"
-                  style={{
-                    width: `${Math.round((phase === 'downloading' ? downloadPct : importProg.pct) * 100)}%`,
-                  }}
+                  style={
+                    importProg.tail
+                      ? undefined
+                      : { width: `${Math.round((phase === 'downloading' ? downloadPct : importProg.pct) * 100)}%` }
+                  }
                 />
               </div>
               <div className="gtfs-setup-modal__progress-row">
                 <span className="gtfs-setup-modal__progress-label">
                   {phase === 'downloading'
                     ? t('gtfsSetup.downloading', { percent: Math.round(downloadPct * 100) })
-                    : importProg.label
-                      ? t('gtfsSetup.importingFile', {
-                          file: importProg.label,
-                          percent: Math.round(importProg.pct * 100),
-                        })
-                      : t('gtfsSetup.importingStart')}
-                  {eta && ` · ${t('gtfsSetup.eta', { time: eta })}`}
+                    : importProg.label || t('gtfsSetup.importingStart')}
+                  {eta && !importProg.tail && ` · ${t('gtfsSetup.eta', { time: eta })}`}
                 </span>
                 <button type="button" className="gtfs-setup-modal__cancel" onClick={handleCancel}>
                   {t('gtfsSetup.cancel')}

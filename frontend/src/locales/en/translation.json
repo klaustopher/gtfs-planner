@@ -204,8 +204,8 @@
     "importingStart": "Preparing import…",
     "cancel": "Cancel",
     "importingFile": "Importing {{file}}… {{percent}}%",
-    "normalizing": "Normalizing stations…",
-    "indexing": "Building indexes…",
+    "normalizing": "Normalizing stations – this can take a moment",
+    "indexing": "Building indexes – this can take a moment",
     "delfi": {
       "title": "DELFI / opendata-ÖPNV",
       "description": "The official Germany-wide schedule data from DELFI. More detailed than gtfs.de (real station hierarchy with platforms and track numbers, transfers) and a much longer validity period — typically several months instead of ~30 days.",

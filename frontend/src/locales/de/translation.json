@@ -204,8 +204,8 @@
     "importingStart": "Import wird vorbereitet…",
     "cancel": "Abbrechen",
     "importingFile": "Importiere {{file}}… {{percent}}%",
-    "normalizing": "Normalisiere Stationen…",
-    "indexing": "Erstelle Indizes…",
+    "normalizing": "Normalisiere Stationen – das kann einen Moment dauern",
+    "indexing": "Erstelle Indizes – das kann einen Moment dauern",
     "delfi": {
       "title": "DELFI / opendata-ÖPNV",
       "description": "Die offiziellen deutschlandweiten Solldaten von DELFI. Detaillierter als gtfs.de (echte Stationshierarchie mit Bahnsteigen und Gleisnummern, Umstiege) und deutlich längerer Gültigkeitszeitraum — meist mehrere Monate statt ~30 Tage.",
