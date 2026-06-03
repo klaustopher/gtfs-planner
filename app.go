@@ -42,6 +42,14 @@ func NewApp() *App {
 
 // loadConfig loads the configuration from gtfs-config.yaml
 func (a *App) loadConfig() error {
+	// Allow overriding the database path via environment variable. This is used
+	// by tests to point at the sample database and lets the app run against an
+	// alternate database without editing gtfs-config.yaml.
+	if dbPath := os.Getenv("GTFS_DATABASE_PATH"); dbPath != "" {
+		a.config = &Config{DatabasePath: dbPath}
+		return nil
+	}
+
 	configPath := "gtfs-config.yaml"
 
 	// Check if config file exists
