@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"bus-planning/internal/models"
+	"gtfs-planner/internal/models"
 
 	"codeberg.org/go-pdf/fpdf"
 )
@@ -181,7 +181,7 @@ func TestExportJourneyToICS_Content(t *testing.T) {
 	var icsContent strings.Builder
 	icsContent.WriteString("BEGIN:VCALENDAR\r\n")
 	icsContent.WriteString("VERSION:2.0\r\n")
-	icsContent.WriteString("PRODID:-//Bus Planning//Journey Export//EN\r\n")
+	icsContent.WriteString("PRODID:-//GTFS Planner//Journey Export//EN\r\n")
 
 	for _, trip := range journey.SavedTrips {
 		departureTime, _ := time.ParseInLocation("2006-01-02T15:04:05", trip.DepartureDateTime, time.Local)

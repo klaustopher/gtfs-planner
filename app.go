@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
-	"bus-planning/internal/db"
-	"bus-planning/internal/geolocation"
-	"bus-planning/internal/gtfsimport"
-	"bus-planning/internal/models"
-	"bus-planning/internal/paths"
+	"gtfs-planner/internal/db"
+	"gtfs-planner/internal/geolocation"
+	"gtfs-planner/internal/gtfsimport"
+	"gtfs-planner/internal/models"
+	"gtfs-planner/internal/paths"
 
 	"codeberg.org/go-pdf/fpdf"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -485,7 +485,7 @@ func (a *App) ExportJourneyToICS(journey models.JourneyData) (string, error) {
 	var icsContent strings.Builder
 	icsContent.WriteString("BEGIN:VCALENDAR\r\n")
 	icsContent.WriteString("VERSION:2.0\r\n")
-	icsContent.WriteString("PRODID:-//Bus Planning//Journey Export//EN\r\n")
+	icsContent.WriteString("PRODID:-//GTFS Planner//Journey Export//EN\r\n")
 	icsContent.WriteString("CALSCALE:GREGORIAN\r\n")
 	icsContent.WriteString("METHOD:PUBLISH\r\n")
 
@@ -543,7 +543,7 @@ func (a *App) ExportJourneyToICS(journey models.JourneyData) (string, error) {
 		}
 
 		// Create unique ID
-		uid := fmt.Sprintf("%s-%s-%d@bus-planning", trip.TripID, trip.StartStationID, i)
+		uid := fmt.Sprintf("%s-%s-%d@gtfs-planner", trip.TripID, trip.StartStationID, i)
 
 		// Get route type name
 		routeTypeName := getRouteTypeName(route.RouteType)

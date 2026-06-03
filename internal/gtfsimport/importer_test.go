@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"bus-planning/internal/db"
+	"gtfs-planner/internal/db"
 
 	_ "github.com/mattn/go-sqlite3"
 )

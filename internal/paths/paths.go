@@ -9,7 +9,7 @@ import (
 	"runtime"
 )
 
-const appDir = "bus-planning"
+const appDir = "gtfs-planner"
 
 // dbFile is the filename of the generated SQLite database.
 const dbFile = "gtfs.sqlite"
@@ -26,9 +26,9 @@ const feedFile = "feed.zip"
 //	Windows:     %LocalAppData% (deliberately not Roaming — the DB is large
 //	             and must not be synced)
 //
-// BUS_PLANNING_DATA_DIR overrides the resolved directory (used by tests).
+// GTFS_PLANNING_DATA_DIR overrides the resolved directory (used by tests).
 func DataDir() (string, error) {
-	if override := os.Getenv("BUS_PLANNING_DATA_DIR"); override != "" {
+	if override := os.Getenv("GTFS_PLANNING_DATA_DIR"); override != "" {
 		if err := os.MkdirAll(override, 0o755); err != nil {
 			return "", fmt.Errorf("failed to create data dir: %w", err)
 		}

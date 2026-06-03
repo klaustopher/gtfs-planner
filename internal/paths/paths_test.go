@@ -7,7 +7,7 @@ import (
 
 func TestDataDirHonorsOverride(t *testing.T) {
 	override := t.TempDir()
-	t.Setenv("BUS_PLANNING_DATA_DIR", override)
+	t.Setenv("GTFS_PLANNING_DATA_DIR", override)
 
 	dir, err := DataDir()
 	if err != nil {
@@ -20,7 +20,7 @@ func TestDataDirHonorsOverride(t *testing.T) {
 
 func TestDatabaseAndFeedPaths(t *testing.T) {
 	override := t.TempDir()
-	t.Setenv("BUS_PLANNING_DATA_DIR", override)
+	t.Setenv("GTFS_PLANNING_DATA_DIR", override)
 
 	dbPath, err := DatabasePath()
 	if err != nil {
@@ -42,7 +42,7 @@ func TestDatabaseAndFeedPaths(t *testing.T) {
 func TestDataDirCreatesDirectory(t *testing.T) {
 	parent := t.TempDir()
 	target := filepath.Join(parent, "nested", "data")
-	t.Setenv("BUS_PLANNING_DATA_DIR", target)
+	t.Setenv("GTFS_PLANNING_DATA_DIR", target)
 
 	dir, err := DataDir()
 	if err != nil {

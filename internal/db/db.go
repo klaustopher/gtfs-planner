@@ -7,8 +7,8 @@ import (
 	"math"
 	"strings"
 
-	"bus-planning/internal/models"
-	"bus-planning/internal/timeutil"
+	"gtfs-planner/internal/models"
+	"gtfs-planner/internal/timeutil"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, type ReactNode } from 'react'
 import { SettingsContext, type Settings } from './settingsContext'
 
-const STORAGE_KEY = 'bus-planning-settings'
+const STORAGE_KEY = 'gtfs-planner-settings'
 
 const DEFAULT_SETTINGS: Settings = {
   connectionTimeMinutes: 5,

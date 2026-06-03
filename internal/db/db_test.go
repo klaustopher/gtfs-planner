@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"bus-planning/internal/models"
+	"gtfs-planner/internal/models"
 )
 
 const testDBPath = "testdata/test.sqlite"

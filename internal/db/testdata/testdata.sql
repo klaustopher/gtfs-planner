@@ -1,4 +1,4 @@
--- Test data for bus-planning database tests
+-- Test data for gtfs-planner database tests
 --
 -- This file contains minimal test data to support all test cases.
 -- Each section documents which test(s) it supports.

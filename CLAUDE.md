@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Bus Planning is a desktop application for visualizing GTFS (General Transit Feed Specification) public transit data and planning multi-leg journeys. Users can browse stations on an interactive map, view upcoming departures, and plan trips by "boarding" successive transit legs.
+GTFS Planner is a desktop application for visualizing GTFS (General Transit Feed Specification) public transit data and planning multi-leg journeys. Users can browse stations on an interactive map, view upcoming departures, and plan trips by "boarding" successive transit legs.
 
 ## Technology Stack
 
@@ -21,11 +21,13 @@ wails dev                    # Start dev server with hot reload
 
 # Building
 wails build                  # Build production executable
-go build -o build/bin/gtfs-manager ./cmd/gtfs-manager/  # Build GTFS manager CLI
 
 # Testing
 go test ./...                # Run all Go tests
 go test -v ./internal/db/    # Run database tests with verbose output
+
+# Real-feed smoke test for the importer (downloads not required, uses a local zip)
+GTFS_SMOKE_ZIP=/path/to/feed.zip go test -run TestRealFeedSmoke -timeout 30m -v ./internal/gtfsimport/
 
 # Frontend only
 cd frontend && npm run dev   # Run Vite dev server standalone
@@ -33,12 +35,12 @@ cd frontend && npm run build # Build frontend assets
 
 # Generate Wails bindings (after changing Go methods)
 wails generate module
-
-# GTFS Data Management
-gtfs-manager status          # Check database status and data availability
-gtfs-manager download        # Download GTFS feed from configured URL
-gtfs-manager import          # Import GTFS feed into SQLite database
 ```
+
+GTFS data management (download + import) happens **inside the app**: when the
+database is missing or expired the setup dialog offers download-from-URL,
+import, and "open local zip" (for feeds like DELFI/opendata-ÖPNV that require
+registration). The database can be inspected and deleted under Settings.
 
 ## Architecture Overview
 
@@ -48,31 +50,40 @@ gtfs-manager import          # Import GTFS feed into SQLite database
 
 - `main.go` - Wails app initialization
 - `app.go` - Main `App` struct with Wails-bound methods
-- `cmd/gtfs-manager/` - CLI tool for GTFS data management
 
 **Key Packages:**
 
-- `internal/db/` - All database queries (~800 lines)
+- `internal/db/` - All database queries (~800 lines, read-only)
+- `internal/gtfsimport/` - Native Go GTFS importer + downloader (replaces `npx gtfs-import`)
+- `internal/paths/` - Platform-specific data directory for the database
 - `internal/models/` - Data structures with JSON tags
 - `internal/timeutil/` - GTFS time normalization utilities
 
-**GTFS Manager CLI (`cmd/gtfs-manager/`):**
+**GTFS importer (`internal/gtfsimport/`):**
 
-- `main.go` - Cobra CLI entry point and command registration
-- `config.go` - YAML config file loader
-- `status.go` - Database status check with date range display
-- `download.go` - Feed download with Bubble Tea progress UI
-- `import.go` - GTFS import via `npx gtfs-import`
+- `schema.go` - Lean SQLite schema (the 6 tables db.go reads) + indexes
+- `importer.go` - Streams the GTFS zip and builds the database atomically
+- `normalize.go` - Maps the DELFI/IFOPT station hierarchy onto the gtfs.de model
+- `download.go` - HTTP feed download with progress callback
+- `progress.go` / `csvutil.go` - Progress events and name-based CSV mapping
 
-**Wails Bindings (app.go:29-80):**
+**Wails Bindings (`app.go`):**
 
 ```go
-GetStops(n, s, e, w float64)              // Stations in bounding box
+// Read queries
+GetStops(n, s, e, w float64)               // Stations in bounding box
 GetStationDetails(stopID string)           // Station info + routes
 GetRoutesForStation(stopID string)         // Route geometries
 SearchStations(query string, limit int)    // Station search
-GetUpcomingTrips(stopID, datetime, limit)  // Upcoming departures
+GetUpcomingTripsForStations(ids, dt, ...)  // Upcoming departures
 GetTripDetails(tripID, serviceDate)        // Full trip itinerary
+
+// Data management
+GetDatabaseStatus()                        // Missing / expired / ok + date range
+DownloadGTFS(url string)                   // Download feed (emits gtfs:download:*)
+ImportGTFS()                               // Import downloaded feed (emits gtfs:import:*)
+ImportGTFSFromFile()                       // Pick + import a local zip
+GetDatabaseInfo() / DeleteDatabase()       // Settings: path/size, delete
 ```
 
 ### Frontend (React + TypeScript)
@@ -133,23 +144,29 @@ When querying trips, the code checks:
 - `calendar` - monday-sunday flags, date range
 - `calendar_dates` - service exceptions
 
-## Data Structure
+## Data Storage
 
-- `gtfs-data/feeds/` - Raw GTFS feed ZIP files (gitignored)
-- `gtfs-data/sqlite/gtfs.sqlite` - Parsed SQLite database (gitignored)
-- `gtfs-config.yaml` - GTFS manager configuration file
+There is no config file. The database and downloaded feed live in a
+platform-specific data directory resolved by `internal/paths`:
 
-## GTFS Manager Configuration
+- Linux: `$XDG_DATA_HOME/gtfs-planner` (or `~/.local/share/gtfs-planner`)
+- macOS: `~/Library/Application Support/gtfs-planner`
+- Windows: `%LocalAppData%\gtfs-planner` (not Roaming — the DB is multiple GB)
 
-The `gtfs-manager` CLI reads settings from `gtfs-config.yaml`:
+Files: `gtfs.sqlite` (the built database) and `feed.zip` (transient, between
+download and import). `GTFS_PLANNING_DATA_DIR` overrides the directory and
+`GTFS_DATABASE_PATH` overrides just the database path (handy for development).
 
-```yaml
-feed_url: "https://download.gtfs.de/germany/nv_free/latest.zip"
-feed_path: "gtfs-data/feeds/latest.zip"
-database_path: "gtfs-data/sqlite/gtfs.sqlite"
-```
+## Importer notes
 
-Use `--config` flag to specify an alternate config file location.
+- The importer ships its own lean schema (see `internal/gtfsimport/schema.go`),
+  not the comprehensive npm schema. `internal/db/testdata/schema.sql` is kept
+  only as a reference of the old npm output.
+- Both German feeds are supported: gtfs.de (downloadable) and DELFI/opendata-ÖPNV
+  (registration-gated, imported via "open local zip"). DELFI's IFOPT station
+  hierarchy is normalized onto the gtfs.de model in `normalize.go`.
+- The importer has no CHECK constraints and skips malformed rows, so it imports
+  feeds the npm tool aborts on.
 
 ## Key Implementation Details
 

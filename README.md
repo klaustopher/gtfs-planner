@@ -1,4 +1,4 @@
-# Bus Planning
+# GTFS Planner
 
 A desktop application for visualizing and planning trips using GTFS (General Transit Feed Specification) public transit data. Built with Go, React, and MapLibre GL.
 
@@ -44,26 +44,7 @@ go mod download
 cd frontend && npm install && cd ..
 ```
 
-### 3. Prepare GTFS Data
-
-The application requires a pre-processed SQLite database from GTFS data. Use the included `gtfs-manager` CLI tool:
-
-```bash
-# Build the GTFS manager CLI
-go build -o build/bin/gtfs-manager ./cmd/gtfs-manager/
-
-# Download the GTFS feed (with progress display)
-./build/bin/gtfs-manager download
-
-# Import into SQLite database (requires Node.js/npx)
-# This step will take several minutes as it processes all trips
-./build/bin/gtfs-manager import
-
-# Check database status
-./build/bin/gtfs-manager status
-```
-
-### 4. Run the Application
+### 3. Run the Application
 
 **Development mode:**
 
@@ -89,64 +70,33 @@ The executable will be in `build/bin/`.
 4. **Plan a Journey** - Click a trip to see details, then "board" to add to your journey
 5. **Continue Planning** - After boarding, the app advances to your arrival time + 5 minutes
 
-## GTFS Manager CLI
+## GTFS Data
 
-The `gtfs-manager` CLI tool manages GTFS data for the application.
+GTFS data management is built into the app — there is no separate CLI or config
+file, and no Node.js is required for the import (it is a native Go importer).
 
-### Commands
+When the database is missing or its schedule data has expired, the app opens a
+setup dialog with two options:
 
-| Command    | Description                                           |
-| ---------- | ----------------------------------------------------- |
-| `status`   | Check database status and data availability (default) |
-| `download` | Download GTFS feed with progress display              |
-| `import`   | Parse GTFS ZIP and create SQLite database             |
+- **Download from gtfs.de** — fetches the free German feed from an (editable)
+  URL and imports it.
+- **Open a local GTFS zip** — imports a zip you already have, e.g. the
+  registration-gated [opendata-ÖPNV / DELFI](https://www.opendata-oepnv.de) feed.
+  DELFI's detailed station hierarchy (platforms, track numbers) is normalized so
+  it behaves like the gtfs.de model.
 
-### Configuration
+The first national import takes a few minutes and produces a multi-GB SQLite
+database. You can see the database location and size — and delete it — under
+**Settings**.
 
-Create a `gtfs-config.yaml` file in the project root:
+### Storage location
 
-```yaml
-# URL to download the GTFS feed from
-feed_url: "https://download.gtfs.de/germany/free/latest.zip"
+The database (`gtfs.sqlite`) and the downloaded feed live in a platform-specific
+data directory:
 
-# Local path to store the downloaded GTFS feed
-feed_path: "gtfs-data/feeds/latest.zip"
-
-# Path to the SQLite database
-database_path: "gtfs-data/sqlite/gtfs.sqlite"
-```
-
-Use `--config` to specify an alternate config file:
-
-```bash
-./build/bin/gtfs-manager --config /path/to/config.yaml status
-```
-
-### Status Command
-
-Shows the date range of available trip data and warns if less than 2 weeks remain:
-
-```
-GTFS Database Status
-
-╭────────────────────────────────────────────────────╮
-│  Database:           gtfs-data/sqlite/gtfs.sqlite  │
-│  First trip date:    Sat, 20 Dec 2025              │
-│  Last trip date:     Mon, 19 Jan 2026              │
-│  Total days:         31 days                       │
-│  Days remaining:     19 days                       │
-╰────────────────────────────────────────────────────╯
-
-✓ Database has 19 days of trip data remaining.
-```
-
-### Download Command
-
-Downloads the GTFS feed with a live progress display showing speed and ETA.
-
-### Import Command
-
-Runs `npx gtfs-import` to parse the GTFS ZIP file into SQLite. Requires Node.js.
+- Linux: `$XDG_DATA_HOME/gtfs-planner` (or `~/.local/share/gtfs-planner`)
+- macOS: `~/Library/Application Support/gtfs-planner`
+- Windows: `%LocalAppData%\gtfs-planner`
 
 ## Development
 
