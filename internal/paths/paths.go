@@ -14,9 +14,10 @@ const appDir = "gtfs-planner"
 // dbFile is the filename of the generated SQLite database.
 const dbFile = "gtfs.sqlite"
 
-// feedFile is the filename of the downloaded GTFS feed, kept between the
-// download and import steps.
-const feedFile = "feed.zip"
+// feedFile is the filename of the downloaded GTFS feed in the system temp
+// directory, kept between the download and import steps and removed after a
+// successful import.
+const feedFile = "gtfs-planner-feed.zip"
 
 // DataDir returns the directory where the app stores its data, creating it if
 // necessary. The base directory is platform-specific:
@@ -82,11 +83,9 @@ func DatabasePath() (string, error) {
 	return filepath.Join(dir, dbFile), nil
 }
 
-// FeedPath returns the full path to the downloaded GTFS feed zip.
+// FeedPath returns the path to the downloaded GTFS feed zip in the system temp
+// directory. The feed is transient — only needed between download and import —
+// so it does not belong in the persistent data directory.
 func FeedPath() (string, error) {
-	dir, err := DataDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(dir, feedFile), nil
+	return filepath.Join(os.TempDir(), feedFile), nil
 }

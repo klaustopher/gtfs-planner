@@ -246,13 +246,15 @@ func (a *App) DownloadGTFS(url string) error {
 }
 
 // ImportGTFS imports the previously downloaded feed into the database, emitting
-// "gtfs:import:*" events and reopening the read connection on success.
+// "gtfs:import:*" events and reopening the read connection on success. The
+// downloaded feed is removed from the temp directory afterwards.
 func (a *App) ImportGTFS() error {
-	return a.importFeed(a.feedPath)
+	return a.importFeed(a.feedPath, true)
 }
 
 // ImportGTFSFromFile opens a file dialog and imports the chosen GTFS zip. Used
-// for feeds that cannot be downloaded directly (e.g. DELFI/opendata-ÖPNV).
+// for feeds that cannot be downloaded directly (e.g. DELFI/opendata-ÖPNV). The
+// user's file is left in place.
 func (a *App) ImportGTFSFromFile() error {
 	path, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
 		Title: "GTFS-Feed (ZIP) öffnen",
@@ -266,10 +268,12 @@ func (a *App) ImportGTFSFromFile() error {
 	if path == "" {
 		return nil // cancelled
 	}
-	return a.importFeed(path)
+	return a.importFeed(path, false)
 }
 
-func (a *App) importFeed(zipPath string) error {
+// importFeed imports zipPath into the database. When removeOnSuccess is set the
+// zip is deleted after a successful import (used for the transient download).
+func (a *App) importFeed(zipPath string, removeOnSuccess bool) error {
 	ctx, finish := a.beginOp()
 	defer finish()
 
@@ -286,6 +290,9 @@ func (a *App) importFeed(zipPath string) error {
 	if err := a.reopenDB(); err != nil {
 		runtime.EventsEmit(a.ctx, "gtfs:import:error", err.Error())
 		return err
+	}
+	if removeOnSuccess {
+		os.Remove(zipPath)
 	}
 	runtime.EventsEmit(a.ctx, "gtfs:import:done", nil)
 	return nil

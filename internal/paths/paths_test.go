@@ -1,6 +1,7 @@
 package paths
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -34,7 +35,7 @@ func TestDatabaseAndFeedPaths(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FeedPath() error: %v", err)
 	}
-	if want := filepath.Join(override, feedFile); feedPath != want {
+	if want := filepath.Join(os.TempDir(), feedFile); feedPath != want {
 		t.Fatalf("FeedPath() = %q, want %q", feedPath, want)
 	}
 }
