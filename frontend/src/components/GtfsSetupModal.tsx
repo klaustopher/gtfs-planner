@@ -277,26 +277,6 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
                 </button>
               </div>
 
-              {phase === 'downloading' && (
-                <div className="gtfs-setup-modal__progress">
-                  <div className="gtfs-setup-modal__progress-bar">
-                    <div
-                      className="gtfs-setup-modal__progress-fill"
-                      style={{ width: `${Math.round(downloadPct * 100)}%` }}
-                    />
-                  </div>
-                  <div className="gtfs-setup-modal__progress-row">
-                    <span className="gtfs-setup-modal__progress-label">
-                      {t('gtfsSetup.downloading', { percent: Math.round(downloadPct * 100) })}
-                      {eta && ` · ${t('gtfsSetup.eta', { time: eta })}`}
-                    </span>
-                    <button type="button" className="gtfs-setup-modal__cancel" onClick={handleCancel}>
-                      {t('gtfsSetup.cancel')}
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {phase === 'downloaded' && (
                 <p className="gtfs-setup-modal__hint">{t('gtfsSetup.downloadComplete')}</p>
               )}
@@ -326,22 +306,26 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
             </section>
           </div>
 
-          {phase === 'importing' && (
+          {busy && (
             <div className="gtfs-setup-modal__progress">
               <div className="gtfs-setup-modal__progress-bar">
                 <div
                   className="gtfs-setup-modal__progress-fill"
-                  style={{ width: `${Math.round(importProg.pct * 100)}%` }}
+                  style={{
+                    width: `${Math.round((phase === 'downloading' ? downloadPct : importProg.pct) * 100)}%`,
+                  }}
                 />
               </div>
               <div className="gtfs-setup-modal__progress-row">
                 <span className="gtfs-setup-modal__progress-label">
-                  {importProg.label
-                    ? t('gtfsSetup.importingFile', {
-                        file: importProg.label,
-                        percent: Math.round(importProg.pct * 100),
-                      })
-                    : t('gtfsSetup.importingStart')}
+                  {phase === 'downloading'
+                    ? t('gtfsSetup.downloading', { percent: Math.round(downloadPct * 100) })
+                    : importProg.label
+                      ? t('gtfsSetup.importingFile', {
+                          file: importProg.label,
+                          percent: Math.round(importProg.pct * 100),
+                        })
+                      : t('gtfsSetup.importingStart')}
                   {eta && ` · ${t('gtfsSetup.eta', { time: eta })}`}
                 </span>
                 <button type="button" className="gtfs-setup-modal__cancel" onClick={handleCancel}>
