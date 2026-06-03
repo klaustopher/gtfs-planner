@@ -263,12 +263,23 @@ function App() {
   // When removing the last trip, reset to the arrival station of the remaining trips
   const removeSavedTrip = useCallback(async (tripId: string) => {
     setSavedTrips(prev => {
+      const removed = prev.find(t => t.id === tripId)
       const newTrips = prev.filter(t => t.id !== tripId)
 
-      // If all trips removed, return to initial mode and clear station
+      // If all trips removed, return to the removed leg's departure station so
+      // the user lands back at the previous stop, not on the empty start screen.
       if (newTrips.length === 0) {
         setPlanningMode('initial')
-        handleStationSelect(null)
+        if (removed) {
+          GetStationDetails(removed.startStationId)
+            .then(stationDetails => setSelectedStation(stationDetails))
+            .catch(err => console.error('Failed to fetch station details:', err))
+          const departure = new Date(removed.departureDateTime)
+          setSelectedDate(formatDateForInput(departure))
+          setSelectedTime(formatTimeForInput(departure))
+        } else {
+          handleStationSelect(null)
+        }
       }
 
       // If there are remaining trips, reset to the last trip's arrival station
@@ -659,41 +670,15 @@ function App() {
     })
   }, [accumulatedTrips])
 
-  // Quick "step back": undo the last boarded leg and return to the station where
-  // that leg departed (the previous stop). When nothing is boarded, just clear
-  // the current station selection.
+  // Quick "step back": same as the X button in the journey view — remove the
+  // last boarded leg. When nothing is boarded, clear the current station.
   const handleStepBack = useCallback(() => {
-    if (savedTrips.length === 0) {
-      if (selectedStation) {
-        handleStationSelect(null)
-      }
-      return
+    if (savedTrips.length > 0) {
+      void removeSavedTrip(savedTrips[savedTrips.length - 1].id)
+    } else if (selectedStation) {
+      handleStationSelect(null)
     }
-
-    const popped = savedTrips[savedTrips.length - 1]
-    const remaining = savedTrips.slice(0, -1)
-    setSavedTrips(remaining)
-    setHasUnsavedChanges(true)
-    setPlanningMode(remaining.length === 0 ? 'initial' : 'planning')
-
-    // Go back to the station the undone leg departed from.
-    GetStationDetails(popped.startStationId)
-      .then(setSelectedStation)
-      .catch(err => console.error('Failed to fetch station details:', err))
-
-    // Restore the time: the previous leg's arrival + connection time, or the
-    // undone leg's own departure when it was the first leg.
-    const prev = remaining[remaining.length - 1]
-    if (prev) {
-      const { date, time } = addMinutesToDateTime(prev.arrivalDateTime, settings.connectionTimeMinutes)
-      setSelectedDate(date)
-      setSelectedTime(time)
-    } else {
-      const departure = new Date(popped.departureDateTime)
-      setSelectedDate(formatDateForInput(departure))
-      setSelectedTime(formatTimeForInput(departure))
-    }
-  }, [savedTrips, selectedStation, settings.connectionTimeMinutes, handleStationSelect])
+  }, [savedTrips, selectedStation, removeSavedTrip, handleStationSelect])
 
   // Fetch journey view data when in journey view mode
   const { data: journeyViewData, isLoading: isLoadingJourneyView } = useJourneyView(
