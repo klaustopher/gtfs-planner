@@ -189,6 +189,11 @@
   word-break: break-all;
 }
 
+.settings-modal__db-warn {
+  color: var(--color-accent-warning);
+  font-weight: var(--font-weight-medium);
+}
+
 .settings-modal__delete-button {
   display: inline-flex;
   align-items: center;

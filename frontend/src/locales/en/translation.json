@@ -106,7 +106,12 @@
       "notPresent": "Not present",
       "delete": "Delete database",
       "confirmTitle": "Delete database",
-      "confirmMessage": "Are you sure you want to delete the GTFS database? You will need to download or import it again afterwards."
+      "confirmMessage": "Are you sure you want to delete the GTFS database? You will need to download or import it again afterwards.",
+      "firstDate": "First trip",
+      "lastDate": "Last trip",
+      "daysRemaining": "Remaining",
+      "daysValue": "{{days}} days",
+      "expired": "Expired"
     }
   },
   "journeyMarker": {

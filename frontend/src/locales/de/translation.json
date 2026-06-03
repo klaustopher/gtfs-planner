@@ -106,7 +106,12 @@
       "notPresent": "Nicht vorhanden",
       "delete": "Datenbank löschen",
       "confirmTitle": "Datenbank löschen",
-      "confirmMessage": "Möchtest du die GTFS-Datenbank wirklich löschen? Du musst sie danach erneut herunterladen oder importieren."
+      "confirmMessage": "Möchtest du die GTFS-Datenbank wirklich löschen? Du musst sie danach erneut herunterladen oder importieren.",
+      "firstDate": "Erste Fahrt",
+      "lastDate": "Letzte Fahrt",
+      "daysRemaining": "Verbleibend",
+      "daysValue": "{{days}} Tage",
+      "expired": "Abgelaufen"
     }
   },
   "journeyMarker": {

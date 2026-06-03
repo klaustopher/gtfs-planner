@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTimes, faTrash } from '@fortawesome/free-solid-svg-icons'
 import { useSettings } from '../hooks/useSettings'
-import { GetDatabaseInfo, DeleteDatabase, ShowConfirmDialog } from '../../wailsjs/go/main/App'
+import { GetDatabaseInfo, GetDatabaseStatus, DeleteDatabase, ShowConfirmDialog } from '../../wailsjs/go/main/App'
 import type { main } from '../../wailsjs/go/models'
 import './SettingsModal.css'
 
@@ -26,10 +26,14 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const rawLanguage = i18n.resolvedLanguage || i18n.language || 'en'
   const normalizedLanguage = rawLanguage.split('-')[0]
   const [dbInfo, setDbInfo] = useState<main.DatabaseInfo | null>(null)
+  const [dbStatus, setDbStatus] = useState<main.DatabaseStatus | null>(null)
 
   const refreshDbInfo = useCallback(() => {
     void GetDatabaseInfo().then(setDbInfo).catch((err: unknown) => {
       console.error('Failed to get database info:', err)
+    })
+    void GetDatabaseStatus().then(setDbStatus).catch((err: unknown) => {
+      console.error('Failed to get database status:', err)
     })
   }, [])
 
@@ -157,6 +161,20 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 ? formatBytes(dbInfo.sizeBytes)
                 : t('settings.database.notPresent')}
             </dd>
+            {dbStatus?.hasData && (
+              <>
+                <dt>{t('settings.database.firstDate')}</dt>
+                <dd>{dbStatus.firstDate}</dd>
+                <dt>{t('settings.database.lastDate')}</dt>
+                <dd>{dbStatus.lastDate}</dd>
+                <dt>{t('settings.database.daysRemaining')}</dt>
+                <dd className={dbStatus.daysRemaining < 7 ? 'settings-modal__db-warn' : ''}>
+                  {dbStatus.daysRemaining < 0
+                    ? t('settings.database.expired')
+                    : t('settings.database.daysValue', { days: dbStatus.daysRemaining })}
+                </dd>
+              </>
+            )}
           </dl>
           <button
             type="button"
