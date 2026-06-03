@@ -107,7 +107,7 @@ Create a `gtfs-config.yaml` file in the project root:
 
 ```yaml
 # URL to download the GTFS feed from
-feed_url: "https://download.gtfs.de/germany/nv_free/latest.zip"
+feed_url: "https://download.gtfs.de/germany/free/latest.zip"
 
 # Local path to store the downloaded GTFS feed
 feed_path: "gtfs-data/feeds/latest.zip"
