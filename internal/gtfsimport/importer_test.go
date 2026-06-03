@@ -294,6 +294,41 @@ func TestSearchFoldsUmlauts(t *testing.T) {
 	}
 }
 
+func TestSearchResolvesChildPlatformToParent(t *testing.T) {
+	// gtfs.de-style: the pin is the cityless "Hauptbahnhof (oben)" but a child
+	// platform carries the city as "Stuttgart Hbf".
+	files := map[string]string{
+		"stops.txt": "stop_id,stop_name,stop_lat,stop_lon,location_type,parent_station\n" +
+			"P1,Hauptbahnhof (oben),48.78,9.18,1,\n" +
+			"C1,Stuttgart Hbf,48.78,9.18,,P1\n",
+	}
+	dbPath := runImport(t, files)
+
+	database, err := db.Open(dbPath)
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	defer database.Close()
+
+	// Found via the child name, resolved to the parent pin.
+	res, err := database.SearchStations("stuttgart hbf", 5)
+	if err != nil {
+		t.Fatalf("search: %v", err)
+	}
+	if len(res) != 1 || res[0].StopID != "P1" {
+		t.Fatalf("search 'stuttgart hbf' = %+v, want parent P1", res)
+	}
+
+	// The parent's own name still works and is not duplicated.
+	res, err = database.SearchStations("hauptbahnhof oben", 5)
+	if err != nil {
+		t.Fatalf("search: %v", err)
+	}
+	if len(res) != 1 || res[0].StopID != "P1" {
+		t.Fatalf("search 'hauptbahnhof oben' = %+v, want single parent P1", res)
+	}
+}
+
 func TestImportAtomicityLeavesExistingDBOnCorruptZip(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "out.sqlite")

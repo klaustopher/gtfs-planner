@@ -251,26 +251,33 @@ func (db *DB) SearchStations(query string, limit int) ([]models.Stop, error) {
 		variants := searchVariants(strings.ToUpper(tok))
 		ors := make([]string, 0, len(variants))
 		for _, v := range variants {
-			ors = append(ors, "stop_name_fold LIKE ?")
+			ors = append(ors, "s.stop_name_fold LIKE ?")
 			args = append(args, "%"+textfold.Fold(v)+"%")
 		}
 		conditions = append(conditions, "("+strings.Join(ors, " OR ")+")")
 	}
 
+	// Match against every stop's folded name (including child platforms) and
+	// resolve each hit to its location_type=1 station. This lets a station be
+	// found by a platform/alternative name — e.g. gtfs.de's "Stuttgart Hbf"
+	// platforms whose parent pin is the cityless "Hauptbahnhof (oben)".
 	firstToken := textfold.Fold(tokens[0])
 	sqlQuery := `
-		SELECT stop_id, stop_name, stop_lat, stop_lon
-		FROM stops
-		WHERE location_type = 1
-		  AND ` + strings.Join(conditions, "\n\t\t  AND ") + `
+		SELECT p.stop_id, p.stop_name, p.stop_lat, p.stop_lon
+		FROM stops s
+		JOIN stops p
+			ON p.stop_id = COALESCE(NULLIF(s.parent_station, ''), s.stop_id)
+		   AND p.location_type = 1
+		WHERE ` + strings.Join(conditions, "\n\t\t  AND ") + `
+		GROUP BY p.stop_id
 		ORDER BY
-			CASE
-				WHEN stop_name_fold LIKE ? THEN 0
-				WHEN stop_name_fold LIKE ? THEN 1
+			MIN(CASE
+				WHEN s.stop_name_fold LIKE ? THEN 0
+				WHEN s.stop_name_fold LIKE ? THEN 1
 				ELSE 2
-			END,
-			length(stop_name),
-			stop_name
+			END),
+			length(p.stop_name),
+			p.stop_name
 		LIMIT ?`
 	args = append(args, firstToken+"%", "% "+firstToken+"%", limit)
 
