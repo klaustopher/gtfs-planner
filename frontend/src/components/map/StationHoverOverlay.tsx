@@ -14,8 +14,7 @@ interface StationHoverOverlayProps {
     destinationStopName: string,
     arrivalTime: string
   ) => void
-  onMouseEnter: () => void
-  onMouseLeave: () => void
+  onClose: () => void
 }
 
 export default function StationHoverOverlay({
@@ -23,8 +22,7 @@ export default function StationHoverOverlay({
   trips,
   isViewingMode,
   onTripSelect,
-  onMouseEnter,
-  onMouseLeave,
+  onClose,
 }: StationHoverOverlayProps) {
   if (isViewingMode || !hoveredStation || !trips || trips.length === 0) {
     return null
@@ -38,8 +36,7 @@ export default function StationHoverOverlay({
       screenY={hoveredStation.screenY}
       trips={trips}
       onTripSelect={onTripSelect}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      onClose={onClose}
     />
   )
 }

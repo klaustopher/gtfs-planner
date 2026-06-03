@@ -83,7 +83,8 @@ const SELECTED_STOP_ICON = `
 </svg>
 `
 
-const MARKER_FONT = ['Noto Sans Regular']
+// Bold so the marker labels stand out from the basemap's (regular) place labels.
+const MARKER_FONT = ['Noto Sans Bold']
 
 const stopsLayerStyle: SymbolLayerSpecification = {
   id: 'stops-layer',
@@ -96,7 +97,7 @@ const stopsLayerStyle: SymbolLayerSpecification = {
     'icon-anchor': 'bottom',
     'text-field': ['get', 'stop_name'],
     'text-font': MARKER_FONT,
-    'text-size': 11,
+    'text-size': 13,
     'text-anchor': 'top',
     'text-offset': [0, 0.3],
     'text-optional': true,
@@ -104,7 +105,7 @@ const stopsLayerStyle: SymbolLayerSpecification = {
   paint: {
     'text-color': '#111827',
     'text-halo-color': '#ffffff',
-    'text-halo-width': 1.5,
+    'text-halo-width': 2,
   },
 }
 
@@ -119,7 +120,7 @@ const searchResultsLayerStyle: SymbolLayerSpecification = {
     'icon-anchor': 'bottom',
     'text-field': ['get', 'stop_name'],
     'text-font': MARKER_FONT,
-    'text-size': 12,
+    'text-size': 13,
     'text-anchor': 'top',
     'text-offset': [0, 0.4],
     'text-allow-overlap': true,
@@ -127,7 +128,7 @@ const searchResultsLayerStyle: SymbolLayerSpecification = {
   paint: {
     'text-color': '#111827',
     'text-halo-color': '#ffffff',
-    'text-halo-width': 1.6,
+    'text-halo-width': 2,
   },
 }
 
@@ -429,25 +430,45 @@ export default function Map({
     }
   }, [])
 
+  const {
+    hoveredStation,
+    isHoveringStation,
+    handleMapMouseEnter,
+    handleMapMouseLeave,
+    openPanelForEvent,
+    closePanel,
+    handleHoverTripSelect,
+  } = useHoverStationPanel({
+    selectedStation,
+    tripsData,
+    onTripSelection,
+  })
+
   const handleClick = useCallback(
     (evt: MapLayerMouseEvent) => {
       const features = evt.features
       if (features && features.length > 0) {
-        const feature = features[0]
-        const stopId = feature.properties?.stop_id
-        // Only allow selecting station in initial mode without journey
-        if (stopId && !selectedStation && !hasJourney) {
+        const stopId = features[0].properties?.stop_id
+        if (!stopId) {
+          return
+        }
+        if (!selectedStation && !hasJourney) {
+          // Initial mode: pick the origin station to show its departures.
           selectStationById(stopId)
+        } else {
+          // A station is selected: clicking a destination opens its booking panel.
+          openPanelForEvent(evt)
         }
       } else {
-        // Clicked on map, not on a station
-        // Deselect station only if no journey exists
+        // Clicked empty map: close any open booking panel and deselect (unless a
+        // journey is in progress).
+        closePanel()
         if (!hasJourney && selectedStation && onStationSelect) {
           onStationSelect(null)
         }
       }
     },
-    [selectStationById, selectedStation, hasJourney, onStationSelect]
+    [selectStationById, selectedStation, hasJourney, onStationSelect, openPanelForEvent, closePanel]
   )
 
   const handleSearchResultSelect = useCallback(
@@ -493,19 +514,6 @@ export default function Map({
   }), [searchResults, searchActiveIndex])
 
   const showSearchResults = isInitialMode && searchResults.length > 0
-
-  const {
-    hoveredStation,
-    handleMapMouseEnter,
-    handleMapMouseLeave,
-    handlePanelMouseEnter,
-    handlePanelMouseLeave,
-    handleHoverTripSelect,
-  } = useHoverStationPanel({
-    selectedStation,
-    tripsData,
-    onTripSelection,
-  })
 
   useFitBounds({
     mapRef,
@@ -602,7 +610,7 @@ export default function Map({
         onMouseEnter={handleMapMouseEnter}
         onMouseLeave={handleMapMouseLeave}
         interactiveLayerIds={['stops-layer']}
-        cursor={isLoadingStation ? 'wait' : hoveredStation ? 'pointer' : 'auto'}
+        cursor={isLoadingStation ? 'wait' : isHoveringStation ? 'pointer' : 'auto'}
         style={{ width: '100%', height: '100%' }}
         mapStyle={MAP_STYLE_URL}
         dragRotate={false}
@@ -727,8 +735,7 @@ export default function Map({
         trips={tripsData?.trips}
         isViewingMode={isViewingMode}
         onTripSelect={handleHoverTripSelect}
-        onMouseEnter={handlePanelMouseEnter}
-        onMouseLeave={handlePanelMouseLeave}
+        onClose={closePanel}
       />
 
       {/* Loading indicator */}

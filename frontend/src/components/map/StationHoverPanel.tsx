@@ -4,7 +4,7 @@ import { getTripColor } from './geojson'
 import { getTransportTypeIcon } from '../../utils/transportType'
 import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faArrowRight, faArrowRightLong } from '@fortawesome/free-solid-svg-icons'
+import { faArrowRight, faArrowRightLong, faTimes } from '@fortawesome/free-solid-svg-icons'
 import './StationHoverPanel.css'
 
 // Format ISO 8601 datetime to HH:MM display
@@ -27,8 +27,7 @@ interface StationHoverPanelProps {
     destinationStopName: string,
     arrivalDateTime: string
   ) => void
-  onMouseEnter?: () => void
-  onMouseLeave?: () => void
+  onClose: () => void
 }
 
 interface TripToStation {
@@ -44,8 +43,7 @@ export default function StationHoverPanel({
   screenY,
   trips,
   onTripSelect,
-  onMouseEnter,
-  onMouseLeave,
+  onClose,
 }: StationHoverPanelProps) {
   const { t, i18n } = useTranslation()
   const resolvedLanguage = i18n.language || i18n.resolvedLanguage || 'en'
@@ -81,17 +79,20 @@ export default function StationHoverPanel({
   }
 
   return (
-    <div
-      className="station-hover-panel"
-      style={panelStyle}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
+    <div className="station-hover-panel" style={panelStyle}>
       <div className="station-hover-panel__header">
         <span className="station-hover-panel__to">
           <FontAwesomeIcon icon={faArrowRightLong} />
         </span>
         <span className="station-hover-panel__name">{stopName}</span>
+        <button
+          type="button"
+          className="station-hover-panel__close"
+          onClick={onClose}
+          aria-label={t('map.search.clearButton')}
+        >
+          <FontAwesomeIcon icon={faTimes} />
+        </button>
       </div>
       <div className="station-hover-panel__prompt">{t('map.hoverPanel.prompt')}</div>
       <div className="station-hover-panel__trips">
