@@ -97,7 +97,17 @@
     "connectionTimeUnit": "min",
     "openButton": "Einstellungen",
     "openButtonTooltip": "App-Einstellungen öffnen",
-    "close": "Einstellungen schließen"
+    "close": "Einstellungen schließen",
+    "database": {
+      "title": "GTFS-Datenbank",
+      "hint": "Die importierte GTFS-Datenbank auf diesem Gerät.",
+      "pathLabel": "Speicherort",
+      "sizeLabel": "Größe",
+      "notPresent": "Nicht vorhanden",
+      "delete": "Datenbank löschen",
+      "confirmTitle": "Datenbank löschen",
+      "confirmMessage": "Möchtest du die GTFS-Datenbank wirklich löschen? Du musst sie danach erneut herunterladen oder importieren."
+    }
   },
   "journeyMarker": {
     "arrival": "An",

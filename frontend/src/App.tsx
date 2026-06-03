@@ -128,6 +128,17 @@ function App() {
     void refreshDbStatus()
   }, [refreshDbStatus])
 
+  // The settings screen dispatches this after deleting the database.
+  useEffect(() => {
+    const handler = () => {
+      void refreshDbStatus()
+    }
+    window.addEventListener('gtfs:db-changed', handler)
+    return () => {
+      window.removeEventListener('gtfs:db-changed', handler)
+    }
+  }, [refreshDbStatus])
+
   const handleGtfsImported = useCallback(() => {
     void refreshDbStatus().then((status) => {
       if (status && (status.state === 'ok' || status.state === 'warning')) {

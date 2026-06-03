@@ -97,7 +97,17 @@
     "connectionTimeUnit": "min",
     "openButton": "Settings",
     "openButtonTooltip": "Open app settings",
-    "close": "Close settings"
+    "close": "Close settings",
+    "database": {
+      "title": "GTFS database",
+      "hint": "The imported GTFS database on this device.",
+      "pathLabel": "Location",
+      "sizeLabel": "Size",
+      "notPresent": "Not present",
+      "delete": "Delete database",
+      "confirmTitle": "Delete database",
+      "confirmMessage": "Are you sure you want to delete the GTFS database? You will need to download or import it again afterwards."
+    }
   },
   "journeyMarker": {
     "arrival": "Arr",

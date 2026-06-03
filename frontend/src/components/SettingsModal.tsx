@@ -1,9 +1,11 @@
-import { useEffect, type ChangeEvent, type MouseEvent } from 'react'
+import { useEffect, useState, useCallback, type ChangeEvent, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faTimes } from '@fortawesome/free-solid-svg-icons'
+import { faTimes, faTrash } from '@fortawesome/free-solid-svg-icons'
 import { useSettings } from '../hooks/useSettings'
+import { GetDatabaseInfo, DeleteDatabase, ShowConfirmDialog } from '../../wailsjs/go/main/App'
+import type { main } from '../../wailsjs/go/models'
 import './SettingsModal.css'
 
 interface SettingsModalProps {
@@ -11,11 +13,48 @@ interface SettingsModalProps {
   onClose: () => void
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${bytes} B`
+}
+
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { t, i18n } = useTranslation()
   const { settings, updateSettings } = useSettings()
   const rawLanguage = i18n.resolvedLanguage || i18n.language || 'en'
   const normalizedLanguage = rawLanguage.split('-')[0]
+  const [dbInfo, setDbInfo] = useState<main.DatabaseInfo | null>(null)
+
+  const refreshDbInfo = useCallback(() => {
+    void GetDatabaseInfo().then(setDbInfo).catch((err: unknown) => {
+      console.error('Failed to get database info:', err)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (isOpen) {
+      refreshDbInfo()
+    }
+  }, [isOpen, refreshDbInfo])
+
+  const handleDeleteDatabase = useCallback(async () => {
+    const confirmed = await ShowConfirmDialog(
+      t('settings.database.confirmTitle'),
+      t('settings.database.confirmMessage'),
+    )
+    if (!confirmed) {
+      return
+    }
+    try {
+      await DeleteDatabase()
+      refreshDbInfo()
+      window.dispatchEvent(new Event('gtfs:db-changed'))
+    } catch (err) {
+      console.error('Failed to delete database:', err)
+    }
+  }, [t, refreshDbInfo])
 
   useEffect(() => {
     if (!isOpen) {
@@ -105,6 +144,28 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <strong>{settings.connectionTimeMinutes}</strong> {t('settings.connectionTimeUnit')}
             </div>
           </div>
+        </section>
+        <section className="settings-modal__section">
+          <h3 className="settings-modal__section-title">{t('settings.database.title')}</h3>
+          <p className="settings-modal__hint">{t('settings.database.hint')}</p>
+          <dl className="settings-modal__db-info">
+            <dt>{t('settings.database.pathLabel')}</dt>
+            <dd className="settings-modal__db-path">{dbInfo?.path ?? '—'}</dd>
+            <dt>{t('settings.database.sizeLabel')}</dt>
+            <dd>
+              {dbInfo?.exists
+                ? formatBytes(dbInfo.sizeBytes)
+                : t('settings.database.notPresent')}
+            </dd>
+          </dl>
+          <button
+            type="button"
+            className="settings-modal__delete-button"
+            onClick={() => void handleDeleteDatabase()}
+            disabled={!dbInfo?.exists}
+          >
+            <FontAwesomeIcon icon={faTrash} /> {t('settings.database.delete')}
+          </button>
         </section>
       </div>
     </div>

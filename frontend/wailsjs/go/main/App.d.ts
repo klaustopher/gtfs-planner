@@ -6,6 +6,8 @@ import {geolocation} from '../models';
 
 export function CheckDatabaseExists():Promise<boolean>;
 
+export function DeleteDatabase():Promise<void>;
+
 export function DownloadGTFS(arg1:string):Promise<void>;
 
 export function ExportJourneyToICS(arg1:models.JourneyData):Promise<string>;
@@ -13,6 +15,8 @@ export function ExportJourneyToICS(arg1:models.JourneyData):Promise<string>;
 export function ExportJourneyToPDF(arg1:models.JourneyData):Promise<string>;
 
 export function GetAbsolutePath(arg1:string):Promise<string>;
+
+export function GetDatabaseInfo():Promise<main.DatabaseInfo>;
 
 export function GetDatabaseStatus():Promise<main.DatabaseStatus>;
 

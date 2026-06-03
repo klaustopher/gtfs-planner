@@ -6,6 +6,10 @@ export function CheckDatabaseExists() {
   return window['go']['main']['App']['CheckDatabaseExists']();
 }
 
+export function DeleteDatabase() {
+  return window['go']['main']['App']['DeleteDatabase']();
+}
+
 export function DownloadGTFS(arg1) {
   return window['go']['main']['App']['DownloadGTFS'](arg1);
 }
@@ -20,6 +24,10 @@ export function ExportJourneyToPDF(arg1) {
 
 export function GetAbsolutePath(arg1) {
   return window['go']['main']['App']['GetAbsolutePath'](arg1);
+}
+
+export function GetDatabaseInfo() {
+  return window['go']['main']['App']['GetDatabaseInfo']();
 }
 
 export function GetDatabaseStatus() {

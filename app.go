@@ -163,6 +163,41 @@ func formatServiceDate(d string) string {
 	return d[0:4] + "-" + d[4:6] + "-" + d[6:8]
 }
 
+// DatabaseInfo describes the on-disk GTFS database for the settings screen.
+type DatabaseInfo struct {
+	Path      string `json:"path"`
+	Exists    bool   `json:"exists"`
+	SizeBytes int64  `json:"sizeBytes"`
+}
+
+// GetDatabaseInfo returns the path and size of the GTFS database file.
+func (a *App) GetDatabaseInfo() DatabaseInfo {
+	info := DatabaseInfo{Path: a.dbPath}
+	if fi, err := os.Stat(a.dbPath); err == nil {
+		info.Exists = true
+		info.SizeBytes = fi.Size()
+	}
+	return info
+}
+
+// DeleteDatabase closes the connection and removes the GTFS database (and its
+// SQLite sidecar files) from disk.
+func (a *App) DeleteDatabase() error {
+	a.mu.Lock()
+	if a.db != nil {
+		a.db.Close()
+		a.db = nil
+	}
+	a.mu.Unlock()
+
+	for _, suffix := range []string{"", "-wal", "-shm", "-journal"} {
+		if err := os.Remove(a.dbPath + suffix); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("failed to delete database: %w", err)
+		}
+	}
+	return nil
+}
+
 // DownloadGTFS downloads the GTFS feed from url into the local feed path,
 // emitting "gtfs:download:*" events for progress.
 func (a *App) DownloadGTFS(url string) error {
