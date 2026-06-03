@@ -14,6 +14,7 @@ import './Sidebar.css'
 type PlanningMode = 'initial' | 'planning' | 'viewing'
 
 interface SidebarProps {
+  width?: number
   selectedStation: models.StationDetails | null
   tripsData: models.UpcomingTripsData | null
   isLoadingTrips: boolean
@@ -41,6 +42,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({
+  width,
   selectedStation,
   tripsData,
   isLoadingTrips,
@@ -87,7 +89,7 @@ export default function Sidebar({
   const savedTripsCount = savedTrips.length
 
   return (
-    <div className="sidebar">
+    <div className="sidebar" style={width ? { width } : undefined}>
       <JourneyActionsBar
         currentFilePath={currentFilePath}
         savedTripsCount={savedTripsCount}

@@ -8,5 +8,18 @@
 
 .map-container {
   flex: 1;
+  min-width: 0;
   position: relative;
+}
+
+.sidebar-resize-handle {
+  flex: 0 0 5px;
+  cursor: col-resize;
+  background: var(--color-border-medium);
+  transition: background var(--transition-fast);
+}
+
+.sidebar-resize-handle:hover,
+.sidebar-resize-handle:active {
+  background: var(--color-accent-primary);
 }

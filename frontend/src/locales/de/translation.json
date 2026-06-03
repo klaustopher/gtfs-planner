@@ -190,7 +190,8 @@
       "stationDetails": "Haltestellendetails werden geladen",
       "trips": "Fahrten werden geladen",
       "location": "Standort wird ermittelt"
-    }
+    },
+    "resizeSidebar": "Seitenleiste anpassen"
   },
   "gtfsSetup": {
     "title": "GTFS-Datenbank erforderlich",

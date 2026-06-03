@@ -72,7 +72,7 @@ export default function TripListItem({
             </span>
           )}
         </div>
-        <span className="trip-destination">{trip.destination}</span>
+        <span className="trip-destination" title={trip.destination}>{trip.destination}</span>
       </div>
     </button>
   )

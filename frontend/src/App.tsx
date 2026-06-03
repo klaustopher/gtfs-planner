@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef, type MouseEvent as ReactMouseEvent } from 'react'
 import Map, { MapViewState } from './components/Map'
 import Sidebar from './components/Sidebar'
 import TripDetailModal from './components/TripDetailModal'
@@ -12,6 +12,10 @@ import { useTranslation } from 'react-i18next'
 import { ALL_TRANSPORT_TYPES, sortTransportCategories } from './utils/transportType'
 import { normalizeColor, FALLBACK_COLORS } from './components/map/geojson'
 import './App.css'
+
+const SIDEBAR_MIN_WIDTH = 280
+const SIDEBAR_MAX_WIDTH = 680
+const SIDEBAR_DEFAULT_WIDTH = 380
 
 const UPCOMING_TRIPS_LIMIT = 10
 
@@ -76,6 +80,36 @@ function App() {
   const [selectedNearbyStationIds, setSelectedNearbyStationIds] = useState<Set<string>>(new Set())
 
   // Transport type filter state - always show all GTFS route types
+  // Resizable sidebar (persisted)
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    const saved = Number(localStorage.getItem('gtfs-planner-sidebar-width'))
+    return saved >= SIDEBAR_MIN_WIDTH && saved <= SIDEBAR_MAX_WIDTH ? saved : SIDEBAR_DEFAULT_WIDTH
+  })
+  useEffect(() => {
+    localStorage.setItem('gtfs-planner-sidebar-width', String(sidebarWidth))
+  }, [sidebarWidth])
+
+  const handleSidebarResize = useCallback((event: ReactMouseEvent) => {
+    event.preventDefault()
+    const startX = event.clientX
+    const startWidth = sidebarWidth
+    const onMove = (ev: MouseEvent) => {
+      // Sidebar sits on the right, so dragging left widens it.
+      const next = Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, startWidth - (ev.clientX - startX)))
+      setSidebarWidth(next)
+    }
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }, [sidebarWidth])
+
   const [availableTransportTypes, setAvailableTransportTypes] = useState<number[]>(ALL_TRANSPORT_TYPES)
   const [selectedTransportTypes, setSelectedTransportTypes] = useState<Set<number>>(new Set(ALL_TRANSPORT_TYPES))
 
@@ -665,7 +699,15 @@ function App() {
           availableTransportTypes={availableTransportTypes}
         />
       </div>
+      <div
+        className="sidebar-resize-handle"
+        onMouseDown={handleSidebarResize}
+        role="separator"
+        aria-orientation="vertical"
+        title={t('map.resizeSidebar')}
+      />
       <Sidebar
+        width={sidebarWidth}
         selectedStation={selectedStation}
         tripsData={currentTripsData}
         isLoadingTrips={isLoadingTrips}

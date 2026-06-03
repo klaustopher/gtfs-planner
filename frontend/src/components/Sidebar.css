@@ -1,7 +1,8 @@
 @import '../variables.css';
 
 .sidebar {
-  width: 320px;
+  width: 380px;
+  flex-shrink: 0;
   background-color: var(--color-bg-secondary);
   color: var(--color-text-primary);
   padding: var(--space-lg);
@@ -285,7 +286,8 @@
 .trip-badges {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-sm);
 }
 
 .trip-type-badge {
@@ -331,7 +333,7 @@
 }
 
 .trip-nearby-station {
-  max-width: 80px;
+  max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

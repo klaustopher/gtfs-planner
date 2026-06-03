@@ -190,7 +190,8 @@
       "stationDetails": "Loading station details",
       "trips": "Loading trips",
       "location": "Determining location"
-    }
+    },
+    "resizeSidebar": "Resize sidebar"
   },
   "gtfsSetup": {
     "title": "GTFS database required",
