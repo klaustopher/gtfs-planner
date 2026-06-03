@@ -3,36 +3,31 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"bus-planning/internal/db"
 	"bus-planning/internal/geolocation"
+	"bus-planning/internal/gtfsimport"
 	"bus-planning/internal/models"
+	"bus-planning/internal/paths"
 
 	"codeberg.org/go-pdf/fpdf"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
-	"gopkg.in/yaml.v3"
 )
-
-// Config holds the application configuration
-type Config struct {
-	// GTFS feed download URL
-	FeedURL string `yaml:"feed_url"`
-	// Path to download the GTFS zip file
-	FeedPath string `yaml:"feed_path"`
-	// Path to the SQLite database
-	DatabasePath string `yaml:"database_path"`
-}
 
 // App struct
 type App struct {
-	ctx    context.Context
-	db     *db.DB
-	config *Config
+	ctx      context.Context
+	mu       sync.Mutex
+	db       *db.DB
+	dbPath   string
+	feedPath string
 }
 
 // NewApp creates a new App application struct
@@ -40,76 +35,182 @@ func NewApp() *App {
 	return &App{}
 }
 
-// loadConfig loads the configuration from gtfs-config.yaml
-func (a *App) loadConfig() error {
-	// Allow overriding the database path via environment variable. This is used
-	// by tests to point at the sample database and lets the app run against an
-	// alternate database without editing gtfs-config.yaml.
-	if dbPath := os.Getenv("GTFS_DATABASE_PATH"); dbPath != "" {
-		a.config = &Config{DatabasePath: dbPath}
-		return nil
-	}
-
-	configPath := "gtfs-config.yaml"
-
-	// Check if config file exists
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return fmt.Errorf("configuration file %s not found", configPath)
-	}
-
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		return fmt.Errorf("failed to read config file: %w", err)
-	}
-
-	cfg := &Config{}
-	if err := yaml.Unmarshal(data, cfg); err != nil {
-		return fmt.Errorf("failed to parse config file: %w", err)
-	}
-
-	a.config = cfg
-	return nil
-}
-
 // startup is called when the app starts. The context is saved
-// so we can call the runtime methods
+// so we can call the runtime methods.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
-	// Load configuration
-	if err := a.loadConfig(); err != nil {
+	dbPath, err := paths.DatabasePath()
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "FATAL: %v\n", err)
 		os.Exit(1)
 	}
-
-	// Open the SQLite database
-	// With mode=ro, SQLite will not create the file if it doesn't exist
-	database, err := db.Open(a.config.DatabasePath)
+	feedPath, err := paths.FeedPath()
 	if err != nil {
-		fmt.Printf("Failed to open database: %v\n", err)
-		return
+		fmt.Fprintf(os.Stderr, "FATAL: %v\n", err)
+		os.Exit(1)
 	}
-	a.db = database
+	// GTFS_DATABASE_PATH overrides the resolved path (handy for running against a
+	// sample database during development).
+	if override := os.Getenv("GTFS_DATABASE_PATH"); override != "" {
+		dbPath = override
+	}
+	a.dbPath = dbPath
+	a.feedPath = feedPath
+
+	// The database may not exist yet; the frontend prompts for setup in that case.
+	if err := a.reopenDB(); err != nil {
+		fmt.Printf("Database not opened: %v\n", err)
+	}
 }
 
 // shutdown is called when the app is closing
 func (a *App) shutdown(ctx context.Context) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	if a.db != nil {
 		a.db.Close()
 	}
 }
 
-// CheckDatabaseExists checks if the GTFS database file exists
+// reopenDB closes any existing read-only connection and opens a fresh one
+// against a.dbPath. Safe to call after an import.
+func (a *App) reopenDB() error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.db != nil {
+		a.db.Close()
+		a.db = nil
+	}
+	database, err := db.Open(a.dbPath)
+	if err != nil {
+		return err
+	}
+	a.db = database
+	return nil
+}
+
+// CheckDatabaseExists reports whether the GTFS database file exists on disk.
 func (a *App) CheckDatabaseExists() bool {
-	// Ensure config is loaded
-	if a.config == nil {
-		if err := a.loadConfig(); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
-			return false
+	_, err := os.Stat(a.dbPath)
+	return err == nil
+}
+
+// DatabaseStatus describes the state of the GTFS database for the setup/update dialog.
+type DatabaseStatus struct {
+	Exists        bool   `json:"exists"`
+	HasData       bool   `json:"hasData"`
+	FirstDate     string `json:"firstDate"` // YYYY-MM-DD
+	LastDate      string `json:"lastDate"`  // YYYY-MM-DD
+	DaysRemaining int    `json:"daysRemaining"`
+	State         string `json:"state"` // "ok" | "warning" | "critical" | "expired" | "missing"
+}
+
+// GetDatabaseStatus returns whether the database is present and how much of its
+// service data still lies in the future.
+func (a *App) GetDatabaseStatus() (*DatabaseStatus, error) {
+	if _, err := os.Stat(a.dbPath); errors.Is(err, os.ErrNotExist) {
+		return &DatabaseStatus{State: "missing"}, nil
+	}
+
+	if a.db == nil {
+		if err := a.reopenDB(); err != nil {
+			return &DatabaseStatus{State: "missing"}, nil
 		}
 	}
-	_, err := os.Stat(a.config.DatabasePath)
-	return err == nil
+
+	minDate, maxDate, ok, err := a.db.GetServiceDateRange()
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return &DatabaseStatus{Exists: true, State: "missing"}, nil
+	}
+
+	maxTime, err := time.Parse("20060102", maxDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid service date %q: %w", maxDate, err)
+	}
+	today := time.Now().Truncate(24 * time.Hour)
+	daysRemaining := int(maxTime.Sub(today).Hours() / 24)
+
+	state := "ok"
+	switch {
+	case daysRemaining < 0:
+		state = "expired"
+	case daysRemaining < 7:
+		state = "critical"
+	case daysRemaining < 14:
+		state = "warning"
+	}
+
+	return &DatabaseStatus{
+		Exists:        true,
+		HasData:       true,
+		FirstDate:     formatServiceDate(minDate),
+		LastDate:      formatServiceDate(maxDate),
+		DaysRemaining: daysRemaining,
+		State:         state,
+	}, nil
+}
+
+// formatServiceDate converts a YYYYMMDD date to YYYY-MM-DD for display, leaving
+// unexpected input untouched.
+func formatServiceDate(d string) string {
+	if len(d) != 8 {
+		return d
+	}
+	return d[0:4] + "-" + d[4:6] + "-" + d[6:8]
+}
+
+// DownloadGTFS downloads the GTFS feed from url into the local feed path,
+// emitting "gtfs:download:*" events for progress.
+func (a *App) DownloadGTFS(url string) error {
+	prog := func(p gtfsimport.Progress) { runtime.EventsEmit(a.ctx, "gtfs:download:progress", p) }
+	if err := gtfsimport.Download(a.ctx, url, a.feedPath, prog); err != nil {
+		runtime.EventsEmit(a.ctx, "gtfs:download:error", err.Error())
+		return err
+	}
+	runtime.EventsEmit(a.ctx, "gtfs:download:done", nil)
+	return nil
+}
+
+// ImportGTFS imports the previously downloaded feed into the database, emitting
+// "gtfs:import:*" events and reopening the read connection on success.
+func (a *App) ImportGTFS() error {
+	return a.importFeed(a.feedPath)
+}
+
+// ImportGTFSFromFile opens a file dialog and imports the chosen GTFS zip. Used
+// for feeds that cannot be downloaded directly (e.g. DELFI/opendata-ÖPNV).
+func (a *App) ImportGTFSFromFile() error {
+	path, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "GTFS-Feed (ZIP) öffnen",
+		Filters: []runtime.FileFilter{
+			{DisplayName: "GTFS ZIP (*.zip)", Pattern: "*.zip"},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("dialog error: %w", err)
+	}
+	if path == "" {
+		return nil // cancelled
+	}
+	return a.importFeed(path)
+}
+
+func (a *App) importFeed(zipPath string) error {
+	prog := func(p gtfsimport.Progress) { runtime.EventsEmit(a.ctx, "gtfs:import:progress", p) }
+	if err := gtfsimport.New(prog).Import(a.ctx, zipPath, a.dbPath); err != nil {
+		runtime.EventsEmit(a.ctx, "gtfs:import:error", err.Error())
+		return err
+	}
+	if err := a.reopenDB(); err != nil {
+		runtime.EventsEmit(a.ctx, "gtfs:import:error", err.Error())
+		return err
+	}
+	runtime.EventsEmit(a.ctx, "gtfs:import:done", nil)
+	return nil
 }
 
 // GetAbsolutePath returns the absolute path for a relative path
