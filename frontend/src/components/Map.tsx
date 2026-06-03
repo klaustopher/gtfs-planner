@@ -460,15 +460,12 @@ export default function Map({
           openPanelForEvent(evt)
         }
       } else {
-        // Clicked empty map: close any open booking panel and deselect (unless a
-        // journey is in progress).
+        // Clicked empty map: just close any open booking panel. Deselecting the
+        // station is done via the sidebar step-back button, not by map clicks.
         closePanel()
-        if (!hasJourney && selectedStation && onStationSelect) {
-          onStationSelect(null)
-        }
       }
     },
-    [selectStationById, selectedStation, hasJourney, onStationSelect, openPanelForEvent, closePanel]
+    [selectStationById, selectedStation, hasJourney, openPanelForEvent, closePanel]
   )
 
   const handleSearchResultSelect = useCallback(
