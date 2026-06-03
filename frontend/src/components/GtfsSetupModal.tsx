@@ -8,7 +8,7 @@ import { EventsOn } from '../../wailsjs/runtime/runtime'
 import type { main } from '../../wailsjs/go/models'
 import './GtfsSetupModal.css'
 
-const DEFAULT_FEED_URL = 'https://download.gtfs.de/germany/nv_free/latest.zip'
+const DEFAULT_FEED_URL = 'https://download.gtfs.de/germany/free/latest.zip'
 
 interface GtfsProgress {
   phase: string
