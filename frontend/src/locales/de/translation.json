@@ -172,34 +172,23 @@
   "gtfsSetup": {
     "title": "GTFS-Datenbank erforderlich",
     "description": "Um die App nutzen zu können, muss zunächst eine GTFS-Datenbank heruntergeladen und importiert werden.",
-    "steps": {
-      "title": "Anleitung zum Setup",
-      "openTerminal": {
-        "title": "Terminal öffnen",
-        "description": "Öffne ein Terminal im Projektverzeichnis."
-      },
-      "download": {
-        "title": "GTFS-Daten herunterladen",
-        "description": "Lade die aktuellen GTFS-Fahrplandaten herunter:",
-        "hint": "Dies lädt die GTFS-Daten gemäß der Konfiguration in gtfs-config.yaml herunter."
-      },
-      "import": {
-        "title": "Daten importieren",
-        "description": "Importiere die heruntergeladenen Daten in die SQLite-Datenbank:",
-        "hint": "Der Import kann je nach Dateigröße einige Minuten dauern."
-      },
-      "restart": {
-        "title": "App neu starten",
-        "description": "Starte die Anwendung neu. Die Datenbank sollte nun verfügbar sein und die App einsatzbereit."
-      }
+    "updateTitle": "GTFS-Daten aktualisieren",
+    "updateDescription": "Die Fahrplandaten laufen bald ab oder sind bereits abgelaufen. Bitte aktualisiere die Datenbank.",
+    "validUntil": "Gültig bis {{date}} ({{days}} Tage verbleibend)",
+    "online": {
+      "title": "Von gtfs.de herunterladen",
+      "description": "Lade den kostenlosen GTFS-Feed direkt herunter und importiere ihn anschließend.",
+      "download": "Herunterladen",
+      "import": "Importieren"
     },
-    "info": {
-      "title": "Status überprüfen",
-      "description": "Um den Status der Datenbank und die verfügbaren Datumsbereiche zu überprüfen, verwende:"
+    "local": {
+      "title": "Lokale Datei öffnen",
+      "description": "Du hast bereits eine GTFS-ZIP (z. B. von opendata-oepnv.de)? Öffne sie direkt aus dem Dateisystem.",
+      "open": "GTFS-ZIP öffnen…"
     },
-    "note": {
-      "title": "Hinweis",
-      "description": "Die GTFS-Daten werden regelmäßig aktualisiert. Es wird empfohlen, die Daten periodisch neu herunterzuladen und zu importieren, um aktuelle Fahrpläne zu erhalten."
-    }
+    "downloading": "Lädt herunter… {{percent}}%",
+    "downloadComplete": "Download abgeschlossen. Jetzt importieren.",
+    "importing": "Importiere {{file}} ({{rows}} Zeilen)…",
+    "importingStart": "Import wird vorbereitet…"
   }
 }

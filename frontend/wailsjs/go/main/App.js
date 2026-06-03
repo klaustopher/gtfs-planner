@@ -6,6 +6,10 @@ export function CheckDatabaseExists() {
   return window['go']['main']['App']['CheckDatabaseExists']();
 }
 
+export function DownloadGTFS(arg1) {
+  return window['go']['main']['App']['DownloadGTFS'](arg1);
+}
+
 export function ExportJourneyToICS(arg1) {
   return window['go']['main']['App']['ExportJourneyToICS'](arg1);
 }
@@ -16,6 +20,10 @@ export function ExportJourneyToPDF(arg1) {
 
 export function GetAbsolutePath(arg1) {
   return window['go']['main']['App']['GetAbsolutePath'](arg1);
+}
+
+export function GetDatabaseStatus() {
+  return window['go']['main']['App']['GetDatabaseStatus']();
 }
 
 export function GetNearbyStations(arg1, arg2) {
@@ -48,6 +56,14 @@ export function GetUpcomingTripsForStations(arg1, arg2, arg3, arg4) {
 
 export function GetUserLocation() {
   return window['go']['main']['App']['GetUserLocation']();
+}
+
+export function ImportGTFS() {
+  return window['go']['main']['App']['ImportGTFS']();
+}
+
+export function ImportGTFSFromFile() {
+  return window['go']['main']['App']['ImportGTFSFromFile']();
 }
 
 export function LoadJourney() {

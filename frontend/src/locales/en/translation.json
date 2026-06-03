@@ -170,36 +170,25 @@
     }
   },
   "gtfsSetup": {
-    "title": "GTFS Database Required",
-    "description": "To use the app, you must first download and import a GTFS database.",
-    "steps": {
-      "title": "Setup Instructions",
-      "openTerminal": {
-        "title": "Open Terminal",
-        "description": "Open a terminal in the project directory."
-      },
-      "download": {
-        "title": "Download GTFS Data",
-        "description": "Download the current GTFS schedule data:",
-        "hint": "This downloads the GTFS data according to the configuration in gtfs-config.yaml."
-      },
-      "import": {
-        "title": "Import Data",
-        "description": "Import the downloaded data into the SQLite database:",
-        "hint": "The import may take several minutes depending on the file size."
-      },
-      "restart": {
-        "title": "Restart App",
-        "description": "Restart the application. The database should now be available and the app ready to use."
-      }
+    "title": "GTFS database required",
+    "description": "Before you can use the app, a GTFS database must be downloaded and imported.",
+    "updateTitle": "Update GTFS data",
+    "updateDescription": "The schedule data is about to expire or has already expired. Please update the database.",
+    "validUntil": "Valid until {{date}} ({{days}} days remaining)",
+    "online": {
+      "title": "Download from gtfs.de",
+      "description": "Download the free GTFS feed directly, then import it.",
+      "download": "Download",
+      "import": "Import"
     },
-    "info": {
-      "title": "Check Status",
-      "description": "To check the database status and available date ranges, use:"
+    "local": {
+      "title": "Open a local file",
+      "description": "Already have a GTFS zip (e.g. from opendata-oepnv.de)? Open it directly from the file system.",
+      "open": "Open GTFS zip…"
     },
-    "note": {
-      "title": "Note",
-      "description": "GTFS data is updated regularly. It is recommended to periodically re-download and import the data to get current schedules."
-    }
+    "downloading": "Downloading… {{percent}}%",
+    "downloadComplete": "Download complete. Import now.",
+    "importing": "Importing {{file}} ({{rows}} rows)…",
+    "importingStart": "Preparing import…"
   }
 }

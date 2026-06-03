@@ -3,8 +3,8 @@ import Map, { MapViewState } from './components/Map'
 import Sidebar from './components/Sidebar'
 import TripDetailModal from './components/TripDetailModal'
 import GtfsSetupModal from './components/GtfsSetupModal'
-import { models } from '../wailsjs/go/models'
-import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, ShowConfirmDialog, GetNearbyStations, GetUpcomingTripsForStations, CheckDatabaseExists } from '../wailsjs/go/main/App'
+import { models, main } from '../wailsjs/go/models'
+import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, ShowConfirmDialog, GetNearbyStations, GetUpcomingTripsForStations, GetDatabaseStatus } from '../wailsjs/go/main/App'
 import { useTrips, TripQueryParams } from './components/map/useTrips'
 import { useJourneyView } from './hooks/useJourneyView'
 import { useSettings } from './hooks/useSettings'
@@ -102,27 +102,39 @@ function App() {
 
   // GTFS Setup Modal state
   const [showGtfsSetupModal, setShowGtfsSetupModal] = useState(false)
+  const [dbStatus, setDbStatus] = useState<main.DatabaseStatus | null>(null)
 
   // Planning mode state
   const [planningMode, setPlanningMode] = useState<PlanningMode>('initial')
 
-  // Check if database exists on startup
-  useEffect(() => {
-    const checkDatabase = async () => {
-      try {
-        const dbExists = await CheckDatabaseExists()
-        console.log('Database exists check:', dbExists)
-        if (!dbExists) {
-          console.log('Database not found, showing setup modal')
-          setShowGtfsSetupModal(true)
-        }
-      } catch (err) {
-        console.error('Failed to check database:', err)
-        setShowGtfsSetupModal(true)
-      }
+  // Check the database status on startup; prompt for setup when it is missing,
+  // expired, or close to expiry.
+  const refreshDbStatus = useCallback(async (): Promise<main.DatabaseStatus | null> => {
+    try {
+      const status = await GetDatabaseStatus()
+      setDbStatus(status)
+      const needsSetup =
+        status.state === 'missing' || status.state === 'expired' || status.state === 'critical'
+      setShowGtfsSetupModal(needsSetup)
+      return status
+    } catch (err) {
+      console.error('Failed to get database status:', err)
+      setShowGtfsSetupModal(true)
+      return null
     }
-    void checkDatabase()
   }, [])
+
+  useEffect(() => {
+    void refreshDbStatus()
+  }, [refreshDbStatus])
+
+  const handleGtfsImported = useCallback(() => {
+    void refreshDbStatus().then((status) => {
+      if (status && (status.state === 'ok' || status.state === 'warning')) {
+        setShowGtfsSetupModal(false)
+      }
+    })
+  }, [refreshDbStatus])
 
   // Derived values
   const isViewingMode = planningMode === 'viewing'
@@ -665,7 +677,13 @@ function App() {
       )}
       <GtfsSetupModal
         isOpen={showGtfsSetupModal}
-        onClose={undefined}
+        status={dbStatus}
+        onClose={
+          dbStatus && dbStatus.state !== 'missing'
+            ? () => setShowGtfsSetupModal(false)
+            : undefined
+        }
+        onImported={handleGtfsImported}
       />
     </div>
   )

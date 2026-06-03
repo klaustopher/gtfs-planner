@@ -27,6 +27,28 @@ export namespace geolocation {
 
 export namespace main {
 	
+	export class DatabaseStatus {
+	    exists: boolean;
+	    hasData: boolean;
+	    firstDate: string;
+	    lastDate: string;
+	    daysRemaining: number;
+	    state: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DatabaseStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.exists = source["exists"];
+	        this.hasData = source["hasData"];
+	        this.firstDate = source["firstDate"];
+	        this.lastDate = source["lastDate"];
+	        this.daysRemaining = source["daysRemaining"];
+	        this.state = source["state"];
+	    }
+	}
 	export class LoadJourneyResult {
 	    journey?: models.JourneyData;
 	    filePath: string;
