@@ -718,11 +718,24 @@ func (a *App) ExportJourneyToPDF(journey models.JourneyData) (string, error) {
 
 	// Create PDF
 	pdf := fpdf.New("P", "mm", "A4", "")
+	// The core fonts are Latin-1; translate UTF-8 (umlauts etc.) so "Köln" and
+	// "ÖPNV" render correctly instead of as mojibake.
+	tr := pdf.UnicodeTranslatorFromDescriptor("")
 	pdf.AddPage()
+
+	_, pageHeight := pdf.GetPageSize()
+	_, _, _, bottomMargin := pdf.GetMargins()
+	// ensureSpace starts a new page when fewer than `needed` mm remain, so a
+	// trip block is never split across pages (no stranded header).
+	ensureSpace := func(needed float64) {
+		if pdf.GetY()+needed > pageHeight-bottomMargin {
+			pdf.AddPage()
+		}
+	}
 
 	// Add title
 	pdf.SetFont("Arial", "B", 20)
-	pdf.Cell(0, 10, "Reiseplan")
+	pdf.Cell(0, 10, tr("Reiseplan"))
 	pdf.Ln(15)
 
 	// Add journey metadata
@@ -730,7 +743,7 @@ func (a *App) ExportJourneyToPDF(journey models.JourneyData) (string, error) {
 	if journey.CreatedAt != "" {
 		createdTime, err := time.Parse(time.RFC3339, journey.CreatedAt)
 		if err == nil {
-			pdf.Cell(0, 6, fmt.Sprintf("Erstellt: %s", createdTime.Format("02.01.2006 15:04")))
+			pdf.Cell(0, 6, tr(fmt.Sprintf("Erstellt: %s", createdTime.Format("02.01.2006 15:04"))))
 			pdf.Ln(6)
 		}
 	}
@@ -784,53 +797,76 @@ func (a *App) ExportJourneyToPDF(journey models.JourneyData) (string, error) {
 			}
 		}
 
-		// Get route type name
-		routeTypeName := getRouteTypeName(route.RouteType)
+		// Keep the whole trip block (transfer line + header + details) together.
+		ensureSpace(70)
+
+		// Transfer / dwell time at the station between the previous leg and this one.
+		if i > 0 {
+			prev := journey.SavedTrips[i-1]
+			if prevArrival, perr := time.ParseInLocation("2006-01-02T15:04:05", prev.ArrivalDateTime, time.Local); perr == nil {
+				waitMin := int(departureTime.Sub(prevArrival).Minutes())
+				var line string
+				if prev.EndStationID == trip.StartStationID {
+					line = fmt.Sprintf("Aufenthalt in %s: %d Min", startStation.StopName, waitMin)
+				} else {
+					fromName := prev.EndStationID
+					if prevEnd, ferr := a.db.GetStationDetails(prev.EndStationID); ferr == nil {
+						fromName = prevEnd.StopName
+					}
+					line = fmt.Sprintf("Umstieg %s -> %s: %d Min", fromName, startStation.StopName, waitMin)
+				}
+				pdf.SetFont("Arial", "I", 9)
+				pdf.SetTextColor(110, 110, 110)
+				pdf.Cell(0, 6, tr(line))
+				pdf.SetTextColor(0, 0, 0)
+				pdf.Ln(8)
+			}
+		}
 
 		// Trip header with number
 		pdf.SetFont("Arial", "B", 14)
 		pdf.SetFillColor(240, 240, 240)
-		pdf.CellFormat(0, 8, fmt.Sprintf("Fahrt %d", i+1), "0", 1, "L", true, 0, "")
+		pdf.CellFormat(0, 8, tr(fmt.Sprintf("Fahrt %d", i+1)), "0", 1, "L", true, 0, "")
 		pdf.Ln(3)
 
-		// Route info
+		// Route info (route type normalized so extended types are not "ÖPNV")
 		pdf.SetFont("Arial", "B", 12)
-		pdf.Cell(0, 6, fmt.Sprintf("%s %s", routeTypeName, route.RouteShortName))
+		pdf.Cell(0, 6, tr(fmt.Sprintf("%s %s", getRouteTypeName(route.RouteType), route.RouteShortName)))
 		pdf.Ln(8)
 
 		// Departure
 		pdf.SetFont("Arial", "B", 10)
-		pdf.Cell(40, 6, "Abfahrt:")
+		pdf.Cell(40, 6, tr("Abfahrt:"))
 		pdf.SetFont("Arial", "", 10)
 		if departurePlatform != "" {
-			pdf.Cell(0, 6, fmt.Sprintf("%s, %s (Gleis %s)", departureTime.Format("15:04"), startStation.StopName, departurePlatform))
+			pdf.Cell(0, 6, tr(fmt.Sprintf("%s, %s (Gleis %s)", departureTime.Format("15:04"), startStation.StopName, departurePlatform)))
 		} else {
-			pdf.Cell(0, 6, fmt.Sprintf("%s, %s", departureTime.Format("15:04"), startStation.StopName))
+			pdf.Cell(0, 6, tr(fmt.Sprintf("%s, %s", departureTime.Format("15:04"), startStation.StopName)))
 		}
 		pdf.Ln(6)
 
 		// Arrival
 		pdf.SetFont("Arial", "B", 10)
-		pdf.Cell(40, 6, "Ankunft:")
+		pdf.Cell(40, 6, tr("Ankunft:"))
 		pdf.SetFont("Arial", "", 10)
 		if arrivalPlatform != "" {
-			pdf.Cell(0, 6, fmt.Sprintf("%s, %s (Gleis %s)", arrivalTime.Format("15:04"), endStation.StopName, arrivalPlatform))
+			pdf.Cell(0, 6, tr(fmt.Sprintf("%s, %s (Gleis %s)", arrivalTime.Format("15:04"), endStation.StopName, arrivalPlatform)))
 		} else {
-			pdf.Cell(0, 6, fmt.Sprintf("%s, %s", arrivalTime.Format("15:04"), endStation.StopName))
+			pdf.Cell(0, 6, tr(fmt.Sprintf("%s, %s", arrivalTime.Format("15:04"), endStation.StopName)))
 		}
 		pdf.Ln(6)
 
 		// Duration
 		duration := arrivalTime.Sub(departureTime)
 		pdf.SetFont("Arial", "B", 10)
-		pdf.Cell(40, 6, "Dauer:")
+		pdf.Cell(40, 6, tr("Dauer:"))
 		pdf.SetFont("Arial", "", 10)
 		hours := int(duration.Hours())
 		minutes := int(duration.Minutes()) % 60
 		if hours > 0 {
-			pdf.Cell(0, 6, fmt.Sprintf("%d Std. %d Min.", hours, minutes))
+			pdf.Cell(0, 6, tr(fmt.Sprintf("%d Std. %d Min.", hours, minutes)))
 		} else {
-			pdf.Cell(0, 6, fmt.Sprintf("%d Min.", minutes))
+			pdf.Cell(0, 6, tr(fmt.Sprintf("%d Min.", minutes)))
 		}
 		pdf.Ln(10)
 
@@ -849,22 +885,23 @@ func (a *App) ExportJourneyToPDF(journey models.JourneyData) (string, error) {
 		arrivalTime, _ := time.ParseInLocation("2006-01-02T15:04:05", lastTrip.ArrivalDateTime, time.Local)
 		totalDuration := arrivalTime.Sub(departureTime)
 
+		ensureSpace(30)
 		pdf.Ln(10)
 		pdf.SetFont("Arial", "B", 12)
 		pdf.SetFillColor(220, 220, 220)
-		pdf.CellFormat(0, 8, "Gesamt", "0", 1, "L", true, 0, "")
+		pdf.CellFormat(0, 8, tr("Gesamt"), "0", 1, "L", true, 0, "")
 		pdf.Ln(3)
 
 		pdf.SetFont("Arial", "", 10)
-		pdf.Cell(0, 6, fmt.Sprintf("Anzahl Fahrten: %d", len(journey.SavedTrips)))
+		pdf.Cell(0, 6, tr(fmt.Sprintf("Anzahl Fahrten: %d", len(journey.SavedTrips))))
 		pdf.Ln(6)
 
 		hours := int(totalDuration.Hours())
 		minutes := int(totalDuration.Minutes()) % 60
 		if hours > 0 {
-			pdf.Cell(0, 6, fmt.Sprintf("Gesamtdauer: %d Std. %d Min.", hours, minutes))
+			pdf.Cell(0, 6, tr(fmt.Sprintf("Gesamtdauer: %d Std. %d Min.", hours, minutes)))
 		} else {
-			pdf.Cell(0, 6, fmt.Sprintf("Gesamtdauer: %d Min.", minutes))
+			pdf.Cell(0, 6, tr(fmt.Sprintf("Gesamtdauer: %d Min.", minutes)))
 		}
 	}
 
@@ -876,9 +913,49 @@ func (a *App) ExportJourneyToPDF(journey models.JourneyData) (string, error) {
 	return filePath, nil
 }
 
-// getRouteTypeName returns the German name for a GTFS route type
+// transportCategory maps a GTFS route type (standard 0-12 or an extended
+// 100-1700 code) to a transport category id, mirroring routeTypeCategoryExpr in
+// internal/db and transportCategory() in the frontend.
+func transportCategory(routeType int) int {
+	switch {
+	case routeType == 101 || routeType == 102:
+		return 101
+	case routeType == 103 || (routeType >= 106 && routeType <= 108):
+		return 106
+	case routeType == 109:
+		return 109
+	case routeType >= 100 && routeType < 200:
+		return 2
+	case routeType >= 200 && routeType < 300:
+		return 3
+	case routeType == 405:
+		return 12
+	case routeType >= 400 && routeType < 500:
+		return 1
+	case routeType >= 700 && routeType < 800:
+		return 3
+	case routeType == 800:
+		return 11
+	case routeType >= 900 && routeType < 1000:
+		return 0
+	case routeType == 1000 || routeType == 1200:
+		return 4
+	case routeType >= 1300 && routeType < 1400:
+		return 6
+	case routeType >= 1400 && routeType < 1500:
+		return 7
+	case routeType >= 1500 && routeType < 1600:
+		return 3
+	default:
+		return routeType
+	}
+}
+
+// getRouteTypeName returns the German name for a GTFS route type, mapping
+// extended route types (used by feeds like DELFI) onto a category first so they
+// are not all labelled "ÖPNV".
 func getRouteTypeName(routeType int) string {
-	switch routeType {
+	switch transportCategory(routeType) {
 	case 0:
 		return "Straßenbahn"
 	case 1:
@@ -899,6 +976,12 @@ func getRouteTypeName(routeType int) string {
 		return "Oberleitungsbus"
 	case 12:
 		return "Einschienenbahn"
+	case 101:
+		return "Fernverkehr"
+	case 106:
+		return "Regionalzug"
+	case 109:
+		return "S-Bahn"
 	default:
 		return "ÖPNV"
 	}
