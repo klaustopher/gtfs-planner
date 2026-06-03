@@ -4,4 +4,6 @@ frontend/dist
 
 gtfs-data
 
+tmp/
+
 .claude/settings.local.json
