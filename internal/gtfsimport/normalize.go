@@ -2,8 +2,14 @@ package gtfsimport
 
 import (
 	"database/sql"
+	"math"
 	"strings"
 )
+
+// dedupeMaxDelta is the maximum |Δlat|+|Δlon| (degrees, ~0.008° ≈ <1 km) within
+// which a standalone stop is merged into a same-named station instead of
+// becoming its own pin.
+const dedupeMaxDelta = 0.008
 
 // normalizeStations maps a DELFI/opendata-ÖPNV feed onto the station model the
 // app expects (location_type=1 = a map pin, platforms as children), so a single
@@ -110,11 +116,100 @@ func normalizeStations(tx *sql.Tx) error {
 	}
 	reattach.Close()
 
+	// Attach standalone stops that duplicate a nearby same-named station (e.g. a
+	// numeric-id "Frankfurt (Main) Hauptbahnhof" that DELFI left unlinked) to
+	// that station instead of letting them become a second pin.
+	if err := dedupeStandaloneStops(tx); err != nil {
+		return err
+	}
+
 	// Promote any remaining ungrouped standalone stop to its own pin so it is
 	// visible on the map (grouped platforms now have a parent and are excluded).
 	if _, err := tx.Exec(`UPDATE stops SET location_type = 1
 		WHERE (parent_station IS NULL OR parent_station = '') AND location_type = 0`); err != nil {
 		return err
+	}
+	return nil
+}
+
+// dedupeStandaloneStops attaches each parentless location_type=0 stop to an
+// existing map-pin station (location_type=1) that has the exact same name and
+// sits within dedupeMaxDelta. Same name alone is unreliable (generic names like
+// "Bahnhof" repeat across the country), so proximity is required.
+func dedupeStandaloneStops(tx *sql.Tx) error {
+	type station struct {
+		id       string
+		lat, lon float64
+	}
+
+	// Index existing pins by name.
+	byName := make(map[string][]station)
+	rows, err := tx.Query(`SELECT stop_id, stop_name, stop_lat, stop_lon FROM stops
+		WHERE location_type = 1 AND stop_name IS NOT NULL
+		  AND stop_lat IS NOT NULL AND stop_lon IS NOT NULL`)
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		var s station
+		var name string
+		if err := rows.Scan(&s.id, &name, &s.lat, &s.lon); err != nil {
+			rows.Close()
+			return err
+		}
+		byName[name] = append(byName[name], s)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+	rows.Close()
+
+	// Find the nearest same-named pin within range for each standalone stop.
+	type match struct{ child, parent string }
+	var matches []match
+	rows, err = tx.Query(`SELECT stop_id, stop_name, stop_lat, stop_lon FROM stops
+		WHERE location_type = 0 AND (parent_station IS NULL OR parent_station = '')
+		  AND stop_name IS NOT NULL AND stop_lat IS NOT NULL AND stop_lon IS NOT NULL`)
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		var id, name string
+		var lat, lon float64
+		if err := rows.Scan(&id, &name, &lat, &lon); err != nil {
+			rows.Close()
+			return err
+		}
+		best, bestDelta := "", dedupeMaxDelta
+		for _, s := range byName[name] {
+			if s.id == id {
+				continue
+			}
+			delta := math.Abs(s.lat-lat) + math.Abs(s.lon-lon)
+			if delta < bestDelta {
+				best, bestDelta = s.id, delta
+			}
+		}
+		if best != "" {
+			matches = append(matches, match{child: id, parent: best})
+		}
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+	rows.Close()
+
+	attach, err := tx.Prepare(`UPDATE stops SET parent_station = ? WHERE stop_id = ?`)
+	if err != nil {
+		return err
+	}
+	defer attach.Close()
+	for _, m := range matches {
+		if _, err := attach.Exec(m.parent, m.child); err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -238,6 +238,38 @@ func TestImportNormalizesDELFIHierarchy(t *testing.T) {
 	}
 }
 
+func TestImportDedupesStandaloneStopsByNameAndProximity(t *testing.T) {
+	files := map[string]string{
+		"stops.txt": "stop_id,stop_name,stop_lat,stop_lon,location_type,parent_station\n" +
+			"de:5:500:1:1,Teststadt Hbf,50.0000,8.0000,0,\n" + // IFOPT platform → synthetic parent de:5:500
+			"900900,Teststadt Hbf,50.0005,8.0005,0,\n" + // numeric, same name, nearby → attach
+			"900901,Teststadt Hbf,51.5000,9.5000,0,\n", // numeric, same name, far away → own pin
+	}
+	dbPath := runImport(t, files)
+	conn := openRO(t, dbPath)
+
+	// The nearby duplicate is attached to the synthetic Haltestelle, not a pin.
+	var parent string
+	var locType int
+	if err := conn.QueryRow(`SELECT parent_station, location_type FROM stops WHERE stop_id='900900'`).Scan(&parent, &locType); err != nil {
+		t.Fatalf("query 900900: %v", err)
+	}
+	if parent != "de:5:500" {
+		t.Errorf("nearby duplicate parent_station = %q, want de:5:500", parent)
+	}
+	if locType == 1 {
+		t.Errorf("nearby duplicate should not be promoted to a pin")
+	}
+
+	// The far-away same-named stop stays an independent pin.
+	if err := conn.QueryRow(`SELECT location_type FROM stops WHERE stop_id='900901'`).Scan(&locType); err != nil {
+		t.Fatalf("query 900901: %v", err)
+	}
+	if locType != 1 {
+		t.Errorf("far-away stop location_type = %d, want 1 (own pin)", locType)
+	}
+}
+
 func TestImportAtomicityLeavesExistingDBOnCorruptZip(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "out.sqlite")
