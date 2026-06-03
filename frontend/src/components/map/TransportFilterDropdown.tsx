@@ -18,13 +18,26 @@ export default function TransportFilterDropdown({
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen])
+
   if (availableTypes.length === 0) {
     return null
   }
 
   const allSelected = availableTypes.every(type => selectedTypes.has(type))
   const noneSelected = availableTypes.every(type => !selectedTypes.has(type))
-  const someSelected = !allSelected && !noneSelected
 
   const handleToggleAll = () => {
     if (allSelected) {
@@ -43,20 +56,6 @@ export default function TransportFilterDropdown({
       })
     }
   }
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [isOpen])
 
   // Get summary text for button
   const getSummaryText = () => {

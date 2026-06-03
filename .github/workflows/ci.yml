@@ -17,6 +17,11 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      # The root package uses //go:embed all:frontend/dist, which must exist
+      # for `go test ./...` to compile — a placeholder is enough for tests.
+      - name: Create frontend/dist placeholder for go:embed
+        run: mkdir -p frontend/dist && touch frontend/dist/index.html
+
       - name: Run tests
         env:
           CGO_ENABLED: "1"

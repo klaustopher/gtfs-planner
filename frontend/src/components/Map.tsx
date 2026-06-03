@@ -1,8 +1,7 @@
-import { useState, useCallback, useMemo, useRef, useEffect, useLayoutEffect } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import type { ChangeEvent } from 'react'
 import MapGL, { ViewStateChangeEvent, Source, Layer, Popup, MapRef } from 'react-map-gl/maplibre'
 import type {
-  CircleLayerSpecification,
   SymbolLayerSpecification,
   MapLayerMouseEvent,
 } from 'maplibre-gl'
@@ -217,7 +216,7 @@ export default function Map({
     })
 
     return groups
-  }, [journeyViewData?.markers])
+  }, [journeyViewData])
 
   // Update viewState when defaultLocation changes (after geolocation is fetched)
   useEffect(() => {
@@ -421,12 +420,6 @@ export default function Map({
     },
     [selectStationById, selectedStation, hasJourney, onStationSelect]
   )
-
-  const handleClosePopup = useCallback(() => {
-    if (onStationSelect) {
-      onStationSelect(null)
-    }
-  }, [onStationSelect])
 
   const handleSearchResultSelect = useCallback(
     (stop: models.Stop) => {

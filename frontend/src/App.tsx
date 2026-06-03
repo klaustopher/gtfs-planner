@@ -218,7 +218,7 @@ function App() {
       return newTrips
     })
     setHasUnsavedChanges(true)
-  }, [settings.connectionTimeMinutes])
+  }, [settings.connectionTimeMinutes, handleStationSelect])
 
   // Enter journey view mode
   const enterViewMode = useCallback(() => {
