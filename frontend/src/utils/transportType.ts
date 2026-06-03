@@ -27,14 +27,34 @@ const UNKNOWN_TYPE: TransportTypeInfo = {
   shortKey: 'transportType.short.unknown',
 }
 
-// All GTFS route types in order
+// All GTFS base route types in order (extended types normalize onto these)
 export const ALL_TRANSPORT_TYPES = [0, 1, 2, 3, 4, 5, 6, 7, 11, 12]
+
+/**
+ * Normalize a GTFS route type to its base category. Standard values (0-12) pass
+ * through; extended route types (100-1700, used by feeds like DELFI) map onto a
+ * base category. See the Google Extended GTFS Route Types.
+ */
+export function baseRouteType(routeType: number): number {
+  if (routeType >= 100 && routeType < 200) return 2 // rail (ICE, IC, RE, RB, S-Bahn…)
+  if (routeType >= 200 && routeType < 300) return 3 // coach → bus
+  if (routeType === 405) return 12 // monorail
+  if (routeType >= 400 && routeType < 500) return 1 // metro / urban rail → subway
+  if (routeType >= 700 && routeType < 800) return 3 // bus
+  if (routeType === 800) return 11 // trolleybus
+  if (routeType >= 900 && routeType < 1000) return 0 // tram
+  if (routeType === 1000 || routeType === 1200) return 4 // water → ferry
+  if (routeType >= 1300 && routeType < 1400) return 6 // aerial lift
+  if (routeType >= 1400 && routeType < 1500) return 7 // funicular
+  if (routeType >= 1500 && routeType < 1600) return 3 // taxi → bus
+  return routeType
+}
 
 /**
  * Get transport type information for a GTFS route type
  */
 export function getTransportTypeInfo(routeType: number): TransportTypeInfo {
-  return TRANSPORT_TYPES[routeType] ?? UNKNOWN_TYPE
+  return TRANSPORT_TYPES[baseRouteType(routeType)] ?? UNKNOWN_TYPE
 }
 
 /**

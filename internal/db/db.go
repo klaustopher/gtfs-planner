@@ -290,6 +290,27 @@ func searchVariants(tokenUpper string) []string {
 	}
 }
 
+// routeTypeBaseExpr returns a SQL expression mapping a GTFS route_type column
+// (a standard 0-12 value or an extended 100-1700 code) to its base GTFS
+// category. This lets the frontend's base-type filter match the extended route
+// types used by feeds like DELFI (e.g. 101/102/106/109 → 2 rail, 700 → 3 bus,
+// 900 → 0 tram). See the Google Extended GTFS Route Types.
+func routeTypeBaseExpr(col string) string {
+	return `CASE
+		WHEN ` + col + ` BETWEEN 100 AND 199 THEN 2
+		WHEN ` + col + ` BETWEEN 200 AND 299 THEN 3
+		WHEN ` + col + ` = 405 THEN 12
+		WHEN ` + col + ` BETWEEN 400 AND 499 THEN 1
+		WHEN ` + col + ` BETWEEN 700 AND 799 THEN 3
+		WHEN ` + col + ` = 800 THEN 11
+		WHEN ` + col + ` BETWEEN 900 AND 999 THEN 0
+		WHEN ` + col + ` IN (1000, 1200) THEN 4
+		WHEN ` + col + ` BETWEEN 1300 AND 1399 THEN 6
+		WHEN ` + col + ` BETWEEN 1400 AND 1499 THEN 7
+		WHEN ` + col + ` BETWEEN 1500 AND 1599 THEN 3
+		ELSE ` + col + ` END`
+}
+
 // GetNearbyStations returns all parent stations within radiusMeters of the given station.
 // Uses a simple bounding box approximation for performance.
 // Lat/lon differences approximation: 1 degree lat ≈ 111km, 1 degree lon ≈ 111km * cos(latitude)
@@ -672,10 +693,12 @@ func (db *DB) queryTripsForMultipleStations(stopIDs []string, date, minTime, day
 		"limit":        limit,
 	}
 
-	// Add route type filter if specified
+	// Add route type filter if specified. The route_type is normalized to its
+	// base GTFS category first, so the frontend's base-type filter also matches
+	// extended route types (e.g. 101/106/109 → rail) used by feeds like DELFI.
 	if len(routeTypes) > 0 {
 		baseQuery += `
-		WHERE r.route_type IN (:routeTypes)`
+		WHERE ` + routeTypeBaseExpr("r.route_type") + ` IN (:routeTypes)`
 		params["routeTypes"] = routeTypes
 	}
 
