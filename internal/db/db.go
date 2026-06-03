@@ -926,6 +926,7 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 				ArrivalDateTime:   arrivalDateTime,
 				DepartureDateTime: departureDateTime,
 				StopSequence:      stopSequence,
+				StationCategory:   nullIntToPtr(stationCategory),
 			})
 		}
 	}

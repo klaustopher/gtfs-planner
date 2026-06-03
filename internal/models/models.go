@@ -65,6 +65,9 @@ type StopTime struct {
 	DepartureDateTime string  `json:"departure_datetime"`
 	StopSequence      int     `json:"stop_sequence"`
 	PlatformCode      string  `json:"platform_code"`
+	// StationCategory mirrors Stop.StationCategory for the parent station, so the
+	// map can colour markers reconstructed from a trip's stop_times.
+	StationCategory *int `json:"station_category,omitempty"`
 }
 
 // UpcomingTrip represents a single trip departing from a station

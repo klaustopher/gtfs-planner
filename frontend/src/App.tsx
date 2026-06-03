@@ -589,6 +589,7 @@ function App() {
             stop_name: stopTime.stop_name,
             stop_lat: stopTime.stop_lat,
             stop_lon: stopTime.stop_lon,
+            station_category: stopTime.station_category,
           })
         }
       }
