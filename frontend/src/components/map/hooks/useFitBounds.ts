@@ -11,6 +11,7 @@ interface UseFitBoundsOptions {
   tripsData?: models.UpcomingTripsData | null
   journeyViewData?: JourneyViewData | null
   isViewingMode: boolean
+  searchResults?: models.Stop[]
 }
 
 export function useFitBounds({
@@ -19,7 +20,31 @@ export function useFitBounds({
   tripsData,
   journeyViewData,
   isViewingMode,
+  searchResults,
 }: UseFitBoundsOptions) {
+  // Fit map to the current search results so all hits are visible at once
+  useEffect(() => {
+    if (!searchResults || searchResults.length === 0) {
+      return
+    }
+
+    const map = mapRef.current?.getMap()
+    if (!map) {
+      return
+    }
+
+    const bounds = new LngLatBounds()
+    for (const stop of searchResults) {
+      bounds.extend([stop.stop_lon, stop.stop_lat])
+    }
+
+    map.fitBounds(bounds, {
+      padding: { top: 80, bottom: 40, left: 350, right: 40 },
+      maxZoom: 14,
+      duration: 500,
+    })
+  }, [searchResults, mapRef])
+
   // Fit map to show trip routes when viewing a station
   useEffect(() => {
     if (!selectedStation || !tripsData?.stations || tripsData.stations.length === 0 || isViewingMode) {

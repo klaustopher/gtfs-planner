@@ -95,6 +95,8 @@ const SELECTED_STOP_ICON = `
 </svg>
 `
 
+const MARKER_FONT = ['Noto Sans Regular']
+
 const stopsLayerStyle: SymbolLayerSpecification = {
   id: 'stops-layer',
   type: 'symbol',
@@ -104,6 +106,40 @@ const stopsLayerStyle: SymbolLayerSpecification = {
     'icon-size': 0.8,
     'icon-allow-overlap': true,
     'icon-anchor': 'bottom',
+    'text-field': ['get', 'stop_name'],
+    'text-font': MARKER_FONT,
+    'text-size': 11,
+    'text-anchor': 'top',
+    'text-offset': [0, 0.3],
+    'text-optional': true,
+  },
+  paint: {
+    'text-color': '#111827',
+    'text-halo-color': '#ffffff',
+    'text-halo-width': 1.5,
+  },
+}
+
+const searchResultsLayerStyle: SymbolLayerSpecification = {
+  id: 'search-results-layer',
+  type: 'symbol',
+  source: 'search-results',
+  layout: {
+    'icon-image': 'bus-stop-marker',
+    'icon-size': ['case', ['get', 'active'], 1.0, 0.85],
+    'icon-allow-overlap': true,
+    'icon-anchor': 'bottom',
+    'text-field': ['get', 'stop_name'],
+    'text-font': MARKER_FONT,
+    'text-size': 12,
+    'text-anchor': 'top',
+    'text-offset': [0, 0.4],
+    'text-allow-overlap': true,
+  },
+  paint: {
+    'text-color': '#111827',
+    'text-halo-color': '#ffffff',
+    'text-halo-width': 1.6,
   },
 }
 
@@ -136,6 +172,8 @@ export default function Map({
   const [viewState, setViewState] = useState(defaultLocation)
   const [isLoadingStation, setIsLoadingStation] = useState(false)
   const [hoveredJourneyMarkerIndex, setHoveredJourneyMarkerIndex] = useState<number | null>(null)
+  const [searchResults, setSearchResults] = useState<models.Stop[]>([])
+  const [searchActiveIndex, setSearchActiveIndex] = useState(-1)
   const boundsRef = useRef<Bounds | undefined>(undefined)
   const mapRef = useRef<MapRef | null>(null)
   const lastSelectedStationIdRef = useRef<string | null>(null)
@@ -440,6 +478,30 @@ export default function Map({
     [selectStationById]
   )
 
+  // Mirror the search panel's results onto the map (markers + zoom-to-fit).
+  const handleSearchResults = useCallback((results: models.Stop[], activeIndex: number) => {
+    setSearchResults(results)
+    setSearchActiveIndex(activeIndex)
+  }, [])
+
+  const searchResultsGeojsonData = useMemo(() => ({
+    type: 'FeatureCollection' as const,
+    features: searchResults.map((stop, index) => ({
+      type: 'Feature' as const,
+      geometry: {
+        type: 'Point' as const,
+        coordinates: [stop.stop_lon, stop.stop_lat] as [number, number],
+      },
+      properties: {
+        stop_id: stop.stop_id,
+        stop_name: stop.stop_name,
+        active: index === searchActiveIndex,
+      },
+    })),
+  }), [searchResults, searchActiveIndex])
+
+  const showSearchResults = isInitialMode && searchResults.length > 0
+
   const {
     hoveredStation,
     handleMapMouseEnter,
@@ -459,6 +521,7 @@ export default function Map({
     tripsData,
     journeyViewData,
     isViewingMode,
+    searchResults: showSearchResults ? searchResults : undefined,
   })
 
   // Track last selected station to prevent re-centering
@@ -493,7 +556,12 @@ export default function Map({
   return (
     <div className="map-shell">
       <div className="map-controls-wrapper">
-        {isInitialMode && <MapSearchPanel onResultSelect={handleSearchResultSelect} />}
+        {isInitialMode && (
+          <MapSearchPanel
+            onResultSelect={handleSearchResultSelect}
+            onResultsChange={handleSearchResults}
+          />
+        )}
         <div className="map-datetime-container">
           <div className="map-datetime">
             <label className="map-datetime__label">
@@ -571,6 +639,13 @@ export default function Map({
         <Source id="stops" type="geojson" data={stopsGeojsonData}>
           <Layer {...stopsLayerStyle} />
         </Source>
+
+        {/* Search results as map markers (visual only; selection stays via the list) */}
+        {showSearchResults && (
+          <Source id="search-results" type="geojson" data={searchResultsGeojsonData}>
+            <Layer {...searchResultsLayerStyle} />
+          </Source>
+        )}
 
         {/* Selected station with different icon */}
         {selectedStation && !isViewingMode && (
