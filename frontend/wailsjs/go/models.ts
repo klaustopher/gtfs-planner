@@ -430,6 +430,7 @@ export namespace models {
 	    destination: string;
 	    start_station_id: string;
 	    start_station_name: string;
+	    service_date: string;
 	    coordinates: Coordinate[];
 	    stop_times: StopTime[];
 	
@@ -449,6 +450,7 @@ export namespace models {
 	        this.destination = source["destination"];
 	        this.start_station_id = source["start_station_id"];
 	        this.start_station_name = source["start_station_name"];
+	        this.service_date = source["service_date"];
 	        this.coordinates = this.convertValues(source["coordinates"], Coordinate);
 	        this.stop_times = this.convertValues(source["stop_times"], StopTime);
 	    }

@@ -74,6 +74,7 @@ type UpcomingTrip struct {
 	Destination       string       `json:"destination"`
 	StartStationID    string       `json:"start_station_id"`
 	StartStationName  string       `json:"start_station_name"`
+	ServiceDate       string       `json:"service_date"` // YYYYMMDD the trip's times were normalized against
 	Coordinates       []Coordinate `json:"coordinates"`
 	StopTimes         []StopTime   `json:"stop_times"`
 }

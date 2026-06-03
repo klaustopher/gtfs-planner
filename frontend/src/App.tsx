@@ -776,7 +776,7 @@ function App() {
         <TripDetailModal
           trip={tripModalData.trip}
           tripIndex={tripModalData.tripIndex}
-          serviceDate={selectedDate.replace(/-/g, '')}
+          serviceDate={tripModalData.trip.service_date || selectedDate.replace(/-/g, '')}
           onClose={closeTripModal}
           onTripSelection={handleTripSelection}
         />
