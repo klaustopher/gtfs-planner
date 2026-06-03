@@ -187,7 +187,7 @@
     "validUntil": "Valid until {{date}} ({{days}} days remaining)",
     "online": {
       "title": "gtfs.de (free)",
-      "description": "The free, Germany-wide GTFS feed from gtfs.de — directly downloadable, great for a quick start.",
+      "description": "The free, Germany-wide GTFS feed from gtfs.de — directly downloadable, great for a quick start. However it only covers about 30 days.",
       "learnMore": "What is gtfs.de?",
       "download": "Download",
       "import": "Import"
@@ -201,7 +201,7 @@
     "indexing": "Building indexes…",
     "delfi": {
       "title": "DELFI / opendata-ÖPNV",
-      "description": "The official Germany-wide schedule data from DELFI. More detailed than gtfs.de: a real station hierarchy with platforms and track numbers, transfer relations and more.",
+      "description": "The official Germany-wide schedule data from DELFI. More detailed than gtfs.de (real station hierarchy with platforms and track numbers, transfers) and a much longer validity period — typically several months instead of ~30 days.",
       "registration": "Requires a free account at opendata-ÖPNV. Download the GTFS zip there, then open it here.",
       "link": "Open the DELFI dataset",
       "open": "Open GTFS zip…"

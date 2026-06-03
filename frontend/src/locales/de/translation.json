@@ -187,7 +187,7 @@
     "validUntil": "Gültig bis {{date}} ({{days}} Tage verbleibend)",
     "online": {
       "title": "gtfs.de (kostenlos)",
-      "description": "Der kostenlose, deutschlandweite GTFS-Feed von gtfs.de — direkt herunterladbar, ideal für den schnellen Start.",
+      "description": "Der kostenlose, deutschlandweite GTFS-Feed von gtfs.de — direkt herunterladbar, ideal für den schnellen Start. Deckt allerdings nur rund 30 Tage ab.",
       "learnMore": "Was ist gtfs.de?",
       "download": "Herunterladen",
       "import": "Importieren"
@@ -201,7 +201,7 @@
     "indexing": "Erstelle Indizes…",
     "delfi": {
       "title": "DELFI / opendata-ÖPNV",
-      "description": "Die offiziellen deutschlandweiten Solldaten von DELFI. Detaillierter als gtfs.de: echte Stationshierarchie mit Bahnsteigen und Gleisnummern, Umstiegsbeziehungen und mehr.",
+      "description": "Die offiziellen deutschlandweiten Solldaten von DELFI. Detaillierter als gtfs.de (echte Stationshierarchie mit Bahnsteigen und Gleisnummern, Umstiege) und deutlich längerer Gültigkeitszeitraum — meist mehrere Monate statt ~30 Tage.",
       "registration": "Erfordert eine kostenlose Anmeldung bei opendata-ÖPNV. Lade dort die GTFS-ZIP herunter und öffne sie anschließend hier.",
       "link": "Zum DELFI-Datensatz",
       "open": "GTFS-ZIP öffnen…"
