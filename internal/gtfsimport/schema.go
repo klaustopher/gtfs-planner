@@ -28,14 +28,15 @@ const arrivalTimestampExpr = `INTEGER GENERATED ALWAYS AS (
 
 var createTableStatements = []string{
 	`CREATE TABLE stops (
-		stop_id        TEXT PRIMARY KEY,
-		stop_name      TEXT COLLATE NOCASE,
-		stop_name_fold TEXT,
-		stop_lat       REAL,
-		stop_lon       REAL,
-		location_type  INTEGER,
-		parent_station TEXT,
-		platform_code  TEXT
+		stop_id          TEXT PRIMARY KEY,
+		stop_name        TEXT COLLATE NOCASE,
+		stop_name_fold   TEXT,
+		stop_lat         REAL,
+		stop_lon         REAL,
+		location_type    INTEGER,
+		parent_station   TEXT,
+		platform_code    TEXT,
+		station_category INTEGER
 	) WITHOUT ROWID`,
 
 	`CREATE TABLE routes (

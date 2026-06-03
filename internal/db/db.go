@@ -90,7 +90,7 @@ func (db *DB) Close() error {
 // GetStops returns all stations within the given bounding box.
 func (db *DB) GetStops(north, south, east, west float64) ([]models.Stop, error) {
 	query := `
-		SELECT stop_id, stop_name, stop_lat, stop_lon
+		SELECT stop_id, stop_name, stop_lat, stop_lon, station_category
 		FROM stops
 		WHERE stop_lat BETWEEN ? AND ?
 		  AND stop_lon BETWEEN ? AND ?
@@ -263,7 +263,7 @@ func (db *DB) SearchStations(query string, limit int) ([]models.Stop, error) {
 	// platforms whose parent pin is the cityless "Hauptbahnhof (oben)".
 	firstToken := textfold.Fold(tokens[0])
 	sqlQuery := `
-		SELECT p.stop_id, p.stop_name, p.stop_lat, p.stop_lon
+		SELECT p.stop_id, p.stop_name, p.stop_lat, p.stop_lon, p.station_category
 		FROM stops s
 		JOIN stops p
 			ON p.stop_id = COALESCE(NULLIF(s.parent_station, ''), s.stop_id)
@@ -287,6 +287,16 @@ func (db *DB) SearchStations(query string, limit int) ([]models.Stop, error) {
 	}
 
 	return results, nil
+}
+
+// nullIntToPtr converts a nullable SQL integer to a *int (nil when NULL), used
+// for the optional station_category column.
+func nullIntToPtr(n sql.NullInt64) *int {
+	if !n.Valid {
+		return nil
+	}
+	v := int(n.Int64)
+	return &v
 }
 
 // searchVariants returns the uppercased forms a search token should match,
@@ -421,7 +431,8 @@ func (db *DB) getRouteGeometry(routeID, stationID, shortName, longName, color st
 			COALESCE(parent.stop_id, s.stop_id) as station_id,
 			COALESCE(parent.stop_name, s.stop_name) as station_name,
 			COALESCE(parent.stop_lat, s.stop_lat) as station_lat,
-			COALESCE(parent.stop_lon, s.stop_lon) as station_lon
+			COALESCE(parent.stop_lon, s.stop_lon) as station_lon,
+			COALESCE(parent.station_category, s.station_category) as station_category
 		FROM stop_times st
 		JOIN stops s ON s.stop_id = st.stop_id
 		LEFT JOIN stops parent ON parent.stop_id = s.parent_station AND parent.location_type = 1
@@ -442,8 +453,9 @@ func (db *DB) getRouteGeometry(routeID, stationID, shortName, longName, color st
 		var stopLat, stopLon float64
 		var stationIDVal, stationName string
 		var stationLat, stationLon float64
+		var stationCategory sql.NullInt64
 
-		if err := stopRows.Scan(&stopLat, &stopLon, &stationIDVal, &stationName, &stationLat, &stationLon); err != nil {
+		if err := stopRows.Scan(&stopLat, &stopLon, &stationIDVal, &stationName, &stationLat, &stationLon, &stationCategory); err != nil {
 			continue
 		}
 
@@ -452,10 +464,11 @@ func (db *DB) getRouteGeometry(routeID, stationID, shortName, longName, color st
 
 		if stationIDVal != "" {
 			stations = append(stations, models.Stop{
-				StopID:   stationIDVal,
-				StopName: stationName,
-				StopLat:  stationLat,
-				StopLon:  stationLon,
+				StopID:          stationIDVal,
+				StopName:        stationName,
+				StopLat:         stationLat,
+				StopLon:         stationLon,
+				StationCategory: nullIntToPtr(stationCategory),
 			})
 		}
 	}
@@ -842,7 +855,8 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 			COALESCE(parent.stop_id, s.stop_id) as station_id,
 			COALESCE(parent.stop_name, s.stop_name) as station_name,
 			COALESCE(parent.stop_lat, s.stop_lat) as station_lat,
-			COALESCE(parent.stop_lon, s.stop_lon) as station_lon
+			COALESCE(parent.stop_lon, s.stop_lon) as station_lon,
+			COALESCE(parent.station_category, s.station_category) as station_category
 		FROM stop_times st
 		JOIN stops s ON s.stop_id = st.stop_id
 		LEFT JOIN stops parent ON parent.stop_id = s.parent_station AND parent.location_type = 1
@@ -870,8 +884,9 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 		var stopSequence int
 		var stationIDVal, stationName string
 		var stationLat, stationLon float64
+		var stationCategory sql.NullInt64
 
-		if err := stopRows.Scan(&stopLat, &stopLon, &arrivalTime, &depTime, &stopSequence, &stationIDVal, &stationName, &stationLat, &stationLon); err != nil {
+		if err := stopRows.Scan(&stopLat, &stopLon, &arrivalTime, &depTime, &stopSequence, &stationIDVal, &stationName, &stationLat, &stationLon, &stationCategory); err != nil {
 			continue
 		}
 
@@ -892,10 +907,11 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 
 		if stationIDVal != "" {
 			stations = append(stations, models.Stop{
-				StopID:   stationIDVal,
-				StopName: stationName,
-				StopLat:  stationLat,
-				StopLon:  stationLon,
+				StopID:          stationIDVal,
+				StopName:        stationName,
+				StopLat:         stationLat,
+				StopLon:         stationLon,
+				StationCategory: nullIntToPtr(stationCategory),
 			})
 
 			// Normalize GTFS times to ISO 8601 datetimes

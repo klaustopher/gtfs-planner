@@ -7,6 +7,11 @@ type Stop struct {
 	StopName string  `json:"stop_name" db:"stop_name"`
 	StopLat  float64 `json:"stop_lat" db:"stop_lat"`
 	StopLon  float64 `json:"stop_lon" db:"stop_lon"`
+	// StationCategory is the dominant transport category serving the station
+	// (mirrors routeTypeCategoryExpr), precomputed at import time so the map can
+	// pick a per-service icon without a per-pin join. Nil if the station has no
+	// services (e.g. an interchange node with no departures).
+	StationCategory *int `json:"station_category,omitempty" db:"station_category"`
 }
 
 // Route represents a GTFS route

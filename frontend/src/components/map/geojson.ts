@@ -34,6 +34,8 @@ export interface StopsGeoJSON {
     properties: {
       stop_id: string
       stop_name: string
+      // Dominant transport category (see markerIcons), -1 when unknown.
+      category: number
     }
   }>
 }
@@ -69,6 +71,7 @@ export function stopsToGeoJSON(stops: models.Stop[]): StopsGeoJSON {
       properties: {
         stop_id: stop.stop_id,
         stop_name: stop.stop_name,
+        category: stop.station_category ?? -1,
       },
     })),
   }

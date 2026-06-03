@@ -20,6 +20,7 @@ import JourneyLayers from './map/JourneyLayers'
 import StationHoverOverlay from './map/StationHoverOverlay'
 import TransportFilterDropdown from './map/TransportFilterDropdown'
 import { useFitBounds } from './map/hooks/useFitBounds'
+import { STATION_MARKER_ICONS, stationCategoryIconExpression } from './map/markerIcons'
 import { useHoverStationPanel } from './map/hooks/useHoverStationPanel'
 import { useDefaultMapLocation } from '../hooks/useDefaultMapLocation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -69,19 +70,6 @@ const SEARCH_FOCUS_ZOOM = 12
 // OpenFreeMap: free, unlimited, keyless vector tiles (https://openfreemap.org)
 const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron'
 
-// SVG for bus stop sign icon
-const BUS_STOP_ICON = `
-<svg width="28" height="36" viewBox="-2 -2 28 36" xmlns="http://www.w3.org/2000/svg">
-  <!-- Pin shape -->
-  <path d="M12 0C5.37 0 0 5.37 0 12c0 8 12 20 12 20s12-12 12-20c0-6.63-5.37-12-12-12z"
-        fill="#10b981" stroke="#ffffff" stroke-width="2"/>
-  <!-- H sign for bus stop -->
-  <rect x="7" y="7" width="10" height="10" rx="1" fill="#ffffff"/>
-  <text x="12" y="15.5" font-family="Arial, sans-serif" font-size="10" font-weight="bold"
-        text-anchor="middle" fill="#10b981">H</text>
-</svg>
-`
-
 // SVG for selected station marker - larger and highlighted
 const SELECTED_STOP_ICON = `
 <svg width="36" height="44" viewBox="-2 -2 36 44" xmlns="http://www.w3.org/2000/svg">
@@ -102,7 +90,7 @@ const stopsLayerStyle: SymbolLayerSpecification = {
   type: 'symbol',
   source: 'stops',
   layout: {
-    'icon-image': 'bus-stop-marker',
+    'icon-image': stationCategoryIconExpression,
     'icon-size': 0.8,
     'icon-allow-overlap': true,
     'icon-anchor': 'bottom',
@@ -125,7 +113,7 @@ const searchResultsLayerStyle: SymbolLayerSpecification = {
   type: 'symbol',
   source: 'search-results',
   layout: {
-    'icon-image': 'bus-stop-marker',
+    'icon-image': stationCategoryIconExpression,
     'icon-size': ['case', ['get', 'active'], 1.0, 0.85],
     'icon-allow-overlap': true,
     'icon-anchor': 'bottom',
@@ -406,14 +394,16 @@ export default function Map({
   const handleLoad = useCallback(() => {
     const map = mapRef.current?.getMap()
     if (map) {
-      // Add custom bus stop icon
-      const img = new Image(28, 36)
-      img.onload = () => {
-        if (!map.hasImage('bus-stop-marker')) {
-          map.addImage('bus-stop-marker', img)
+      // Register one marker image per transport category.
+      for (const icon of STATION_MARKER_ICONS) {
+        const img = new Image(28, 36)
+        img.onload = () => {
+          if (!map.hasImage(icon.name)) {
+            map.addImage(icon.name, img)
+          }
         }
+        img.src = 'data:image/svg+xml;base64,' + btoa(icon.svg)
       }
-      img.src = 'data:image/svg+xml;base64,' + btoa(BUS_STOP_ICON)
 
       // Add selected stop icon
       const selectedImg = new Image(36, 44)
@@ -495,6 +485,7 @@ export default function Map({
       properties: {
         stop_id: stop.stop_id,
         stop_name: stop.stop_name,
+        category: stop.station_category ?? -1,
         active: index === searchActiveIndex,
       },
     })),

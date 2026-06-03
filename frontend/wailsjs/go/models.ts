@@ -264,6 +264,7 @@ export namespace models {
 	    stop_name: string;
 	    stop_lat: number;
 	    stop_lon: number;
+	    station_category?: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new Stop(source);
@@ -275,6 +276,7 @@ export namespace models {
 	        this.stop_name = source["stop_name"];
 	        this.stop_lat = source["stop_lat"];
 	        this.stop_lon = source["stop_lon"];
+	        this.station_category = source["station_category"];
 	    }
 	}
 	export class RoutesData {

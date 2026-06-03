@@ -148,6 +148,50 @@ func TestImportColumnMappingByName(t *testing.T) {
 	}
 }
 
+func TestImportAssignsStationCategory(t *testing.T) {
+	// S1 (Hauptbahnhof) is served only by route R1 (route_type 2 = rail).
+	dbPath := runImport(t, gtfsDEFiles)
+	conn := openRO(t, dbPath)
+
+	var cat int
+	if err := conn.QueryRow(`SELECT station_category FROM stops WHERE stop_id='S1'`).Scan(&cat); err != nil {
+		t.Fatalf("query S1 category: %v", err)
+	}
+	if cat != 2 {
+		t.Errorf("S1 station_category = %d, want 2 (rail)", cat)
+	}
+}
+
+func TestImportStationCategoryPicksDominantMode(t *testing.T) {
+	// One station served by both a bus (route_type 700) and long-distance rail
+	// (route_type 101). Rail outranks bus, so the icon category must be 101.
+	files := map[string]string{
+		"stops.txt": "stop_id,stop_name,stop_lat,stop_lon,location_type,parent_station\n" +
+			"HUB,Hub,50.0,8.0,1,\n" +
+			"HUBa,Hub Gleis 1,50.0,8.0,0,HUB\n" +
+			"HUBb,Hub Bussteig,50.0,8.0,0,HUB\n",
+		"routes.txt": "route_id,route_short_name,route_type\n" +
+			"BUS,Bus 1,700\n" +
+			"ICE,ICE 1,101\n",
+		"trips.txt": "route_id,service_id,trip_id\nBUS,SVC,TBUS\nICE,SVC,TICE\n",
+		"stop_times.txt": "trip_id,stop_id,stop_sequence,arrival_time,departure_time\n" +
+			"TBUS,HUBb,0,08:00:00,08:00:00\nTBUS,HUBa,1,08:10:00,08:10:00\n" +
+			"TICE,HUBa,0,09:00:00,09:00:00\nTICE,HUBb,1,09:10:00,09:10:00\n",
+		"calendar.txt": "service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date\n" +
+			"SVC,1,1,1,1,1,1,1,20200101,20301231\n",
+	}
+	dbPath := runImport(t, files)
+	conn := openRO(t, dbPath)
+
+	var cat int
+	if err := conn.QueryRow(`SELECT station_category FROM stops WHERE stop_id='HUB'`).Scan(&cat); err != nil {
+		t.Fatalf("query HUB category: %v", err)
+	}
+	if cat != 101 {
+		t.Errorf("HUB station_category = %d, want 101 (long-distance rail dominates bus)", cat)
+	}
+}
+
 func TestImportIndexesExist(t *testing.T) {
 	dbPath := runImport(t, gtfsDEFiles)
 	conn := openRO(t, dbPath)
