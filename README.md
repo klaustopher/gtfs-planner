@@ -20,6 +20,7 @@ A desktop application for visualizing and planning trips using GTFS (General Tra
 - SQLite3
 
 Install Wails CLI:
+
 ```bash
 go install github.com/wailsapp/wails/v2/cmd/wails@latest
 ```
@@ -55,6 +56,7 @@ go build -o build/bin/gtfs-manager ./cmd/gtfs-manager/
 ./build/bin/gtfs-manager download
 
 # Import into SQLite database (requires Node.js/npx)
+# This step will take several minutes as it processes all trips
 ./build/bin/gtfs-manager import
 
 # Check database status
@@ -64,6 +66,7 @@ go build -o build/bin/gtfs-manager ./cmd/gtfs-manager/
 ### 4. Run the Application
 
 **Development mode:**
+
 ```bash
 wails dev
 ```
@@ -71,6 +74,7 @@ wails dev
 This starts the Go backend with hot reload and the Vite dev server with HMR for the frontend.
 
 **Build for production:**
+
 ```bash
 wails build
 ```
@@ -91,11 +95,11 @@ The `gtfs-manager` CLI tool manages GTFS data for the application.
 
 ### Commands
 
-| Command | Description |
-|---------|-------------|
-| `status` | Check database status and data availability (default) |
-| `download` | Download GTFS feed with progress display |
-| `import` | Parse GTFS ZIP and create SQLite database |
+| Command    | Description                                           |
+| ---------- | ----------------------------------------------------- |
+| `status`   | Check database status and data availability (default) |
+| `download` | Download GTFS feed with progress display              |
+| `import`   | Parse GTFS ZIP and create SQLite database             |
 
 ### Configuration
 
