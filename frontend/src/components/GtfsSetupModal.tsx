@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent, type ChangeEvent } from 'react'
+import { useEffect, useState, useRef, type MouseEvent, type ChangeEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -31,6 +31,22 @@ interface GtfsProgress {
 
 type Phase = 'idle' | 'downloading' | 'downloaded' | 'importing'
 
+// formatEta renders seconds remaining as a compact "m min s" / "s" string.
+function formatEta(seconds: number): string {
+  if (!isFinite(seconds) || seconds < 0) return ''
+  const m = Math.floor(seconds / 60)
+  const s = Math.round(seconds % 60)
+  return m > 0 ? `${m} min ${s}s` : `${s}s`
+}
+
+// etaFrom estimates remaining seconds from a linear extrapolation of progress.
+function etaFrom(current: number, total: number, startMs: number): string {
+  const elapsed = (Date.now() - startMs) / 1000
+  if (current <= 0 || total <= 0 || current >= total || elapsed < 0.5) return ''
+  const rate = current / elapsed
+  return formatEta((total - current) / rate)
+}
+
 interface GtfsSetupModalProps {
   isOpen: boolean
   status: main.DatabaseStatus | null
@@ -45,7 +61,9 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
   const [phase, setPhase] = useState<Phase>('idle')
   const [downloadPct, setDownloadPct] = useState(0)
   const [importProg, setImportProg] = useState<{ pct: number; label: string }>({ pct: 0, label: '' })
+  const [eta, setEta] = useState('')
   const [error, setError] = useState('')
+  const opStartRef = useRef(0)
 
   const busy = phase === 'downloading' || phase === 'importing'
   const isUpdate = status != null && status.state !== 'missing'
@@ -62,6 +80,7 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
     const unsubscribers = [
       EventsOn('gtfs:download:progress', (p: GtfsProgress) => {
         setDownloadPct(p.total > 0 ? p.current / p.total : 0)
+        setEta(etaFrom(p.current, p.total, opStartRef.current))
       }),
       EventsOn('gtfs:download:done', () => setPhase('downloaded')),
       EventsOn('gtfs:download:error', (msg: string) => {
@@ -74,6 +93,7 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
       }),
       EventsOn('gtfs:import:progress', (p: GtfsProgress) => {
         setImportProg({ pct: p.total > 0 ? p.current / p.total : 0, label: importLabel(p) })
+        setEta(etaFrom(p.current, p.total, opStartRef.current))
       }),
       EventsOn('gtfs:import:done', () => {
         setPhase('idle')
@@ -117,6 +137,8 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
   const handleDownload = () => {
     setError('')
     setDownloadPct(0)
+    setEta('')
+    opStartRef.current = Date.now()
     setPhase('downloading')
     void DownloadGTFS(url).catch((err: unknown) => {
       setError(String(err))
@@ -127,6 +149,8 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
   const handleImport = () => {
     setError('')
     setImportProg({ pct: 0, label: '' })
+    setEta('')
+    opStartRef.current = Date.now()
     setPhase('importing')
     void ImportGTFS().catch((err: unknown) => {
       setError(String(err))
@@ -137,6 +161,8 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
   const handleOpenFile = () => {
     setError('')
     setImportProg({ pct: 0, label: '' })
+    setEta('')
+    opStartRef.current = Date.now()
     setPhase('importing')
     void ImportGTFSFromFile().catch((err: unknown) => {
       setError(String(err))
@@ -262,6 +288,7 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
                   <div className="gtfs-setup-modal__progress-row">
                     <span className="gtfs-setup-modal__progress-label">
                       {t('gtfsSetup.downloading', { percent: Math.round(downloadPct * 100) })}
+                      {eta && ` · ${t('gtfsSetup.eta', { time: eta })}`}
                     </span>
                     <button type="button" className="gtfs-setup-modal__cancel" onClick={handleCancel}>
                       {t('gtfsSetup.cancel')}
@@ -315,6 +342,7 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
                         percent: Math.round(importProg.pct * 100),
                       })
                     : t('gtfsSetup.importingStart')}
+                  {eta && ` · ${t('gtfsSetup.eta', { time: eta })}`}
                 </span>
                 <button type="button" className="gtfs-setup-modal__cancel" onClick={handleCancel}>
                   {t('gtfsSetup.cancel')}

@@ -212,6 +212,7 @@
       "registration": "Erfordert eine kostenlose Anmeldung bei opendata-ÖPNV. Lade dort die GTFS-ZIP herunter und öffne sie anschließend hier.",
       "link": "Zum DELFI-Datensatz",
       "open": "GTFS-ZIP öffnen…"
-    }
+    },
+    "eta": "noch ca. {{time}}"
   }
 }
