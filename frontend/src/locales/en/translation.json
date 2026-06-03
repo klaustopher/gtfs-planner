@@ -138,12 +138,13 @@
       "unknown": "?",
       "longDistanceRail": "LD",
       "regionalRail": "Regional",
-      "suburbanRail": "S-Bahn"
+      "suburbanRail": "S-Bahn",
+      "railOther": "Other rail"
     },
     "name": {
       "tram": "Tram / Light rail",
       "subway": "Subway / Metro",
-      "rail": "Other rail",
+      "rail": "Rail",
       "bus": "Bus",
       "ferry": "Ferry",
       "cableTram": "Cable tram",
@@ -154,7 +155,8 @@
       "unknown": "Unknown ({{routeType}})",
       "longDistanceRail": "Long-distance (ICE/IC)",
       "regionalRail": "Regional (RE/RB)",
-      "suburbanRail": "Suburban (S-Bahn)"
+      "suburbanRail": "Suburban (S-Bahn)",
+      "railOther": "Other rail"
     }
   },
   "map": {
