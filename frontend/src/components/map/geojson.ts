@@ -145,6 +145,14 @@ export function getTripColor(trip: models.UpcomingTrip, index: number): string {
   return normalized ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length]
 }
 
+// Distinct color for a journey leg by its position. Unlike getTripColor we ignore
+// the GTFS route_color here: in a journey, neighbouring legs often share an
+// official colour (e.g. several RB lines are all yellow), so we always pick from
+// the visually distinct palette by leg index to keep legs tellable apart.
+export function journeyLegColor(legIndex: number): string {
+  return FALLBACK_COLORS[legIndex % FALLBACK_COLORS.length]
+}
+
 export interface TripLinesGeoJSON {
   type: 'FeatureCollection'
   features: Array<{

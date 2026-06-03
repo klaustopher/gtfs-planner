@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { SavedTrip } from '../App'
 import { getTransportTypeLabel } from '../utils/transportType'
+import { journeyLegColor } from './map/geojson'
 import { formatTimeDisplay } from '../utils/time'
 import { getContrastTextColor } from '../utils/colorContrast'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -30,6 +31,7 @@ export default function SavedJourneyTimeline({
       {savedTrips.map((trip, index) => {
         const nextTrip = savedTrips[index + 1]
         const hasFootpath = nextTrip && trip.endStationId !== nextTrip.startStationId
+        const legColor = journeyLegColor(index)
 
         let waitMinutes = 0
         if (isViewingMode && nextTrip) {
@@ -42,7 +44,7 @@ export default function SavedJourneyTimeline({
           <div key={trip.id}>
             <div
               className="saved-trip-item"
-              style={{ borderLeftColor: trip.displayColor }}
+              style={{ borderLeftColor: legColor }}
             >
               <div className="saved-trip-number">{index + 1}</div>
               <div className="saved-trip-content">
@@ -53,8 +55,8 @@ export default function SavedJourneyTimeline({
                   <span
                     className="trip-route-badge"
                     style={{
-                      backgroundColor: trip.displayColor,
-                      color: getContrastTextColor(trip.displayColor)
+                      backgroundColor: legColor,
+                      color: getContrastTextColor(legColor)
                     }}
                   >
                     {trip.routeShortName || '?'}

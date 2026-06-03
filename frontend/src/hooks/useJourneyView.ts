@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { GetTripDetails } from '../../wailsjs/go/main/App'
 import { models } from '../../wailsjs/go/models'
 import type { SavedTrip } from '../App'
+import { journeyLegColor } from '../components/map/geojson'
 
 // Journey leg with coordinates for the polyline
 export interface JourneyLeg {
@@ -213,7 +214,7 @@ export function useJourneyView(
       if (coordinates.length > 0) {
         legs.push({
           tripId: savedTrip.tripId,
-          routeColor: savedTrip.displayColor,
+          routeColor: journeyLegColor(i),
           routeShortName: savedTrip.routeShortName,
           coordinates,
         })
@@ -236,7 +237,7 @@ export function useJourneyView(
           departureTime: boardingStop.departure_datetime,
           departurePlatform: boardingStop.platform_code || undefined,
           departureRouteShortName: savedTrip.routeShortName,
-          departureRouteColor: savedTrip.displayColor,
+          departureRouteColor: journeyLegColor(i),
           anchor: positioning.anchor,
           offset: positioning.offset,
         })
@@ -259,7 +260,7 @@ export function useJourneyView(
             arrivalTime: alightingStop.arrival_datetime,
             arrivalPlatform: alightingStop.platform_code || undefined,
             arrivalRouteShortName: savedTrip.routeShortName,
-            arrivalRouteColor: savedTrip.displayColor,
+            arrivalRouteColor: journeyLegColor(i),
             anchor: positioning.anchor,
             offset: positioning.offset,
           })
@@ -293,7 +294,7 @@ export function useJourneyView(
               arrivalTime: alightingStop.arrival_datetime,
               arrivalPlatform: alightingStop.platform_code || undefined,
               arrivalRouteShortName: savedTrip.routeShortName,
-              arrivalRouteColor: savedTrip.displayColor,
+              arrivalRouteColor: journeyLegColor(i),
               isWalkingTransfer: true,
               anchor: arrivalPositioning.anchor,
               offset: arrivalPositioning.offset,
@@ -322,7 +323,7 @@ export function useJourneyView(
                 departureTime: nextBoardingStop.departure_datetime || nextTrip.departureDateTime,
                 departurePlatform: nextBoardingStop.platform_code || undefined,
                 departureRouteShortName: nextTrip.routeShortName,
-                departureRouteColor: nextTrip.displayColor,
+                departureRouteColor: journeyLegColor(i + 1),
                 layoverMinutes,
                 isWalkingTransfer: true,
                 anchor: departurePositioning.anchor,
@@ -342,11 +343,11 @@ export function useJourneyView(
               arrivalTime: alightingStop.arrival_datetime,
               arrivalPlatform: alightingStop.platform_code || undefined,
               arrivalRouteShortName: savedTrip.routeShortName,
-              arrivalRouteColor: savedTrip.displayColor,
+              arrivalRouteColor: journeyLegColor(i),
               departureTime: nextBoardingStop?.departure_datetime || nextTrip.departureDateTime,
               departurePlatform: nextBoardingStop?.platform_code || undefined,
               departureRouteShortName: nextTrip.routeShortName,
-              departureRouteColor: nextTrip.displayColor,
+              departureRouteColor: journeyLegColor(i + 1),
               layoverMinutes,
               isWalkingTransfer: false,
               anchor: positioning.anchor,
