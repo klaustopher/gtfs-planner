@@ -18,6 +18,8 @@ export interface JourneyMarker {
   stationName: string
   lat: number
   lon: number
+  // Dominant transport category of the station, for the map marker icon.
+  stationCategory?: number
   // Arrival info (undefined for start marker)
   arrivalTime?: string
   arrivalPlatform?: string
@@ -230,6 +232,7 @@ export function useJourneyView(
           stationName: savedTrip.startStationName,
           lat: boardingStop.stop_lat,
           lon: boardingStop.stop_lon,
+          stationCategory: boardingStop.station_category,
           departureTime: boardingStop.departure_datetime,
           departurePlatform: boardingStop.platform_code || undefined,
           departureRouteShortName: savedTrip.routeShortName,
@@ -252,6 +255,7 @@ export function useJourneyView(
             stationName: savedTrip.endStationName,
             lat: alightingStop.stop_lat,
             lon: alightingStop.stop_lon,
+            stationCategory: alightingStop.station_category,
             arrivalTime: alightingStop.arrival_datetime,
             arrivalPlatform: alightingStop.platform_code || undefined,
             arrivalRouteShortName: savedTrip.routeShortName,
@@ -285,6 +289,7 @@ export function useJourneyView(
               stationName: savedTrip.endStationName,
               lat: alightingStop.stop_lat,
               lon: alightingStop.stop_lon,
+              stationCategory: alightingStop.station_category,
               arrivalTime: alightingStop.arrival_datetime,
               arrivalPlatform: alightingStop.platform_code || undefined,
               arrivalRouteShortName: savedTrip.routeShortName,
@@ -313,6 +318,7 @@ export function useJourneyView(
                 stationName: nextTrip.startStationName,
                 lat: nextBoardingStop.stop_lat,
                 lon: nextBoardingStop.stop_lon,
+                stationCategory: nextBoardingStop.station_category,
                 departureTime: nextBoardingStop.departure_datetime || nextTrip.departureDateTime,
                 departurePlatform: nextBoardingStop.platform_code || undefined,
                 departureRouteShortName: nextTrip.routeShortName,
@@ -332,6 +338,7 @@ export function useJourneyView(
               stationName: savedTrip.endStationName,
               lat: alightingStop.stop_lat,
               lon: alightingStop.stop_lon,
+              stationCategory: alightingStop.station_category,
               arrivalTime: alightingStop.arrival_datetime,
               arrivalPlatform: alightingStop.platform_code || undefined,
               arrivalRouteShortName: savedTrip.routeShortName,

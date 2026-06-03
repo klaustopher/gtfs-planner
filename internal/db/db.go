@@ -1001,7 +1001,8 @@ func (db *DB) GetTripDetails(tripID string, serviceDate string) (*models.TripDet
 			COALESCE(parent.stop_name, s.stop_name) as station_name,
 			COALESCE(parent.stop_lat, s.stop_lat) as station_lat,
 			COALESCE(parent.stop_lon, s.stop_lon) as station_lon,
-			COALESCE(s.platform_code, '') as platform_code
+			COALESCE(s.platform_code, '') as platform_code,
+			COALESCE(parent.station_category, s.station_category) as station_category
 		FROM stop_times st
 		JOIN stops s ON s.stop_id = st.stop_id
 		LEFT JOIN stops parent ON parent.stop_id = s.parent_station AND parent.location_type = 1
@@ -1024,8 +1025,9 @@ func (db *DB) GetTripDetails(tripID string, serviceDate string) (*models.TripDet
 		var stationIDVal, stationName string
 		var stationLat, stationLon float64
 		var platformCode string
+		var stationCategory sql.NullInt64
 
-		if err := rows.Scan(&arrivalTime, &depTime, &stopSequence, &stationIDVal, &stationName, &stationLat, &stationLon, &platformCode); err != nil {
+		if err := rows.Scan(&arrivalTime, &depTime, &stopSequence, &stationIDVal, &stationName, &stationLat, &stationLon, &platformCode, &stationCategory); err != nil {
 			continue
 		}
 
@@ -1047,6 +1049,7 @@ func (db *DB) GetTripDetails(tripID string, serviceDate string) (*models.TripDet
 				DepartureDateTime: departureDateTime,
 				StopSequence:      stopSequence,
 				PlatformCode:      platformCode,
+				StationCategory:   nullIntToPtr(stationCategory),
 			})
 		}
 	}

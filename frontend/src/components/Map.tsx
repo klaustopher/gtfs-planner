@@ -274,6 +274,7 @@ export default function Map({
         stop_name: marker.stationName,
         stop_lat: marker.lat,
         stop_lon: marker.lon,
+        station_category: marker.stationCategory,
       }))
       // Remove duplicates
       return journeyStops.filter((stop, index, self) =>
