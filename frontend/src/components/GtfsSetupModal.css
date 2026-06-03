@@ -12,7 +12,7 @@
 }
 
 .gtfs-setup-modal {
-  width: min(820px, 100%);
+  width: min(560px, 100%);
   max-height: 90vh;
   overflow-y: auto;
   background: var(--modal-bg);
@@ -397,13 +397,12 @@
   line-height: var(--line-height-relaxed);
 }
 
-.gtfs-setup-modal__column--delfi {
-  background: var(--color-overlay-info);
-  border-color: var(--color-accent-info);
-}
-
-.gtfs-setup-modal__column--delfi .gtfs-setup-modal__section-title {
-  color: var(--color-accent-info);
+.gtfs-setup-modal__local {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
 }
 
 .gtfs-setup-modal__link {

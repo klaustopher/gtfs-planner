@@ -18,8 +18,6 @@ const FEEDS = [
 
 const DEFAULT_FEED = FEEDS[0]
 const GTFS_DE_INFO_URL = 'https://gtfs.de/de/feeds/'
-const DELFI_URL =
-  'https://www.opendata-oepnv.de/ht/de/organisation/delfi/startseite?tx_vrrkit_view%5Baction%5D=details&tx_vrrkit_view%5Bcontroller%5D=View&tx_vrrkit_view%5Bdataset_name%5D=deutschlandweite-sollfahrplandaten-gtfs'
 
 interface GtfsProgress {
   phase: string
@@ -231,89 +229,76 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
         <div className="gtfs-setup-modal__content">
           {error && <div className="gtfs-setup-modal__error">{error}</div>}
 
-          <div className="gtfs-setup-modal__columns">
-            <section className="gtfs-setup-modal__column">
-              <h3 className="gtfs-setup-modal__section-title">{t('gtfsSetup.online.title')}</h3>
-              <p>{t('gtfsSetup.online.description')}</p>
-              <button
-                type="button"
-                className="gtfs-setup-modal__link"
-                onClick={() => BrowserOpenURL(GTFS_DE_INFO_URL)}
-              >
-                {t('gtfsSetup.online.learnMore')} <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
-              </button>
-              <select
-                className="gtfs-setup-modal__select"
-                value={feedKey}
-                onChange={handleFeedChange}
+          <section className="gtfs-setup-modal__column">
+            <h3 className="gtfs-setup-modal__section-title">{t('gtfsSetup.online.title')}</h3>
+            <p>{t('gtfsSetup.online.description')}</p>
+            <button
+              type="button"
+              className="gtfs-setup-modal__link"
+              onClick={() => BrowserOpenURL(GTFS_DE_INFO_URL)}
+            >
+              {t('gtfsSetup.online.learnMore')} <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
+            </button>
+            <select
+              className="gtfs-setup-modal__select"
+              value={feedKey}
+              onChange={handleFeedChange}
+              disabled={busy}
+            >
+              {FEEDS.map((f) => (
+                <option key={f.key} value={f.key}>
+                  {t(`gtfsSetup.online.feeds.${f.key}`)}
+                </option>
+              ))}
+              <option value="custom">{t('gtfsSetup.online.feeds.custom')}</option>
+            </select>
+            {isCustomFeed ? (
+              <input
+                type="text"
+                className="gtfs-setup-modal__input"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
                 disabled={busy}
-              >
-                {FEEDS.map((f) => (
-                  <option key={f.key} value={f.key}>
-                    {t(`gtfsSetup.online.feeds.${f.key}`)}
-                  </option>
-                ))}
-                <option value="custom">{t('gtfsSetup.online.feeds.custom')}</option>
-              </select>
-              {isCustomFeed ? (
-                <input
-                  type="text"
-                  className="gtfs-setup-modal__input"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  disabled={busy}
-                  placeholder="https://…/latest.zip"
-                  spellCheck={false}
-                />
-              ) : (
-                <p className="gtfs-setup-modal__url-preview">{url}</p>
-              )}
-              <div className="gtfs-setup-modal__actions">
-                <button
-                  type="button"
-                  className="gtfs-setup-modal__button"
-                  onClick={handleDownload}
-                  disabled={busy || !url}
-                >
-                  <FontAwesomeIcon icon={faDownload} /> {t('gtfsSetup.online.download')}
-                </button>
-                <button
-                  type="button"
-                  className="gtfs-setup-modal__button gtfs-setup-modal__button--primary"
-                  onClick={handleImport}
-                  disabled={busy || phase !== 'downloaded'}
-                >
-                  <FontAwesomeIcon icon={faFileImport} /> {t('gtfsSetup.online.import')}
-                </button>
-              </div>
-
-              {phase === 'downloaded' && (
-                <p className="gtfs-setup-modal__hint">{t('gtfsSetup.downloadComplete')}</p>
-              )}
-            </section>
-
-            <section className="gtfs-setup-modal__column gtfs-setup-modal__column--delfi">
-              <h3 className="gtfs-setup-modal__section-title">{t('gtfsSetup.delfi.title')}</h3>
-              <p>{t('gtfsSetup.delfi.description')}</p>
-              <p className="gtfs-setup-modal__hint">{t('gtfsSetup.delfi.registration')}</p>
+                placeholder="https://…/latest.zip"
+                spellCheck={false}
+              />
+            ) : (
+              <p className="gtfs-setup-modal__url-preview">{url}</p>
+            )}
+            <div className="gtfs-setup-modal__actions">
               <button
                 type="button"
-                className="gtfs-setup-modal__link"
-                onClick={() => BrowserOpenURL(DELFI_URL)}
+                className="gtfs-setup-modal__button"
+                onClick={handleDownload}
+                disabled={busy || !url}
               >
-                {t('gtfsSetup.delfi.link')} <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
+                <FontAwesomeIcon icon={faDownload} /> {t('gtfsSetup.online.download')}
               </button>
-              <div className="gtfs-setup-modal__actions">
-                <button
-                  type="button"
-                  className="gtfs-setup-modal__button"
-                  onClick={handleOpenFile}
-                  disabled={busy}
-                >
-                  <FontAwesomeIcon icon={faFolderOpen} /> {t('gtfsSetup.delfi.open')}
-                </button>
-              </div>
-            </section>
+              <button
+                type="button"
+                className="gtfs-setup-modal__button gtfs-setup-modal__button--primary"
+                onClick={handleImport}
+                disabled={busy || phase !== 'downloaded'}
+              >
+                <FontAwesomeIcon icon={faFileImport} /> {t('gtfsSetup.online.import')}
+              </button>
+            </div>
+
+            {phase === 'downloaded' && (
+              <p className="gtfs-setup-modal__hint">{t('gtfsSetup.downloadComplete')}</p>
+            )}
+          </section>
+
+          <div className="gtfs-setup-modal__local">
+            <span className="gtfs-setup-modal__hint">{t('gtfsSetup.local.hint')}</span>
+            <button
+              type="button"
+              className="gtfs-setup-modal__button"
+              onClick={handleOpenFile}
+              disabled={busy}
+            >
+              <FontAwesomeIcon icon={faFolderOpen} /> {t('gtfsSetup.local.open')}
+            </button>
           </div>
 
           {busy && (
