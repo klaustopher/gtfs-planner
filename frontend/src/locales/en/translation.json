@@ -231,6 +231,7 @@
     "importingFile": "Importing {{file}}… {{percent}}%",
     "normalizing": "Normalizing stations – this can take a moment",
     "indexing": "Building indexes – this can take a moment",
+    "categorizing": "Assigning transport types – this can take a moment",
     "eta": "~{{time}} left",
     "local": {
       "hint": "Already have a GTFS zip file?",

@@ -231,6 +231,7 @@
     "importingFile": "Importiere {{file}}… {{percent}}%",
     "normalizing": "Normalisiere Stationen – das kann einen Moment dauern",
     "indexing": "Erstelle Indizes – das kann einen Moment dauern",
+    "categorizing": "Ordne Verkehrsmittel zu – das kann einen Moment dauern",
     "eta": "noch ca. {{time}}",
     "local": {
       "hint": "Du hast bereits eine GTFS-ZIP-Datei?",

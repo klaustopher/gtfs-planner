@@ -110,17 +110,19 @@ func (im *Importer) Import(ctx context.Context, zipPath, dbPath string) (err err
 		return err
 	}
 
-	im.progress.report(Progress{Phase: PhaseImport, Current: im.totalBytes, Total: im.totalBytes, Message: "categories"})
-	if err = assignStationCategories(tx); err != nil {
-		return err
-	}
-
 	if err = tx.Commit(); err != nil {
 		return fmt.Errorf("failed to commit import: %w", err)
 	}
 
 	im.progress.report(Progress{Phase: PhaseImport, Current: im.totalBytes, Total: im.totalBytes, Message: "index"})
 	if err = ApplyIndexes(db); err != nil {
+		return err
+	}
+
+	// After indexes exist, the per-station transport category can be aggregated by
+	// streaming the covering stop_id index instead of a full sort over stop_times.
+	im.progress.report(Progress{Phase: PhaseImport, Current: im.totalBytes, Total: im.totalBytes, Message: "categories"})
+	if err = assignStationCategories(ctx, db); err != nil {
 		return err
 	}
 

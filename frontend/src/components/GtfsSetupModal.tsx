@@ -89,8 +89,13 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
         setDownloadPct(0)
       }),
       EventsOn('gtfs:import:progress', (p: GtfsProgress) => {
-        if (p.message === 'normalize' || p.message === 'index') {
-          const label = p.message === 'normalize' ? t('gtfsSetup.normalizing') : t('gtfsSetup.indexing')
+        if (p.message === 'normalize' || p.message === 'index' || p.message === 'categories') {
+          const label =
+            p.message === 'normalize'
+              ? t('gtfsSetup.normalizing')
+              : p.message === 'index'
+                ? t('gtfsSetup.indexing')
+                : t('gtfsSetup.categorizing')
           setImportProg({ pct: 1, label, tail: true })
           setEta('')
           return

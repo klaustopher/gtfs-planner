@@ -1,6 +1,9 @@
 package gtfsimport
 
-import "database/sql"
+import (
+	"context"
+	"database/sql"
+)
 
 // assignStationCategories precomputes a single dominant transport category per
 // parent station and writes it to stops.station_category. The map uses it to pick
@@ -13,33 +16,57 @@ import "database/sql"
 // serving route, aggregated with MIN per station, then mapped back to the category
 // id used by routeTypeCategoryExpr (and the frontend's transportCategory).
 //
-// Runs inside the import transaction after normalization; joins are PK lookups
-// (trips, routes, child stops) over a single full scan of stop_times.
-func assignStationCategories(tx *sql.Tx) error {
+// Runs AFTER indexes are built so the heavy step — aggregating route types across
+// every stop_time — can stream the covering index idx_stop_times_stop_dep
+// (stop_id, …, trip_id) in stop_id order with no temporary sort:
+//
+//  1. trip_cat:    trip_id -> rank          (trips ⋈ routes, both PK lookups)
+//  2. stop_cat:    stop_id -> MIN(rank)     (index-ordered GROUP BY stop_id, no sort)
+//  3. station_cat: parent  -> category      (roll children up to their station)
+//  4. UPDATE stops.station_category from station_cat
+func assignStationCategories(ctx context.Context, db *sql.DB) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	stmts := []string{
-		`CREATE TEMP TABLE station_cat (station_id TEXT PRIMARY KEY, category INTEGER) WITHOUT ROWID`,
-
-		`INSERT INTO station_cat (station_id, category)
-		SELECT station_id, ` + rankToCategoryExpr("best_rank") + `
-		FROM (
-			SELECT COALESCE(NULLIF(child.parent_station, ''), child.stop_id) AS station_id,
-			       MIN(` + routeTypeRankExpr("r.route_type") + `) AS best_rank
-			FROM stop_times st
-			JOIN trips t  ON t.trip_id = st.trip_id
+		`CREATE TEMP TABLE trip_cat (trip_id TEXT PRIMARY KEY, rank INTEGER) WITHOUT ROWID`,
+		`INSERT INTO trip_cat (trip_id, rank)
+			SELECT t.trip_id, ` + routeTypeRankExpr("r.route_type") + `
+			FROM trips t
 			JOIN routes r ON r.route_id = t.route_id
-			JOIN stops child ON child.stop_id = st.stop_id
-			WHERE r.route_type IS NOT NULL
-			GROUP BY station_id
-		)`,
+			WHERE r.route_type IS NOT NULL`,
+
+		// GROUP BY stop_id matches idx_stop_times_stop_dep, which (being a secondary
+		// index on a WITHOUT ROWID table) also carries trip_id — so this is a
+		// covering, sort-free streaming aggregation over stop_times.
+		`CREATE TEMP TABLE stop_cat (stop_id TEXT PRIMARY KEY, rank INTEGER) WITHOUT ROWID`,
+		`INSERT INTO stop_cat (stop_id, rank)
+			SELECT st.stop_id, MIN(tc.rank)
+			FROM stop_times st
+			JOIN trip_cat tc ON tc.trip_id = st.trip_id
+			GROUP BY st.stop_id`,
+
+		`CREATE TEMP TABLE station_cat (station_id TEXT PRIMARY KEY, category INTEGER) WITHOUT ROWID`,
+		`INSERT INTO station_cat (station_id, category)
+			SELECT station_id, ` + rankToCategoryExpr("best_rank") + `
+			FROM (
+				SELECT COALESCE(NULLIF(child.parent_station, ''), child.stop_id) AS station_id,
+				       MIN(sc.rank) AS best_rank
+				FROM stop_cat sc
+				JOIN stops child ON child.stop_id = sc.stop_id
+				GROUP BY station_id
+			)`,
 
 		`UPDATE stops SET station_category = (
 			SELECT category FROM station_cat WHERE station_id = stops.stop_id
 		) WHERE location_type = 1`,
 
 		`DROP TABLE station_cat`,
+		`DROP TABLE stop_cat`,
+		`DROP TABLE trip_cat`,
 	}
 	for _, s := range stmts {
-		if _, err := tx.Exec(s); err != nil {
+		if _, err := db.Exec(s); err != nil {
 			return err
 		}
 	}
