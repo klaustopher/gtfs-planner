@@ -186,15 +186,11 @@
     "updateDescription": "The schedule data is about to expire or has already expired. Please update the database.",
     "validUntil": "Valid until {{date}} ({{days}} days remaining)",
     "online": {
-      "title": "Download from gtfs.de",
-      "description": "Download the free GTFS feed directly, then import it.",
+      "title": "gtfs.de (free)",
+      "description": "The free, Germany-wide GTFS feed from gtfs.de — directly downloadable, great for a quick start.",
+      "learnMore": "What is gtfs.de?",
       "download": "Download",
       "import": "Import"
-    },
-    "local": {
-      "title": "Open a local file",
-      "description": "Already have a GTFS zip (e.g. from opendata-oepnv.de)? Open it directly from the file system.",
-      "open": "Open GTFS zip…"
     },
     "downloading": "Downloading… {{percent}}%",
     "downloadComplete": "Download complete. Import now.",
@@ -202,6 +198,13 @@
     "cancel": "Cancel",
     "importingFile": "Importing {{file}}… {{percent}}%",
     "normalizing": "Normalizing stations…",
-    "indexing": "Building indexes…"
+    "indexing": "Building indexes…",
+    "delfi": {
+      "title": "DELFI / opendata-ÖPNV",
+      "description": "The official Germany-wide schedule data from DELFI. More detailed than gtfs.de: a real station hierarchy with platforms and track numbers, transfer relations and more.",
+      "registration": "Requires a free account at opendata-ÖPNV. Download the GTFS zip there, then open it here.",
+      "link": "Open the DELFI dataset",
+      "open": "Open GTFS zip…"
+    }
   }
 }

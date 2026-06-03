@@ -186,15 +186,11 @@
     "updateDescription": "Die Fahrplandaten laufen bald ab oder sind bereits abgelaufen. Bitte aktualisiere die Datenbank.",
     "validUntil": "Gültig bis {{date}} ({{days}} Tage verbleibend)",
     "online": {
-      "title": "Von gtfs.de herunterladen",
-      "description": "Lade den kostenlosen GTFS-Feed direkt herunter und importiere ihn anschließend.",
+      "title": "gtfs.de (kostenlos)",
+      "description": "Der kostenlose, deutschlandweite GTFS-Feed von gtfs.de — direkt herunterladbar, ideal für den schnellen Start.",
+      "learnMore": "Was ist gtfs.de?",
       "download": "Herunterladen",
       "import": "Importieren"
-    },
-    "local": {
-      "title": "Lokale Datei öffnen",
-      "description": "Du hast bereits eine GTFS-ZIP (z. B. von opendata-oepnv.de)? Öffne sie direkt aus dem Dateisystem.",
-      "open": "GTFS-ZIP öffnen…"
     },
     "downloading": "Lädt herunter… {{percent}}%",
     "downloadComplete": "Download abgeschlossen. Jetzt importieren.",
@@ -202,6 +198,13 @@
     "cancel": "Abbrechen",
     "importingFile": "Importiere {{file}}… {{percent}}%",
     "normalizing": "Normalisiere Stationen…",
-    "indexing": "Erstelle Indizes…"
+    "indexing": "Erstelle Indizes…",
+    "delfi": {
+      "title": "DELFI / opendata-ÖPNV",
+      "description": "Die offiziellen deutschlandweiten Solldaten von DELFI. Detaillierter als gtfs.de: echte Stationshierarchie mit Bahnsteigen und Gleisnummern, Umstiegsbeziehungen und mehr.",
+      "registration": "Erfordert eine kostenlose Anmeldung bei opendata-ÖPNV. Lade dort die GTFS-ZIP herunter und öffne sie anschließend hier.",
+      "link": "Zum DELFI-Datensatz",
+      "open": "GTFS-ZIP öffnen…"
+    }
   }
 }

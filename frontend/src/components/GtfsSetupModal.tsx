@@ -2,13 +2,16 @@ import { useEffect, useState, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faTimes, faDownload, faFileImport, faFolderOpen } from '@fortawesome/free-solid-svg-icons'
+import { faTimes, faDownload, faFileImport, faFolderOpen, faArrowUpRightFromSquare } from '@fortawesome/free-solid-svg-icons'
 import { DownloadGTFS, ImportGTFS, ImportGTFSFromFile, CancelGTFS } from '../../wailsjs/go/main/App'
-import { EventsOn } from '../../wailsjs/runtime/runtime'
+import { EventsOn, BrowserOpenURL } from '../../wailsjs/runtime/runtime'
 import type { main } from '../../wailsjs/go/models'
 import './GtfsSetupModal.css'
 
 const DEFAULT_FEED_URL = 'https://download.gtfs.de/germany/free/latest.zip'
+const GTFS_DE_INFO_URL = 'https://gtfs.de/de/feeds/'
+const DELFI_URL =
+  'https://www.opendata-oepnv.de/ht/de/organisation/delfi/startseite?tx_vrrkit_view%5Baction%5D=details&tx_vrrkit_view%5Bcontroller%5D=View&tx_vrrkit_view%5Bdataset_name%5D=deutschlandweite-sollfahrplandaten-gtfs'
 
 interface GtfsProgress {
   phase: string
@@ -172,74 +175,91 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
         <div className="gtfs-setup-modal__content">
           {error && <div className="gtfs-setup-modal__error">{error}</div>}
 
-          <section className="gtfs-setup-modal__section">
-            <h3 className="gtfs-setup-modal__section-title">{t('gtfsSetup.online.title')}</h3>
-            <p>{t('gtfsSetup.online.description')}</p>
-            <input
-              type="text"
-              className="gtfs-setup-modal__input"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              disabled={busy}
-              spellCheck={false}
-            />
-            <div className="gtfs-setup-modal__actions">
+          <div className="gtfs-setup-modal__columns">
+            <section className="gtfs-setup-modal__column">
+              <h3 className="gtfs-setup-modal__section-title">{t('gtfsSetup.online.title')}</h3>
+              <p>{t('gtfsSetup.online.description')}</p>
               <button
                 type="button"
-                className="gtfs-setup-modal__button"
-                onClick={handleDownload}
-                disabled={busy || !url}
+                className="gtfs-setup-modal__link"
+                onClick={() => BrowserOpenURL(GTFS_DE_INFO_URL)}
               >
-                <FontAwesomeIcon icon={faDownload} /> {t('gtfsSetup.online.download')}
+                {t('gtfsSetup.online.learnMore')} <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
               </button>
-              <button
-                type="button"
-                className="gtfs-setup-modal__button gtfs-setup-modal__button--primary"
-                onClick={handleImport}
-                disabled={busy || phase !== 'downloaded'}
-              >
-                <FontAwesomeIcon icon={faFileImport} /> {t('gtfsSetup.online.import')}
-              </button>
-            </div>
-
-            {phase === 'downloading' && (
-              <div className="gtfs-setup-modal__progress">
-                <div className="gtfs-setup-modal__progress-bar">
-                  <div
-                    className="gtfs-setup-modal__progress-fill"
-                    style={{ width: `${Math.round(downloadPct * 100)}%` }}
-                  />
-                </div>
-                <div className="gtfs-setup-modal__progress-row">
-                  <span className="gtfs-setup-modal__progress-label">
-                    {t('gtfsSetup.downloading', { percent: Math.round(downloadPct * 100) })}
-                  </span>
-                  <button type="button" className="gtfs-setup-modal__cancel" onClick={handleCancel}>
-                    {t('gtfsSetup.cancel')}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {phase === 'downloaded' && (
-              <p className="gtfs-setup-modal__hint">{t('gtfsSetup.downloadComplete')}</p>
-            )}
-          </section>
-
-          <section className="gtfs-setup-modal__section gtfs-setup-modal__section--info">
-            <h3 className="gtfs-setup-modal__section-title">{t('gtfsSetup.local.title')}</h3>
-            <p>{t('gtfsSetup.local.description')}</p>
-            <div className="gtfs-setup-modal__actions">
-              <button
-                type="button"
-                className="gtfs-setup-modal__button"
-                onClick={handleOpenFile}
+              <input
+                type="text"
+                className="gtfs-setup-modal__input"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
                 disabled={busy}
+                spellCheck={false}
+              />
+              <div className="gtfs-setup-modal__actions">
+                <button
+                  type="button"
+                  className="gtfs-setup-modal__button"
+                  onClick={handleDownload}
+                  disabled={busy || !url}
+                >
+                  <FontAwesomeIcon icon={faDownload} /> {t('gtfsSetup.online.download')}
+                </button>
+                <button
+                  type="button"
+                  className="gtfs-setup-modal__button gtfs-setup-modal__button--primary"
+                  onClick={handleImport}
+                  disabled={busy || phase !== 'downloaded'}
+                >
+                  <FontAwesomeIcon icon={faFileImport} /> {t('gtfsSetup.online.import')}
+                </button>
+              </div>
+
+              {phase === 'downloading' && (
+                <div className="gtfs-setup-modal__progress">
+                  <div className="gtfs-setup-modal__progress-bar">
+                    <div
+                      className="gtfs-setup-modal__progress-fill"
+                      style={{ width: `${Math.round(downloadPct * 100)}%` }}
+                    />
+                  </div>
+                  <div className="gtfs-setup-modal__progress-row">
+                    <span className="gtfs-setup-modal__progress-label">
+                      {t('gtfsSetup.downloading', { percent: Math.round(downloadPct * 100) })}
+                    </span>
+                    <button type="button" className="gtfs-setup-modal__cancel" onClick={handleCancel}>
+                      {t('gtfsSetup.cancel')}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {phase === 'downloaded' && (
+                <p className="gtfs-setup-modal__hint">{t('gtfsSetup.downloadComplete')}</p>
+              )}
+            </section>
+
+            <section className="gtfs-setup-modal__column gtfs-setup-modal__column--delfi">
+              <h3 className="gtfs-setup-modal__section-title">{t('gtfsSetup.delfi.title')}</h3>
+              <p>{t('gtfsSetup.delfi.description')}</p>
+              <p className="gtfs-setup-modal__hint">{t('gtfsSetup.delfi.registration')}</p>
+              <button
+                type="button"
+                className="gtfs-setup-modal__link"
+                onClick={() => BrowserOpenURL(DELFI_URL)}
               >
-                <FontAwesomeIcon icon={faFolderOpen} /> {t('gtfsSetup.local.open')}
+                {t('gtfsSetup.delfi.link')} <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
               </button>
-            </div>
-          </section>
+              <div className="gtfs-setup-modal__actions">
+                <button
+                  type="button"
+                  className="gtfs-setup-modal__button"
+                  onClick={handleOpenFile}
+                  disabled={busy}
+                >
+                  <FontAwesomeIcon icon={faFolderOpen} /> {t('gtfsSetup.delfi.open')}
+                </button>
+              </div>
+            </section>
+          </div>
 
           {phase === 'importing' && (
             <div className="gtfs-setup-modal__progress">
