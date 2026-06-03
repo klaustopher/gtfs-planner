@@ -143,7 +143,7 @@
     "name": {
       "tram": "Tram / Light rail",
       "subway": "Subway / Metro",
-      "rail": "Rail",
+      "rail": "Other rail",
       "bus": "Bus",
       "ferry": "Ferry",
       "cableTram": "Cable tram",
