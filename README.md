@@ -12,9 +12,54 @@ A desktop application for visualizing and planning trips using GTFS (General Tra
 - **Overnight Trip Handling** - Correctly handles GTFS times >= 24:00:00
 - **Service Calendar** - Respects weekday rules and calendar exceptions
 
+## Installation
+
+Prebuilt downloads for each platform are attached to the
+[latest release](https://github.com/klaustopher/gtfs-planner/releases/latest).
+No GTFS data ships with the app — it is downloaded/imported from within the app on
+first launch (see [GTFS Data](#gtfs-data)).
+
+### macOS
+
+Download `gtfs-planner_<version>_macOS_universal.dmg`, open it and drag **GTFS
+Planner** into your Applications folder. The app is signed and notarized, so it
+opens normally without any Gatekeeper workaround. Runs natively on both Apple
+Silicon and Intel.
+
+### Linux
+
+WebKitGTK comes in two ABI-incompatible generations, so there are two builds —
+pick the one for your distribution (see [Linux notes](#linux-notes)):
+
+- **`…_linux_amd64_webkit2gtk-4.1.tar.gz`** — Arch, Ubuntu 24.04+, Fedora, other current distros
+- **`…_linux_amd64_webkit2gtk-4.0.tar.gz`** — older distros (e.g. Ubuntu 22.04)
+
+Install the runtime dependencies, extract and run:
+
+```bash
+# Ubuntu 24.04+ / Debian (4.1)
+sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0
+# Arch (4.1)
+sudo pacman -S gtk3 webkit2gtk-4.1
+
+tar xzf gtfs-planner_*_linux_amd64_webkit2gtk-4.1.tar.gz
+./gtfs-planner
+```
+
+If the window stays blank, see [Blank or white window](#blank-or-white-window).
+
+### Windows
+
+Download `gtfs-planner_<version>_windows_amd64_installer.exe` and run it.
+
+The Windows build is **not code-signed**, so SmartScreen shows a *"Windows
+protected your PC — unknown publisher"* warning. Click **More info → Run anyway**
+to continue. The app is open source — if you prefer, you can
+[build it yourself](#building-from-source).
+
 ## Prerequisites
 
-- [Go](https://golang.org/) 1.23+
+- [Go](https://golang.org/) 1.24+
 - [Node.js](https://nodejs.org/) 18+
 - [Wails CLI](https://wails.io/docs/gettingstarted/installation)
 - SQLite3
@@ -25,7 +70,7 @@ Install Wails CLI:
 go install github.com/wailsapp/wails/v2/cmd/wails@latest
 ```
 
-## Getting Started
+## Building from source
 
 ### 1. Clone the Repository
 
