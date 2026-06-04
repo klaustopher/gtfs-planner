@@ -132,6 +132,11 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+      - name: Install NSIS
+        shell: bash
+        run: |
+          choco install nsis -y --no-progress
+          echo 'C:\Program Files (x86)\NSIS' >> "$GITHUB_PATH"
       - name: Build (NSIS installer)
         run: wails build -clean -nsis
       - name: Rename installer
