@@ -6,6 +6,7 @@ import { faTimes, faTrash } from '@fortawesome/free-solid-svg-icons'
 import { useSettings } from '../hooks/useSettings'
 import { GetDatabaseInfo, GetDatabaseStatus, DeleteDatabase } from '../../wailsjs/go/main/App'
 import { useConfirm } from '../hooks/useConfirm'
+import { formatDateDisplay } from '../utils/time'
 import type { main } from '../../wailsjs/go/models'
 import './SettingsModal.css'
 
@@ -166,9 +167,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             {dbStatus?.hasData && (
               <>
                 <dt>{t('settings.database.firstDate')}</dt>
-                <dd>{dbStatus.firstDate}</dd>
+                <dd>{formatDateDisplay(dbStatus.firstDate, i18n.language)}</dd>
                 <dt>{t('settings.database.lastDate')}</dt>
-                <dd>{dbStatus.lastDate}</dd>
+                <dd>{formatDateDisplay(dbStatus.lastDate, i18n.language)}</dd>
                 <dt>{t('settings.database.daysRemaining')}</dt>
                 <dd className={dbStatus.daysRemaining < 7 ? 'settings-modal__db-warn' : ''}>
                   {dbStatus.daysRemaining < 0
