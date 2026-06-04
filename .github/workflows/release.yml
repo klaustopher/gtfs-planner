@@ -19,6 +19,15 @@ env:
   WAILS_VERSION: v2.12.0
 
 jobs:
+  # Code signing + notarization run only when the MACOS_* secrets are configured;
+  # otherwise an unsigned .dmg is produced (opens via right-click → Open).
+  # Required repository secrets:
+  #   MACOS_CERTIFICATE_P12       base64 of the "Developer ID Application" .p12
+  #   MACOS_CERTIFICATE_PASSWORD  password of that .p12
+  #   MACOS_SIGNING_IDENTITY      e.g. "Developer ID Application: Name (TEAMID)"
+  #   MACOS_NOTARY_KEY_P8         base64 of the App Store Connect API key (.p8)
+  #   MACOS_NOTARY_KEY_ID         the API key id
+  #   MACOS_NOTARY_ISSUER_ID      the API key issuer id
   macos:
     name: macOS (universal)
     runs-on: macos-latest
@@ -37,11 +46,59 @@ jobs:
         run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
       - name: Build universal app
         run: wails build -platform darwin/universal -clean
+
+      - name: Detect signing secrets
+        id: signing
+        env:
+          CERT: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+        run: |
+          if [ -n "$CERT" ]; then echo "enabled=true" >> "$GITHUB_OUTPUT"; else echo "enabled=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Import signing certificate
+        if: steps.signing.outputs.enabled == 'true'
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          p12-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+
+      - name: Sign app (hardened runtime)
+        if: steps.signing.outputs.enabled == 'true'
+        env:
+          SIGN_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+        run: |
+          set -euo pipefail
+          APP=$(ls -d build/bin/*.app | head -1)
+          codesign --force --deep --timestamp --options runtime \
+            --entitlements build/darwin/entitlements.plist \
+            --sign "$SIGN_IDENTITY" "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
       - name: Package DMG
         run: |
           APP=$(ls -d build/bin/*.app | head -1)
           DMG="gtfs-planner_${{ github.ref_name }}_macOS_universal.dmg"
           hdiutil create -volname "GTFS Planner" -srcfolder "$APP" -ov -format UDZO "$DMG"
+
+      - name: Sign, notarize and staple DMG
+        if: steps.signing.outputs.enabled == 'true'
+        env:
+          SIGN_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+          NOTARY_KEY_P8: ${{ secrets.MACOS_NOTARY_KEY_P8 }}
+          NOTARY_KEY_ID: ${{ secrets.MACOS_NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.MACOS_NOTARY_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          DMG="gtfs-planner_${{ github.ref_name }}_macOS_universal.dmg"
+          codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG"
+          echo "$NOTARY_KEY_P8" | base64 --decode > notary_key.p8
+          # --wait exits non-zero if notarization is rejected; `xcrun notarytool
+          # log <submission-id>` shows the detailed reasons.
+          xcrun notarytool submit "$DMG" \
+            --key notary_key.p8 --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID" \
+            --wait
+          xcrun stapler staple "$DMG"
+          rm -f notary_key.p8
+
       - uses: actions/upload-artifact@v4
         with:
           name: macos
