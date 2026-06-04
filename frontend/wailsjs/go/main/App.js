@@ -93,7 +93,3 @@ export function SaveJourney(arg1) {
 export function SearchStations(arg1, arg2) {
   return window['go']['main']['App']['SearchStations'](arg1, arg2);
 }
-
-export function ShowConfirmDialog(arg1, arg2) {
-  return window['go']['main']['App']['ShowConfirmDialog'](arg1, arg2);
-}

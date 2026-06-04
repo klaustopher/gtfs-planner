@@ -494,23 +494,6 @@ func (a *App) LoadJourney() (*LoadJourneyResult, error) {
 	}, nil
 }
 
-// ShowConfirmDialog shows a confirmation dialog with Yes/No buttons.
-// Returns true if user clicked Yes, false otherwise.
-func (a *App) ShowConfirmDialog(title, message string) (bool, error) {
-	result, err := runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-		Type:          runtime.QuestionDialog,
-		Title:         title,
-		Message:       message,
-		Buttons:       []string{"Ja", "Nein"},
-		DefaultButton: "Nein",
-		CancelButton:  "Nein",
-	})
-	if err != nil {
-		return false, err
-	}
-	return result == "Ja", nil
-}
-
 // ExportJourneyToICS exports the journey as an ICS (iCalendar) file.
 // Each trip becomes a separate event with full details.
 // Returns the saved file path, or empty string if cancelled.

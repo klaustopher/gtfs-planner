@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTimes, faTrash } from '@fortawesome/free-solid-svg-icons'
 import { useSettings } from '../hooks/useSettings'
-import { GetDatabaseInfo, GetDatabaseStatus, DeleteDatabase, ShowConfirmDialog } from '../../wailsjs/go/main/App'
+import { GetDatabaseInfo, GetDatabaseStatus, DeleteDatabase } from '../../wailsjs/go/main/App'
+import { useConfirm } from '../hooks/useConfirm'
 import type { main } from '../../wailsjs/go/models'
 import './SettingsModal.css'
 
@@ -23,6 +24,7 @@ function formatBytes(bytes: number): string {
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { t, i18n } = useTranslation()
   const { settings, updateSettings } = useSettings()
+  const { confirm, confirmDialog } = useConfirm()
   const rawLanguage = i18n.resolvedLanguage || i18n.language || 'en'
   const normalizedLanguage = rawLanguage.split('-')[0]
   const [dbInfo, setDbInfo] = useState<main.DatabaseInfo | null>(null)
@@ -44,7 +46,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   }, [isOpen, refreshDbInfo])
 
   const handleDeleteDatabase = useCallback(async () => {
-    const confirmed = await ShowConfirmDialog(
+    const confirmed = await confirm(
       t('settings.database.confirmTitle'),
       t('settings.database.confirmMessage'),
     )
@@ -58,7 +60,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     } catch (err) {
       console.error('Failed to delete database:', err)
     }
-  }, [t, refreshDbInfo])
+  }, [t, refreshDbInfo, confirm])
 
   useEffect(() => {
     if (!isOpen) {
@@ -186,6 +188,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </button>
         </section>
       </div>
+      {confirmDialog}
     </div>
   )
 

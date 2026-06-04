@@ -4,10 +4,11 @@ import Sidebar from './components/Sidebar'
 import TripDetailModal from './components/TripDetailModal'
 import GtfsSetupModal from './components/GtfsSetupModal'
 import { models, main } from '../wailsjs/go/models'
-import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, ShowConfirmDialog, GetNearbyStations, GetUpcomingTripsForStations, GetDatabaseStatus, GetTransportCategories } from '../wailsjs/go/main/App'
+import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, GetNearbyStations, GetUpcomingTripsForStations, GetDatabaseStatus, GetTransportCategories } from '../wailsjs/go/main/App'
 import { useTrips, TripQueryParams } from './components/map/useTrips'
 import { useJourneyView } from './hooks/useJourneyView'
 import { useSettings } from './hooks/useSettings'
+import { useConfirm } from './hooks/useConfirm'
 import { useTranslation } from 'react-i18next'
 import { ALL_TRANSPORT_TYPES, sortTransportCategories } from './utils/transportType'
 import { normalizeColor, FALLBACK_COLORS } from './components/map/geojson'
@@ -72,6 +73,7 @@ function addMinutesToDateTime(isoDateTime: string, minutes: number): { date: str
 function App() {
   const { t } = useTranslation()
   const { settings } = useSettings()
+  const { confirm, confirmDialog } = useConfirm()
   const [viewState, setViewState] = useState<MapViewState | null>(null)
   const [selectedStation, setSelectedStation] = useState<models.StationDetails | null>(null)
 
@@ -428,7 +430,7 @@ function App() {
   const handleLoadJourney = useCallback(async () => {
     // Warn about unsaved changes only if there are actual saved trips
     if (hasUnsavedChanges && savedTrips.length > 0) {
-      const confirmed = await ShowConfirmDialog(
+      const confirmed = await confirm(
         t('journey.unsaved.title'),
         t('journey.unsaved.message')
       )
@@ -509,7 +511,7 @@ function App() {
     } catch (err) {
       console.error('Failed to load journey:', err)
     }
-  }, [hasUnsavedChanges, savedTrips.length, t])
+  }, [hasUnsavedChanges, savedTrips.length, t, confirm])
 
   // Start new journey
   const handleNewJourney = useCallback(async () => {
@@ -518,7 +520,7 @@ function App() {
       const title = hasUnsavedChanges ? t('journey.unsaved.title') : t('journey.clearConfirm.title')
       const message = hasUnsavedChanges ? t('journey.unsaved.message') : t('journey.clearConfirm.message')
 
-      const confirmed = await ShowConfirmDialog(title, message)
+      const confirmed = await confirm(title, message)
       if (!confirmed) {
         return
       }
@@ -533,7 +535,7 @@ function App() {
     setSelectedTime(formatTimeForInput(now))
     setCurrentFilePath(null)
     setHasUnsavedChanges(false)
-  }, [hasUnsavedChanges, savedTrips.length, t])
+  }, [hasUnsavedChanges, savedTrips.length, t, confirm])
 
   // Track previous connection time to detect changes
   const prevConnectionTimeRef = useRef(settings.connectionTimeMinutes)
@@ -795,6 +797,7 @@ function App() {
         }
         onImported={handleGtfsImported}
       />
+      {confirmDialog}
     </div>
   )
 }

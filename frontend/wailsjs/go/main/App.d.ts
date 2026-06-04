@@ -49,5 +49,3 @@ export function LoadJourney():Promise<main.LoadJourneyResult>;
 export function SaveJourney(arg1:models.JourneyData):Promise<string>;
 
 export function SearchStations(arg1:string,arg2:number):Promise<Array<models.Stop>>;
-
-export function ShowConfirmDialog(arg1:string,arg2:string):Promise<boolean>;
