@@ -3,6 +3,12 @@
    ============================================ */
 
 :root {
+  /* The app is dark-themed; declare it so native form controls (select + its
+     option popup, date/time pickers, scrollbars) render dark on every platform
+     instead of following the OS theme (which made the language select unreadable
+     on Linux — see issue #15). */
+  color-scheme: dark;
+
   /* ========== Color Palette ========== */
 
   /* Background Colors */
@@ -127,6 +133,9 @@
   --input-padding-x: var(--space-md);
   --input-padding-y: var(--space-sm);
   --input-bg: rgba(0, 0, 0, 0.3);
+  /* Opaque variant for native widgets (e.g. <select>) whose control base color
+     comes from the OS and can't be relied on to be dark. */
+  --input-bg-solid: var(--color-bg-tertiary);
   --input-border: var(--color-border-medium);
   --input-focus-border: var(--color-accent-primary);
 
