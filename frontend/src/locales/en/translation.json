@@ -10,7 +10,8 @@
     },
     "close": "Close",
     "confirm": "Continue",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "ok": "OK"
   },
   "journey": {
     "title": "Journey Planning",
@@ -42,6 +43,10 @@
     "clearConfirm": {
       "title": "Clear journey",
       "message": "Are you sure you want to clear all saved trips? This cannot be undone."
+    },
+    "loadError": {
+      "title": "Couldn't load journey",
+      "message": "This journey can no longer be reconstructed against the current GTFS database — either it was created with a different feed (e.g. gtfs.de instead of DELFI) or the schedule has changed since. Import the matching feed and try again."
     },
     "export": {
       "title": "Export Journey",

@@ -6,6 +6,8 @@ import './ConfirmDialog.css'
 interface ConfirmDialogProps {
   title: string
   message: string
+  // alert = a single OK button (acknowledgement), no cancel.
+  alert?: boolean
   onConfirm: () => void
   onCancel: () => void
 }
@@ -14,23 +16,25 @@ interface ConfirmDialogProps {
 // Linux ignores custom button labels and returns localized system strings, so the
 // caller's result check never matched (see issue #16). This also keeps the buttons
 // in the app's own language.
-export default function ConfirmDialog({ title, message, onConfirm, onCancel }: ConfirmDialogProps) {
+export default function ConfirmDialog({ title, message, alert = false, onConfirm, onCancel }: ConfirmDialogProps) {
   const { t } = useTranslation()
+  // In alert mode dismissing == acknowledging.
+  const dismiss = alert ? onConfirm : onCancel
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onCancel()
+        dismiss()
       } else if (event.key === 'Enter') {
         onConfirm()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onConfirm, onCancel])
+  }, [onConfirm, dismiss])
 
   return createPortal(
-    <div className="confirm-dialog__backdrop" onClick={onCancel}>
+    <div className="confirm-dialog__backdrop" onClick={dismiss}>
       <div
         className="confirm-dialog"
         role="alertdialog"
@@ -41,11 +45,13 @@ export default function ConfirmDialog({ title, message, onConfirm, onCancel }: C
         <h2 className="confirm-dialog__title">{title}</h2>
         <p className="confirm-dialog__message">{message}</p>
         <div className="confirm-dialog__actions">
-          <button type="button" className="confirm-dialog__btn confirm-dialog__btn--cancel" onClick={onCancel}>
-            {t('common.cancel')}
-          </button>
+          {!alert && (
+            <button type="button" className="confirm-dialog__btn confirm-dialog__btn--cancel" onClick={onCancel}>
+              {t('common.cancel')}
+            </button>
+          )}
           <button type="button" className="confirm-dialog__btn confirm-dialog__btn--confirm" onClick={onConfirm} autoFocus>
-            {t('common.confirm')}
+            {alert ? t('common.ok') : t('common.confirm')}
           </button>
         </div>
       </div>

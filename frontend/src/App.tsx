@@ -4,7 +4,7 @@ import Sidebar from './components/Sidebar'
 import TripDetailModal from './components/TripDetailModal'
 import GtfsSetupModal from './components/GtfsSetupModal'
 import { models, main } from '../wailsjs/go/models'
-import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, GetNearbyStations, GetUpcomingTripsForStations, GetDatabaseStatus, GetTransportCategories } from '../wailsjs/go/main/App'
+import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, GetNearbyStations, GetUpcomingTripsForStations, GetDatabaseStatus, GetTransportCategories, GetTripDetails } from '../wailsjs/go/main/App'
 import { useTrips, TripQueryParams } from './components/map/useTrips'
 import { useJourneyView } from './hooks/useJourneyView'
 import { useSettings } from './hooks/useSettings'
@@ -73,7 +73,7 @@ function addMinutesToDateTime(isoDateTime: string, minutes: number): { date: str
 function App() {
   const { t } = useTranslation()
   const { settings } = useSettings()
-  const { confirm, confirmDialog } = useConfirm()
+  const { confirm, alert, confirmDialog } = useConfirm()
   const [viewState, setViewState] = useState<MapViewState | null>(null)
   const [selectedStation, setSelectedStation] = useState<models.StationDetails | null>(null)
 
@@ -455,6 +455,18 @@ function App() {
             const startStation = await GetStationDetails(tripData.startStationId)
             const endStation = await GetStationDetails(tripData.endStationId)
 
+            // Verify the trip still serves this leg (start before end in its stop
+            // sequence). Catches feeds whose schedule changed since the export, not
+            // just a wholly different feed.
+            const serviceDate = tripData.departureDateTime.split('T')[0].replace(/-/g, '')
+            const details = await GetTripDetails(tripData.tripId, serviceDate)
+            const stopTimes = details?.stop_times ?? []
+            const startIdx = stopTimes.findIndex((st) => st.stop_id === tripData.startStationId)
+            const endIdx = stopTimes.findIndex((st) => st.stop_id === tripData.endStationId)
+            if (startIdx === -1 || endIdx === -1 || startIdx > endIdx) {
+              throw new Error(`trip ${tripData.tripId} no longer serves ${tripData.startStationId} -> ${tripData.endStationId}`)
+            }
+
             // Compute display color with fallback (using trip index in journey)
             const normalizedColor = normalizeColor(route.route_color)
             const displayColor = normalizedColor ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]
@@ -478,6 +490,16 @@ function App() {
             console.error('Failed to hydrate trip:', err)
           }
         }
+
+        // A journey must restore fully. If any leg can't be resolved against the
+        // current database, abort without touching the current state — almost
+        // always a journey exported with a different feed (e.g. gtfs.de numeric ids
+        // vs DELFI's "de:…" ids) or whose schedule has since changed.
+        if (journey.savedTrips.length > 0 && hydratedTrips.length !== journey.savedTrips.length) {
+          await alert(t('journey.loadError.title'), t('journey.loadError.message'))
+          return
+        }
+
         setSavedTrips(hydratedTrips)
 
         // Restore date/time from ISO 8601
@@ -511,7 +533,7 @@ function App() {
     } catch (err) {
       console.error('Failed to load journey:', err)
     }
-  }, [hasUnsavedChanges, savedTrips.length, t, confirm])
+  }, [hasUnsavedChanges, savedTrips.length, t, confirm, alert])
 
   // Start new journey
   const handleNewJourney = useCallback(async () => {

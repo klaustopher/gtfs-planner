@@ -1,22 +1,30 @@
 import { useCallback, useRef, useState } from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
 
-interface ConfirmState {
+interface DialogState {
   title: string
   message: string
+  alert: boolean // alert = single OK button (notice), not a yes/no confirmation
 }
 
-// Promise-based confirmation: call `confirm(title, message)` and await a boolean.
-// Render `confirmDialog` somewhere in the tree. Replaces the native Wails dialog
-// (broken on Linux, see issue #16).
+// Promise-based dialogs: `confirm(title, message)` resolves to a boolean,
+// `alert(title, message)` resolves when acknowledged. Render `confirmDialog`
+// somewhere in the tree. Replaces the native Wails dialog (broken on Linux, #16).
 export function useConfirm() {
-  const [state, setState] = useState<ConfirmState | null>(null)
+  const [state, setState] = useState<DialogState | null>(null)
   const resolverRef = useRef<((value: boolean) => void) | null>(null)
 
   const confirm = useCallback((title: string, message: string): Promise<boolean> => {
-    setState({ title, message })
+    setState({ title, message, alert: false })
     return new Promise<boolean>((resolve) => {
       resolverRef.current = resolve
+    })
+  }, [])
+
+  const alert = useCallback((title: string, message: string): Promise<void> => {
+    setState({ title, message, alert: true })
+    return new Promise<void>((resolve) => {
+      resolverRef.current = () => resolve()
     })
   }, [])
 
@@ -30,10 +38,11 @@ export function useConfirm() {
     <ConfirmDialog
       title={state.title}
       message={state.message}
+      alert={state.alert}
       onConfirm={() => resolve(true)}
       onCancel={() => resolve(false)}
     />
   ) : null
 
-  return { confirm, confirmDialog }
+  return { confirm, alert, confirmDialog }
 }

@@ -10,7 +10,8 @@
     },
     "close": "Schließen",
     "confirm": "Fortfahren",
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "ok": "OK"
   },
   "journey": {
     "title": "Reiseplanung",
@@ -42,6 +43,10 @@
     "clearConfirm": {
       "title": "Reise löschen",
       "message": "Sind Sie sicher, dass Sie alle gespeicherten Fahrten löschen möchten? Dies kann nicht rückgängig gemacht werden."
+    },
+    "loadError": {
+      "title": "Reise nicht ladbar",
+      "message": "Diese Reise lässt sich mit der aktuellen GTFS-Datenbank nicht (mehr) rekonstruieren — entweder wurde sie mit einem anderen Feed erstellt (z. B. gtfs.de statt DELFI) oder die Fahrplandaten haben sich seitdem geändert. Importiere den passenden Feed und versuche es erneut."
     },
     "export": {
       "title": "Reise exportieren",
