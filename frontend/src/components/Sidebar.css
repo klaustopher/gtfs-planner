@@ -1,7 +1,8 @@
 @import '../variables.css';
 
 .sidebar {
-  width: 320px;
+  width: 380px;
+  flex-shrink: 0;
   background-color: var(--color-bg-secondary);
   color: var(--color-text-primary);
   padding: var(--space-lg);
@@ -39,6 +40,32 @@
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
+}
+
+.sidebar-card--flex .sidebar-card__header {
+  justify-content: flex-start;
+  gap: var(--space-sm);
+}
+
+.sidebar-card__step-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--color-border-medium);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.sidebar-card__step-back:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-strong);
 }
 
 .sidebar-card__subtitle {
@@ -285,11 +312,14 @@
 .trip-badges {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-sm);
 }
 
 .trip-type-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
   padding: 2px var(--space-sm);
   border-radius: var(--space-xs);
   background: var(--color-border-strong);
@@ -298,6 +328,10 @@
   font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.trip-type-badge__icon {
+  font-size: var(--font-size-xs);
 }
 
 .trip-route-badge {
@@ -331,7 +365,7 @@
 }
 
 .trip-nearby-station {
-  max-width: 80px;
+  max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -347,6 +381,40 @@
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-xs);
   border: 1px solid var(--color-accent-secondary);
+}
+
+.trip-layover-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-sm);
+  border-radius: var(--space-xs);
+  color: var(--color-accent-info);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
+  border: 1px solid var(--color-accent-info);
+}
+
+.trip-layover-badge--missed {
+  color: var(--color-accent-danger);
+  border-color: var(--color-accent-danger);
+}
+
+/* Arrival banner at the top of the departures card during a journey */
+.station-arrival {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-sm);
+  margin-bottom: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-active);
+  border: 1px solid var(--color-border-medium);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.station-arrival__icon {
+  color: var(--color-accent-info);
 }
 
 /* Saved trips / Planned journey */

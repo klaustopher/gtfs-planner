@@ -1,9 +1,13 @@
-import { useEffect, type ChangeEvent, type MouseEvent } from 'react'
+import { useEffect, useState, useCallback, type ChangeEvent, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faTimes } from '@fortawesome/free-solid-svg-icons'
+import { faTimes, faTrash } from '@fortawesome/free-solid-svg-icons'
 import { useSettings } from '../hooks/useSettings'
+import { GetDatabaseInfo, GetDatabaseStatus, DeleteDatabase } from '../../wailsjs/go/main/App'
+import { useConfirm } from '../hooks/useConfirm'
+import { formatDateDisplay } from '../utils/time'
+import type { main } from '../../wailsjs/go/models'
 import './SettingsModal.css'
 
 interface SettingsModalProps {
@@ -11,11 +15,53 @@ interface SettingsModalProps {
   onClose: () => void
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${bytes} B`
+}
+
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { t, i18n } = useTranslation()
   const { settings, updateSettings } = useSettings()
+  const { confirm, confirmDialog } = useConfirm()
   const rawLanguage = i18n.resolvedLanguage || i18n.language || 'en'
   const normalizedLanguage = rawLanguage.split('-')[0]
+  const [dbInfo, setDbInfo] = useState<main.DatabaseInfo | null>(null)
+  const [dbStatus, setDbStatus] = useState<main.DatabaseStatus | null>(null)
+
+  const refreshDbInfo = useCallback(() => {
+    void GetDatabaseInfo().then(setDbInfo).catch((err: unknown) => {
+      console.error('Failed to get database info:', err)
+    })
+    void GetDatabaseStatus().then(setDbStatus).catch((err: unknown) => {
+      console.error('Failed to get database status:', err)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (isOpen) {
+      refreshDbInfo()
+    }
+  }, [isOpen, refreshDbInfo])
+
+  const handleDeleteDatabase = useCallback(async () => {
+    const confirmed = await confirm(
+      t('settings.database.confirmTitle'),
+      t('settings.database.confirmMessage'),
+    )
+    if (!confirmed) {
+      return
+    }
+    try {
+      await DeleteDatabase()
+      refreshDbInfo()
+      window.dispatchEvent(new Event('gtfs:db-changed'))
+    } catch (err) {
+      console.error('Failed to delete database:', err)
+    }
+  }, [t, refreshDbInfo, confirm])
 
   useEffect(() => {
     if (!isOpen) {
@@ -106,7 +152,44 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </div>
           </div>
         </section>
+        <section className="settings-modal__section">
+          <h3 className="settings-modal__section-title">{t('settings.database.title')}</h3>
+          <p className="settings-modal__hint">{t('settings.database.hint')}</p>
+          <dl className="settings-modal__db-info">
+            <dt>{t('settings.database.pathLabel')}</dt>
+            <dd className="settings-modal__db-path">{dbInfo?.path ?? '—'}</dd>
+            <dt>{t('settings.database.sizeLabel')}</dt>
+            <dd>
+              {dbInfo?.exists
+                ? formatBytes(dbInfo.sizeBytes)
+                : t('settings.database.notPresent')}
+            </dd>
+            {dbStatus?.hasData && (
+              <>
+                <dt>{t('settings.database.firstDate')}</dt>
+                <dd>{formatDateDisplay(dbStatus.firstDate, i18n.language)}</dd>
+                <dt>{t('settings.database.lastDate')}</dt>
+                <dd>{formatDateDisplay(dbStatus.lastDate, i18n.language)}</dd>
+                <dt>{t('settings.database.daysRemaining')}</dt>
+                <dd className={dbStatus.daysRemaining < 7 ? 'settings-modal__db-warn' : ''}>
+                  {dbStatus.daysRemaining < 0
+                    ? t('settings.database.expired')
+                    : t('settings.database.daysValue', { days: dbStatus.daysRemaining })}
+                </dd>
+              </>
+            )}
+          </dl>
+          <button
+            type="button"
+            className="settings-modal__delete-button"
+            onClick={() => void handleDeleteDatabase()}
+            disabled={!dbInfo?.exists}
+          >
+            <FontAwesomeIcon icon={faTrash} /> {t('settings.database.delete')}
+          </button>
+        </section>
       </div>
+      {confirmDialog}
     </div>
   )
 

@@ -39,6 +39,14 @@ export default function TransportFilterDropdown({
   const allSelected = availableTypes.every(type => selectedTypes.has(type))
   const noneSelected = availableTypes.every(type => !selectedTypes.has(type))
 
+  // When the feed also exposes the detailed rail categories, the generic rail
+  // bucket (category 2) reads better as "other rail"; on its own it is just "rail".
+  const hasDetailedRail = availableTypes.some(type => type === 101 || type === 106 || type === 109)
+  const labelFor = (routeType: number) =>
+    routeType === 2 && hasDetailedRail
+      ? t('transportType.short.railOther')
+      : getTransportTypeLabel(routeType, t)
+
   const handleToggleAll = () => {
     if (allSelected) {
       // Deselect all
@@ -118,7 +126,7 @@ export default function TransportFilterDropdown({
           <div className="transport-filter-dropdown__options">
             {availableTypes.map(routeType => {
               const isSelected = selectedTypes.has(routeType)
-              const label = getTransportTypeLabel(routeType, t)
+              const label = labelFor(routeType)
 
               return (
                 <label key={routeType} className="transport-filter-dropdown__option">

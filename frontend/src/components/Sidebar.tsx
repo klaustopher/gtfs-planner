@@ -14,6 +14,7 @@ import './Sidebar.css'
 type PlanningMode = 'initial' | 'planning' | 'viewing'
 
 interface SidebarProps {
+  width?: number
   selectedStation: models.StationDetails | null
   tripsData: models.UpcomingTripsData | null
   isLoadingTrips: boolean
@@ -36,11 +37,17 @@ interface SidebarProps {
   onToggleNearbyStation: (stationId: string) => void
   onLoadMore: () => void
   isLoadingMore: boolean
+  onStepBack: () => void
+  canStepBack: boolean
   selectedDate: string
   selectedTime: string
+  // ISO arrival time at the currently selected station (last booked leg), or null
+  // when this is the journey's first station.
+  currentArrivalDateTime: string | null
 }
 
 export default function Sidebar({
+  width,
   selectedStation,
   tripsData,
   isLoadingTrips,
@@ -63,8 +70,11 @@ export default function Sidebar({
   onToggleNearbyStation,
   onLoadMore,
   isLoadingMore,
+  onStepBack,
+  canStepBack,
   selectedDate,
   selectedTime,
+  currentArrivalDateTime,
 }: SidebarProps) {
   const { t, i18n } = useTranslation()
   const rawLanguage = i18n.resolvedLanguage || i18n.language || 'en'
@@ -87,7 +97,7 @@ export default function Sidebar({
   const savedTripsCount = savedTrips.length
 
   return (
-    <div className="sidebar">
+    <div className="sidebar" style={width ? { width } : undefined}>
       <JourneyActionsBar
         currentFilePath={currentFilePath}
         savedTripsCount={savedTripsCount}
@@ -112,7 +122,10 @@ export default function Sidebar({
           onToggleNearbyStation={onToggleNearbyStation}
           onLoadMore={onLoadMore}
           isLoadingMore={isLoadingMore}
+          onStepBack={onStepBack}
+          canStepBack={canStepBack}
           selectedDateTime={selectedDateTime}
+          currentArrivalDateTime={currentArrivalDateTime}
         />
       )}
 

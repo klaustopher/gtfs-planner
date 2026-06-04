@@ -23,6 +23,14 @@ export const FALLBACK_COLORS = [
 
 const LINE_WIDTH = 6
 
+// Screen-space separation for overlapping trip lines: a per-line pixel offset
+// (constant across zoom, unlike a metre-based geometry offset that vanishes when
+// zoomed out) so overlapping corridors fan out into clean parallel lines at every
+// zoom level. Mirrors the offset index (0, 1, -1, 2, -2, …) from detectOverlaps.
+// Stepped a touch above the line width so each line's white casing separates it
+// from its neighbours (see TripLayers).
+const TRIP_OFFSET_PX = 7
+
 export interface StopsGeoJSON {
   type: 'FeatureCollection'
   features: Array<{
@@ -34,6 +42,8 @@ export interface StopsGeoJSON {
     properties: {
       stop_id: string
       stop_name: string
+      // Dominant transport category (see markerIcons), -1 when unknown.
+      category: number
     }
   }>
 }
@@ -69,6 +79,7 @@ export function stopsToGeoJSON(stops: models.Stop[]): StopsGeoJSON {
       properties: {
         stop_id: stop.stop_id,
         stop_name: stop.stop_name,
+        category: stop.station_category ?? -1,
       },
     })),
   }
@@ -134,6 +145,14 @@ export function getTripColor(trip: models.UpcomingTrip, index: number): string {
   return normalized ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length]
 }
 
+// Distinct color for a journey leg by its position. Unlike getTripColor we ignore
+// the GTFS route_color here: in a journey, neighbouring legs often share an
+// official colour (e.g. several RB lines are all yellow), so we always pick from
+// the visually distinct palette by leg index to keep legs tellable apart.
+export function journeyLegColor(legIndex: number): string {
+  return FALLBACK_COLORS[legIndex % FALLBACK_COLORS.length]
+}
+
 export interface TripLinesGeoJSON {
   type: 'FeatureCollection'
   features: Array<{
@@ -152,6 +171,9 @@ export interface TripLinesGeoJSON {
       headsign: string
       line_color: string
       line_width: number
+      // Perpendicular screen offset (pixels) used to separate overlapping trip
+      // lines; see TripLayers.
+      line_offset: number
     }
   }>
 }
@@ -163,7 +185,7 @@ export function tripsToGeoJSON(trips: models.UpcomingTrip[]): TripLinesGeoJSON {
     coordinates: trip.coordinates.map((c: models.Coordinate) => [c.lon, c.lat] as [number, number]),
   }))
 
-  // Detect overlapping trips and get offset indices
+  // Detect overlapping trips and get offset indices (0, 1, -1, 2, -2, …)
   const offsetIndices = detectOverlaps(tripsForOverlap)
 
   return {
@@ -173,18 +195,17 @@ export function tripsToGeoJSON(trips: models.UpcomingTrip[]): TripLinesGeoJSON {
       const fallbackColor = FALLBACK_COLORS[index % FALLBACK_COLORS.length]
       const lineColor = normalizedColor ?? fallbackColor
 
-      // Get original coordinates
-      const originalCoords = trip.coordinates.map((c: models.Coordinate) => [c.lon, c.lat] as [number, number])
+      // Keep the true geometry; separation happens in screen space (line-offset)
+      // so it survives at every zoom level, unlike a metre-based geometry offset.
+      const coords = trip.coordinates.map((c: models.Coordinate) => [c.lon, c.lat] as [number, number])
 
-      // Apply offset based on overlap detection (keeps endpoints at station positions)
       const offsetIndex = offsetIndices.get(trip.trip_id) ?? 0
-      const offsetCoords = applyOffset(originalCoords, offsetIndex)
 
       return {
         type: 'Feature',
         geometry: {
           type: 'LineString',
-          coordinates: offsetCoords,
+          coordinates: coords,
         },
         properties: {
           trip_id: trip.trip_id,
@@ -196,6 +217,7 @@ export function tripsToGeoJSON(trips: models.UpcomingTrip[]): TripLinesGeoJSON {
           headsign: trip.headsign,
           line_color: lineColor,
           line_width: LINE_WIDTH,
+          line_offset: offsetIndex * TRIP_OFFSET_PX,
         },
       }
     }),

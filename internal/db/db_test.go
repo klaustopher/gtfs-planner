@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"bus-planning/internal/models"
+	"gtfs-planner/internal/models"
 )
 
 const testDBPath = "testdata/test.sqlite"
@@ -30,6 +30,25 @@ func TestOpenInvalidPath(t *testing.T) {
 	_, err := Open("/nonexistent/path/to/database.sqlite")
 	if err == nil {
 		t.Error("Expected error when opening nonexistent database")
+	}
+}
+
+func TestGetServiceDateRange(t *testing.T) {
+	db := skipIfNoDatabase(t)
+	defer db.Close()
+
+	minDate, maxDate, ok, err := db.GetServiceDateRange()
+	if err != nil {
+		t.Fatalf("GetServiceDateRange() error: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected service data in the test database")
+	}
+	if len(minDate) != 8 || len(maxDate) != 8 {
+		t.Errorf("expected YYYYMMDD dates, got min=%q max=%q", minDate, maxDate)
+	}
+	if minDate > maxDate {
+		t.Errorf("min date %q after max date %q", minDate, maxDate)
 	}
 }
 

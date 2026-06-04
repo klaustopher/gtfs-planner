@@ -8,7 +8,10 @@
         "en": "Englisch"
       }
     },
-    "close": "Schließen"
+    "close": "Schließen",
+    "confirm": "Fortfahren",
+    "cancel": "Abbrechen",
+    "ok": "OK"
   },
   "journey": {
     "title": "Reiseplanung",
@@ -40,6 +43,10 @@
     "clearConfirm": {
       "title": "Reise löschen",
       "message": "Sind Sie sicher, dass Sie alle gespeicherten Fahrten löschen möchten? Dies kann nicht rückgängig gemacht werden."
+    },
+    "loadError": {
+      "title": "Reise nicht ladbar",
+      "message": "Diese Reise lässt sich mit der aktuellen GTFS-Datenbank nicht (mehr) rekonstruieren — entweder wurde sie mit einem anderen Feed erstellt (z. B. gtfs.de statt DELFI) oder die Fahrplandaten haben sich seitdem geändert. Importiere den passenden Feed und versuche es erneut."
     },
     "export": {
       "title": "Reise exportieren",
@@ -78,7 +85,14 @@
     "nearbyStations": "Nahegelegene Stationen (innerhalb 200m)",
     "loadMore": "Weitere Abfahrten laden",
     "loadingMore": "Lade weitere Abfahrten...",
-    "dayOffsetTitle": "Abfahrt {{days}} Tag(e) später"
+    "dayOffsetTitle": "Abfahrt {{days}} Tag(e) später",
+    "stepBack": "Einen Halt zurück",
+    "clearStation": "Station schließen",
+    "arriveHere": "Ankunft hier um {{time}}",
+    "layover": "{{minutes}} Min Puffer",
+    "layoverTitle": "Aufenthalt an dieser Station bis zur Abfahrt",
+    "layoverMissed": "{{minutes}} Min zu spät",
+    "layoverMissedTitle": "Diese Verbindung fährt vor deiner Ankunft ab"
   },
   "tripModal": {
     "loading": "Lade Verbindungsdetails...",
@@ -97,7 +111,22 @@
     "connectionTimeUnit": "min",
     "openButton": "Einstellungen",
     "openButtonTooltip": "App-Einstellungen öffnen",
-    "close": "Einstellungen schließen"
+    "close": "Einstellungen schließen",
+    "database": {
+      "title": "GTFS-Datenbank",
+      "hint": "Die importierte GTFS-Datenbank auf diesem Gerät.",
+      "pathLabel": "Speicherort",
+      "sizeLabel": "Größe",
+      "notPresent": "Nicht vorhanden",
+      "delete": "Datenbank löschen",
+      "confirmTitle": "Datenbank löschen",
+      "confirmMessage": "Möchtest du die GTFS-Datenbank wirklich löschen? Du musst sie danach erneut herunterladen oder importieren.",
+      "firstDate": "Erste Fahrt",
+      "lastDate": "Letzte Fahrt",
+      "daysRemaining": "Verbleibend",
+      "daysValue": "{{days}} Tage",
+      "expired": "Abgelaufen"
+    }
   },
   "journeyMarker": {
     "arrival": "An",
@@ -120,7 +149,11 @@
       "funicular": "Standseilbahn",
       "trolleybus": "O-Bus",
       "monorail": "Monorail",
-      "unknown": "?"
+      "unknown": "?",
+      "longDistanceRail": "Fern",
+      "regionalRail": "Regio",
+      "suburbanRail": "S-Bahn",
+      "railOther": "Zug (sonstige)"
     },
     "name": {
       "tram": "Tram / Stadtbahn",
@@ -133,7 +166,11 @@
       "funicular": "Standseilbahn",
       "trolleybus": "Oberleitungsbus",
       "monorail": "Monorail",
-      "unknown": "Unbekannt ({{routeType}})"
+      "unknown": "Unbekannt ({{routeType}})",
+      "longDistanceRail": "Fernverkehr (ICE/IC)",
+      "regionalRail": "Regionalzug (RE/RB)",
+      "suburbanRail": "S-Bahn",
+      "railOther": "Zug (sonstige)"
     }
   },
   "map": {
@@ -156,10 +193,14 @@
       "none": "Keine"
     },
     "datetime": {
+      "title": "Wann soll's losgehen?",
       "date": "Datum",
       "time": "Zeit",
       "resetButton": "Zurücksetzen",
       "resetTooltip": "Auf aktuelle Zeit oder letzte Ankunft + Umsteigezeit zurücksetzen"
+    },
+    "hoverPanel": {
+      "prompt": "Mit welcher Verbindung?"
     },
     "locateButton": "Meinen Standort anzeigen",
     "loading": {
@@ -167,39 +208,41 @@
       "stationDetails": "Haltestellendetails werden geladen",
       "trips": "Fahrten werden geladen",
       "location": "Standort wird ermittelt"
-    }
+    },
+    "resizeSidebar": "Seitenleiste anpassen"
   },
   "gtfsSetup": {
     "title": "GTFS-Datenbank erforderlich",
     "description": "Um die App nutzen zu können, muss zunächst eine GTFS-Datenbank heruntergeladen und importiert werden.",
-    "steps": {
-      "title": "Anleitung zum Setup",
-      "openTerminal": {
-        "title": "Terminal öffnen",
-        "description": "Öffne ein Terminal im Projektverzeichnis."
-      },
-      "download": {
-        "title": "GTFS-Daten herunterladen",
-        "description": "Lade die aktuellen GTFS-Fahrplandaten herunter:",
-        "hint": "Dies lädt die GTFS-Daten gemäß der Konfiguration in gtfs-config.yaml herunter."
-      },
-      "import": {
-        "title": "Daten importieren",
-        "description": "Importiere die heruntergeladenen Daten in die SQLite-Datenbank:",
-        "hint": "Der Import kann je nach Dateigröße einige Minuten dauern."
-      },
-      "restart": {
-        "title": "App neu starten",
-        "description": "Starte die Anwendung neu. Die Datenbank sollte nun verfügbar sein und die App einsatzbereit."
+    "updateTitle": "GTFS-Daten aktualisieren",
+    "updateDescription": "Die Fahrplandaten laufen bald ab oder sind bereits abgelaufen. Bitte aktualisiere die Datenbank.",
+    "validUntil": "Gültig bis {{date}} ({{days}} Tage verbleibend)",
+    "online": {
+      "title": "gtfs.de (kostenlos)",
+      "description": "Der kostenlose, deutschlandweite GTFS-Feed von gtfs.de — direkt herunterladbar, ideal für den schnellen Start. Deckt allerdings nur rund 30 Tage ab.",
+      "learnMore": "Welche Feeds bietet gtfs.de?",
+      "download": "Herunterladen",
+      "import": "Importieren",
+      "feeds": {
+        "full": "Deutschland gesamt (alle Verkehrsmittel)",
+        "nv": "Nahverkehr (U-Bahn, Tram, Bus, Fähre)",
+        "fv": "Schienenfernverkehr (ICE, IC, EC, Nachtzüge)",
+        "rv": "Schienenregionalverkehr (RB, RE, S-Bahn)",
+        "custom": "Eigene URL…"
       }
     },
-    "info": {
-      "title": "Status überprüfen",
-      "description": "Um den Status der Datenbank und die verfügbaren Datumsbereiche zu überprüfen, verwende:"
-    },
-    "note": {
-      "title": "Hinweis",
-      "description": "Die GTFS-Daten werden regelmäßig aktualisiert. Es wird empfohlen, die Daten periodisch neu herunterzuladen und zu importieren, um aktuelle Fahrpläne zu erhalten."
+    "downloading": "Lädt herunter… {{percent}}%",
+    "downloadComplete": "Download abgeschlossen. Jetzt importieren.",
+    "importingStart": "Import wird vorbereitet…",
+    "cancel": "Abbrechen",
+    "importingFile": "Importiere {{file}}… {{percent}}%",
+    "normalizing": "Normalisiere Stationen – das kann einen Moment dauern",
+    "indexing": "Erstelle Indizes – das kann einen Moment dauern",
+    "categorizing": "Ordne Verkehrsmittel zu – das kann einen Moment dauern",
+    "eta": "noch ca. {{time}}",
+    "local": {
+      "hint": "Du hast bereits eine GTFS-ZIP-Datei?",
+      "open": "Lokale GTFS-ZIP öffnen…"
     }
   }
 }

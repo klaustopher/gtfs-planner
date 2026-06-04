@@ -3,36 +3,33 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
-	"bus-planning/internal/db"
-	"bus-planning/internal/geolocation"
-	"bus-planning/internal/models"
+	"gtfs-planner/internal/db"
+	"gtfs-planner/internal/geolocation"
+	"gtfs-planner/internal/gtfsimport"
+	"gtfs-planner/internal/models"
+	"gtfs-planner/internal/paths"
+	"gtfs-planner/internal/textfold"
 
 	"codeberg.org/go-pdf/fpdf"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
-	"gopkg.in/yaml.v3"
 )
-
-// Config holds the application configuration
-type Config struct {
-	// GTFS feed download URL
-	FeedURL string `yaml:"feed_url"`
-	// Path to download the GTFS zip file
-	FeedPath string `yaml:"feed_path"`
-	// Path to the SQLite database
-	DatabasePath string `yaml:"database_path"`
-}
 
 // App struct
 type App struct {
-	ctx    context.Context
-	db     *db.DB
-	config *Config
+	ctx      context.Context
+	mu       sync.Mutex
+	db       *db.DB
+	dbPath   string
+	feedPath string
+	cancelOp context.CancelFunc // cancels the in-flight download or import
 }
 
 // NewApp creates a new App application struct
@@ -40,76 +37,266 @@ func NewApp() *App {
 	return &App{}
 }
 
-// loadConfig loads the configuration from gtfs-config.yaml
-func (a *App) loadConfig() error {
-	// Allow overriding the database path via environment variable. This is used
-	// by tests to point at the sample database and lets the app run against an
-	// alternate database without editing gtfs-config.yaml.
-	if dbPath := os.Getenv("GTFS_DATABASE_PATH"); dbPath != "" {
-		a.config = &Config{DatabasePath: dbPath}
-		return nil
-	}
-
-	configPath := "gtfs-config.yaml"
-
-	// Check if config file exists
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return fmt.Errorf("configuration file %s not found", configPath)
-	}
-
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		return fmt.Errorf("failed to read config file: %w", err)
-	}
-
-	cfg := &Config{}
-	if err := yaml.Unmarshal(data, cfg); err != nil {
-		return fmt.Errorf("failed to parse config file: %w", err)
-	}
-
-	a.config = cfg
-	return nil
-}
-
 // startup is called when the app starts. The context is saved
-// so we can call the runtime methods
+// so we can call the runtime methods.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
-	// Load configuration
-	if err := a.loadConfig(); err != nil {
+	dbPath, err := paths.DatabasePath()
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "FATAL: %v\n", err)
 		os.Exit(1)
 	}
-
-	// Open the SQLite database
-	// With mode=ro, SQLite will not create the file if it doesn't exist
-	database, err := db.Open(a.config.DatabasePath)
+	feedPath, err := paths.FeedPath()
 	if err != nil {
-		fmt.Printf("Failed to open database: %v\n", err)
-		return
+		fmt.Fprintf(os.Stderr, "FATAL: %v\n", err)
+		os.Exit(1)
 	}
-	a.db = database
+	// GTFS_DATABASE_PATH overrides the resolved path (handy for running against a
+	// sample database during development).
+	if override := os.Getenv("GTFS_DATABASE_PATH"); override != "" {
+		dbPath = override
+	}
+	a.dbPath = dbPath
+	a.feedPath = feedPath
+
+	// The database may not exist yet; the frontend prompts for setup in that case.
+	if err := a.reopenDB(); err != nil {
+		fmt.Printf("Database not opened: %v\n", err)
+	}
 }
 
 // shutdown is called when the app is closing
 func (a *App) shutdown(ctx context.Context) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	if a.db != nil {
 		a.db.Close()
 	}
 }
 
-// CheckDatabaseExists checks if the GTFS database file exists
+// reopenDB closes any existing read-only connection and opens a fresh one
+// against a.dbPath. Safe to call after an import.
+func (a *App) reopenDB() error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.db != nil {
+		a.db.Close()
+		a.db = nil
+	}
+	database, err := db.Open(a.dbPath)
+	if err != nil {
+		return err
+	}
+	a.db = database
+	return nil
+}
+
+// CheckDatabaseExists reports whether the GTFS database file exists on disk.
 func (a *App) CheckDatabaseExists() bool {
-	// Ensure config is loaded
-	if a.config == nil {
-		if err := a.loadConfig(); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
-			return false
+	_, err := os.Stat(a.dbPath)
+	return err == nil
+}
+
+// DatabaseStatus describes the state of the GTFS database for the setup/update dialog.
+type DatabaseStatus struct {
+	Exists        bool   `json:"exists"`
+	HasData       bool   `json:"hasData"`
+	FirstDate     string `json:"firstDate"` // YYYY-MM-DD
+	LastDate      string `json:"lastDate"`  // YYYY-MM-DD
+	DaysRemaining int    `json:"daysRemaining"`
+	State         string `json:"state"` // "ok" | "warning" | "critical" | "expired" | "missing"
+}
+
+// GetDatabaseStatus returns whether the database is present and how much of its
+// service data still lies in the future.
+func (a *App) GetDatabaseStatus() (*DatabaseStatus, error) {
+	if _, err := os.Stat(a.dbPath); errors.Is(err, os.ErrNotExist) {
+		return &DatabaseStatus{State: "missing"}, nil
+	}
+
+	if a.db == nil {
+		if err := a.reopenDB(); err != nil {
+			return &DatabaseStatus{State: "missing"}, nil
 		}
 	}
-	_, err := os.Stat(a.config.DatabasePath)
-	return err == nil
+
+	minDate, maxDate, ok, err := a.db.GetServiceDateRange()
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return &DatabaseStatus{Exists: true, State: "missing"}, nil
+	}
+
+	maxTime, err := time.Parse("20060102", maxDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid service date %q: %w", maxDate, err)
+	}
+	today := time.Now().Truncate(24 * time.Hour)
+	daysRemaining := int(maxTime.Sub(today).Hours() / 24)
+
+	state := "ok"
+	switch {
+	case daysRemaining < 0:
+		state = "expired"
+	case daysRemaining < 7:
+		state = "critical"
+	case daysRemaining < 14:
+		state = "warning"
+	}
+
+	return &DatabaseStatus{
+		Exists:        true,
+		HasData:       true,
+		FirstDate:     formatServiceDate(minDate),
+		LastDate:      formatServiceDate(maxDate),
+		DaysRemaining: daysRemaining,
+		State:         state,
+	}, nil
+}
+
+// formatServiceDate converts a YYYYMMDD date to YYYY-MM-DD for display, leaving
+// unexpected input untouched.
+func formatServiceDate(d string) string {
+	if len(d) != 8 {
+		return d
+	}
+	return d[0:4] + "-" + d[4:6] + "-" + d[6:8]
+}
+
+// DatabaseInfo describes the on-disk GTFS database for the settings screen.
+type DatabaseInfo struct {
+	Path      string `json:"path"`
+	Exists    bool   `json:"exists"`
+	SizeBytes int64  `json:"sizeBytes"`
+}
+
+// GetDatabaseInfo returns the path and size of the GTFS database file.
+func (a *App) GetDatabaseInfo() DatabaseInfo {
+	info := DatabaseInfo{Path: a.dbPath}
+	if fi, err := os.Stat(a.dbPath); err == nil {
+		info.Exists = true
+		info.SizeBytes = fi.Size()
+	}
+	return info
+}
+
+// DeleteDatabase closes the connection and removes the GTFS database (and its
+// SQLite sidecar files) from disk.
+func (a *App) DeleteDatabase() error {
+	a.mu.Lock()
+	if a.db != nil {
+		a.db.Close()
+		a.db = nil
+	}
+	a.mu.Unlock()
+
+	for _, suffix := range []string{"", "-wal", "-shm", "-journal"} {
+		if err := os.Remove(a.dbPath + suffix); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("failed to delete database: %w", err)
+		}
+	}
+	return nil
+}
+
+// beginOp creates a cancellable context for a download/import and registers its
+// cancel function so CancelGTFS can stop it. The returned finish function clears
+// the registration and releases the context.
+func (a *App) beginOp() (context.Context, func()) {
+	ctx, cancel := context.WithCancel(a.ctx)
+	a.mu.Lock()
+	a.cancelOp = cancel
+	a.mu.Unlock()
+	return ctx, func() {
+		a.mu.Lock()
+		a.cancelOp = nil
+		a.mu.Unlock()
+		cancel()
+	}
+}
+
+// CancelGTFS cancels an in-flight download or import, if any.
+func (a *App) CancelGTFS() {
+	a.mu.Lock()
+	cancel := a.cancelOp
+	a.mu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
+}
+
+// DownloadGTFS downloads the GTFS feed from url into the local feed path,
+// emitting "gtfs:download:*" events for progress.
+func (a *App) DownloadGTFS(url string) error {
+	ctx, finish := a.beginOp()
+	defer finish()
+
+	prog := func(p gtfsimport.Progress) { runtime.EventsEmit(a.ctx, "gtfs:download:progress", p) }
+	err := gtfsimport.Download(ctx, url, a.feedPath, prog)
+	if errors.Is(err, context.Canceled) {
+		runtime.EventsEmit(a.ctx, "gtfs:download:cancelled", nil)
+		return nil
+	}
+	if err != nil {
+		runtime.EventsEmit(a.ctx, "gtfs:download:error", err.Error())
+		return err
+	}
+	runtime.EventsEmit(a.ctx, "gtfs:download:done", nil)
+	return nil
+}
+
+// ImportGTFS imports the previously downloaded feed into the database, emitting
+// "gtfs:import:*" events and reopening the read connection on success. The
+// downloaded feed is removed from the temp directory afterwards.
+func (a *App) ImportGTFS() error {
+	return a.importFeed(a.feedPath, true)
+}
+
+// ImportGTFSFromFile opens a file dialog and imports the chosen GTFS zip. Used
+// for feeds that cannot be downloaded directly (e.g. DELFI/opendata-ÖPNV). The
+// user's file is left in place.
+func (a *App) ImportGTFSFromFile() error {
+	path, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "GTFS-Feed (ZIP) öffnen",
+		Filters: []runtime.FileFilter{
+			{DisplayName: "GTFS ZIP (*.zip)", Pattern: "*.zip"},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("dialog error: %w", err)
+	}
+	if path == "" {
+		return nil // cancelled
+	}
+	return a.importFeed(path, false)
+}
+
+// importFeed imports zipPath into the database. When removeOnSuccess is set the
+// zip is deleted after a successful import (used for the transient download).
+func (a *App) importFeed(zipPath string, removeOnSuccess bool) error {
+	ctx, finish := a.beginOp()
+	defer finish()
+
+	prog := func(p gtfsimport.Progress) { runtime.EventsEmit(a.ctx, "gtfs:import:progress", p) }
+	err := gtfsimport.New(prog).Import(ctx, zipPath, a.dbPath)
+	if errors.Is(err, context.Canceled) {
+		runtime.EventsEmit(a.ctx, "gtfs:import:cancelled", nil)
+		return nil
+	}
+	if err != nil {
+		runtime.EventsEmit(a.ctx, "gtfs:import:error", err.Error())
+		return err
+	}
+	if err := a.reopenDB(); err != nil {
+		runtime.EventsEmit(a.ctx, "gtfs:import:error", err.Error())
+		return err
+	}
+	if removeOnSuccess {
+		os.Remove(zipPath)
+	}
+	runtime.EventsEmit(a.ctx, "gtfs:import:done", nil)
+	return nil
 }
 
 // GetAbsolutePath returns the absolute path for a relative path
@@ -198,6 +385,78 @@ func (a *App) GetRouteByID(routeID string) (*models.Route, error) {
 	return a.db.GetRouteByID(routeID)
 }
 
+// GetTransportCategories returns the transport category ids present in the feed,
+// for building the transport-type filter.
+func (a *App) GetTransportCategories() ([]int, error) {
+	if a.db == nil {
+		return nil, fmt.Errorf("database not connected")
+	}
+	return a.db.GetTransportCategories()
+}
+
+// journeyFileName builds a human-readable default export filename of the form
+// "<YYYY-MM-DD>-<start>-<end>.<ext>", e.g. "2026-05-23-koln-hbf-frankfurt-hbf.pdf".
+// Station names are resolved from the database and slugified; missing parts are
+// omitted, falling back to "journey.<ext>".
+func (a *App) journeyFileName(journey models.JourneyData, ext string) string {
+	parts := make([]string, 0, 3)
+	if n := len(journey.SavedTrips); n > 0 {
+		first, last := journey.SavedTrips[0], journey.SavedTrips[n-1]
+		if date, _, ok := strings.Cut(first.DepartureDateTime, "T"); ok && date != "" {
+			parts = append(parts, date)
+		}
+		if s := slugify(a.stationName(first.StartStationID), 30); s != "" {
+			parts = append(parts, s)
+		}
+		if s := slugify(a.stationName(last.EndStationID), 30); s != "" {
+			parts = append(parts, s)
+		}
+	}
+	base := strings.Join(parts, "-")
+	if base == "" {
+		base = "journey"
+	}
+	return base + ext
+}
+
+// stationName resolves a stop id to its name (empty if unavailable).
+func (a *App) stationName(stopID string) string {
+	a.mu.Lock()
+	database := a.db
+	a.mu.Unlock()
+	if database == nil {
+		return ""
+	}
+	name, err := database.GetStationName(stopID)
+	if err != nil {
+		return ""
+	}
+	return name
+}
+
+// slugify lowercases, folds German umlauts, and reduces a station name to a
+// filename-safe slug ("Köln Hbf" -> "koln-hbf"), capped at maxLen characters.
+func slugify(s string, maxLen int) string {
+	folded := textfold.Fold(s)
+	var b strings.Builder
+	prevDash := false
+	for _, r := range folded {
+		switch {
+		case (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9'):
+			b.WriteRune(r)
+			prevDash = false
+		case !prevDash:
+			b.WriteByte('-')
+			prevDash = true
+		}
+	}
+	out := strings.Trim(b.String(), "-")
+	if maxLen > 0 && len(out) > maxLen {
+		out = strings.Trim(out[:maxLen], "-")
+	}
+	return out
+}
+
 // SaveJourney opens a save file dialog and writes journey data to the selected file.
 // Returns the saved file path, or empty string if cancelled.
 func (a *App) SaveJourney(journey models.JourneyData) (string, error) {
@@ -212,7 +471,7 @@ func (a *App) SaveJourney(journey models.JourneyData) (string, error) {
 	// Show save dialog
 	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:           "Reise speichern",
-		DefaultFilename: "journey.journey",
+		DefaultFilename: a.journeyFileName(journey, ".journey"),
 		Filters: []runtime.FileFilter{
 			{
 				DisplayName: "Journey Files (*.journey)",
@@ -299,23 +558,6 @@ func (a *App) LoadJourney() (*LoadJourneyResult, error) {
 	}, nil
 }
 
-// ShowConfirmDialog shows a confirmation dialog with Yes/No buttons.
-// Returns true if user clicked Yes, false otherwise.
-func (a *App) ShowConfirmDialog(title, message string) (bool, error) {
-	result, err := runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-		Type:          runtime.QuestionDialog,
-		Title:         title,
-		Message:       message,
-		Buttons:       []string{"Ja", "Nein"},
-		DefaultButton: "Nein",
-		CancelButton:  "Nein",
-	})
-	if err != nil {
-		return false, err
-	}
-	return result == "Ja", nil
-}
-
 // ExportJourneyToICS exports the journey as an ICS (iCalendar) file.
 // Each trip becomes a separate event with full details.
 // Returns the saved file path, or empty string if cancelled.
@@ -323,7 +565,7 @@ func (a *App) ExportJourneyToICS(journey models.JourneyData) (string, error) {
 	// Show save dialog
 	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:           "Reise als ICS exportieren",
-		DefaultFilename: "journey.ics",
+		DefaultFilename: a.journeyFileName(journey, ".ics"),
 		Filters: []runtime.FileFilter{
 			{
 				DisplayName: "iCalendar Files (*.ics)",
@@ -349,7 +591,7 @@ func (a *App) ExportJourneyToICS(journey models.JourneyData) (string, error) {
 	var icsContent strings.Builder
 	icsContent.WriteString("BEGIN:VCALENDAR\r\n")
 	icsContent.WriteString("VERSION:2.0\r\n")
-	icsContent.WriteString("PRODID:-//Bus Planning//Journey Export//EN\r\n")
+	icsContent.WriteString("PRODID:-//GTFS Planner//Journey Export//EN\r\n")
 	icsContent.WriteString("CALSCALE:GREGORIAN\r\n")
 	icsContent.WriteString("METHOD:PUBLISH\r\n")
 
@@ -407,7 +649,7 @@ func (a *App) ExportJourneyToICS(journey models.JourneyData) (string, error) {
 		}
 
 		// Create unique ID
-		uid := fmt.Sprintf("%s-%s-%d@bus-planning", trip.TripID, trip.StartStationID, i)
+		uid := fmt.Sprintf("%s-%s-%d@gtfs-planner", trip.TripID, trip.StartStationID, i)
 
 		// Get route type name
 		routeTypeName := getRouteTypeName(route.RouteType)
@@ -506,7 +748,7 @@ func (a *App) ExportJourneyToPDF(journey models.JourneyData) (string, error) {
 	// Show save dialog
 	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:           "Reise als PDF exportieren",
-		DefaultFilename: "journey.pdf",
+		DefaultFilename: a.journeyFileName(journey, ".pdf"),
 		Filters: []runtime.FileFilter{
 			{
 				DisplayName: "PDF Files (*.pdf)",
@@ -530,11 +772,24 @@ func (a *App) ExportJourneyToPDF(journey models.JourneyData) (string, error) {
 
 	// Create PDF
 	pdf := fpdf.New("P", "mm", "A4", "")
+	// The core fonts are Latin-1; translate UTF-8 (umlauts etc.) so "Köln" and
+	// "ÖPNV" render correctly instead of as mojibake.
+	tr := pdf.UnicodeTranslatorFromDescriptor("")
 	pdf.AddPage()
+
+	_, pageHeight := pdf.GetPageSize()
+	_, _, _, bottomMargin := pdf.GetMargins()
+	// ensureSpace starts a new page when fewer than `needed` mm remain, so a
+	// trip block is never split across pages (no stranded header).
+	ensureSpace := func(needed float64) {
+		if pdf.GetY()+needed > pageHeight-bottomMargin {
+			pdf.AddPage()
+		}
+	}
 
 	// Add title
 	pdf.SetFont("Arial", "B", 20)
-	pdf.Cell(0, 10, "Reiseplan")
+	pdf.Cell(0, 10, tr("Reiseplan"))
 	pdf.Ln(15)
 
 	// Add journey metadata
@@ -542,7 +797,7 @@ func (a *App) ExportJourneyToPDF(journey models.JourneyData) (string, error) {
 	if journey.CreatedAt != "" {
 		createdTime, err := time.Parse(time.RFC3339, journey.CreatedAt)
 		if err == nil {
-			pdf.Cell(0, 6, fmt.Sprintf("Erstellt: %s", createdTime.Format("02.01.2006 15:04")))
+			pdf.Cell(0, 6, tr(fmt.Sprintf("Erstellt: %s", createdTime.Format("02.01.2006 15:04"))))
 			pdf.Ln(6)
 		}
 	}
@@ -596,53 +851,76 @@ func (a *App) ExportJourneyToPDF(journey models.JourneyData) (string, error) {
 			}
 		}
 
-		// Get route type name
-		routeTypeName := getRouteTypeName(route.RouteType)
+		// Keep the whole trip block (transfer line + header + details) together.
+		ensureSpace(70)
+
+		// Transfer / dwell time at the station between the previous leg and this one.
+		if i > 0 {
+			prev := journey.SavedTrips[i-1]
+			if prevArrival, perr := time.ParseInLocation("2006-01-02T15:04:05", prev.ArrivalDateTime, time.Local); perr == nil {
+				waitMin := int(departureTime.Sub(prevArrival).Minutes())
+				var line string
+				if prev.EndStationID == trip.StartStationID {
+					line = fmt.Sprintf("Aufenthalt in %s: %d Min", startStation.StopName, waitMin)
+				} else {
+					fromName := prev.EndStationID
+					if prevEnd, ferr := a.db.GetStationDetails(prev.EndStationID); ferr == nil {
+						fromName = prevEnd.StopName
+					}
+					line = fmt.Sprintf("Umstieg %s -> %s: %d Min", fromName, startStation.StopName, waitMin)
+				}
+				pdf.SetFont("Arial", "I", 9)
+				pdf.SetTextColor(110, 110, 110)
+				pdf.Cell(0, 6, tr(line))
+				pdf.SetTextColor(0, 0, 0)
+				pdf.Ln(8)
+			}
+		}
 
 		// Trip header with number
 		pdf.SetFont("Arial", "B", 14)
 		pdf.SetFillColor(240, 240, 240)
-		pdf.CellFormat(0, 8, fmt.Sprintf("Fahrt %d", i+1), "0", 1, "L", true, 0, "")
+		pdf.CellFormat(0, 8, tr(fmt.Sprintf("Fahrt %d", i+1)), "0", 1, "L", true, 0, "")
 		pdf.Ln(3)
 
-		// Route info
+		// Route info (route type normalized so extended types are not "ÖPNV")
 		pdf.SetFont("Arial", "B", 12)
-		pdf.Cell(0, 6, fmt.Sprintf("%s %s", routeTypeName, route.RouteShortName))
+		pdf.Cell(0, 6, tr(fmt.Sprintf("%s %s", getRouteTypeName(route.RouteType), route.RouteShortName)))
 		pdf.Ln(8)
 
 		// Departure
 		pdf.SetFont("Arial", "B", 10)
-		pdf.Cell(40, 6, "Abfahrt:")
+		pdf.Cell(40, 6, tr("Abfahrt:"))
 		pdf.SetFont("Arial", "", 10)
 		if departurePlatform != "" {
-			pdf.Cell(0, 6, fmt.Sprintf("%s, %s (Gleis %s)", departureTime.Format("15:04"), startStation.StopName, departurePlatform))
+			pdf.Cell(0, 6, tr(fmt.Sprintf("%s, %s (Gleis %s)", departureTime.Format("15:04"), startStation.StopName, departurePlatform)))
 		} else {
-			pdf.Cell(0, 6, fmt.Sprintf("%s, %s", departureTime.Format("15:04"), startStation.StopName))
+			pdf.Cell(0, 6, tr(fmt.Sprintf("%s, %s", departureTime.Format("15:04"), startStation.StopName)))
 		}
 		pdf.Ln(6)
 
 		// Arrival
 		pdf.SetFont("Arial", "B", 10)
-		pdf.Cell(40, 6, "Ankunft:")
+		pdf.Cell(40, 6, tr("Ankunft:"))
 		pdf.SetFont("Arial", "", 10)
 		if arrivalPlatform != "" {
-			pdf.Cell(0, 6, fmt.Sprintf("%s, %s (Gleis %s)", arrivalTime.Format("15:04"), endStation.StopName, arrivalPlatform))
+			pdf.Cell(0, 6, tr(fmt.Sprintf("%s, %s (Gleis %s)", arrivalTime.Format("15:04"), endStation.StopName, arrivalPlatform)))
 		} else {
-			pdf.Cell(0, 6, fmt.Sprintf("%s, %s", arrivalTime.Format("15:04"), endStation.StopName))
+			pdf.Cell(0, 6, tr(fmt.Sprintf("%s, %s", arrivalTime.Format("15:04"), endStation.StopName)))
 		}
 		pdf.Ln(6)
 
 		// Duration
 		duration := arrivalTime.Sub(departureTime)
 		pdf.SetFont("Arial", "B", 10)
-		pdf.Cell(40, 6, "Dauer:")
+		pdf.Cell(40, 6, tr("Dauer:"))
 		pdf.SetFont("Arial", "", 10)
 		hours := int(duration.Hours())
 		minutes := int(duration.Minutes()) % 60
 		if hours > 0 {
-			pdf.Cell(0, 6, fmt.Sprintf("%d Std. %d Min.", hours, minutes))
+			pdf.Cell(0, 6, tr(fmt.Sprintf("%d Std. %d Min.", hours, minutes)))
 		} else {
-			pdf.Cell(0, 6, fmt.Sprintf("%d Min.", minutes))
+			pdf.Cell(0, 6, tr(fmt.Sprintf("%d Min.", minutes)))
 		}
 		pdf.Ln(10)
 
@@ -661,22 +939,23 @@ func (a *App) ExportJourneyToPDF(journey models.JourneyData) (string, error) {
 		arrivalTime, _ := time.ParseInLocation("2006-01-02T15:04:05", lastTrip.ArrivalDateTime, time.Local)
 		totalDuration := arrivalTime.Sub(departureTime)
 
+		ensureSpace(30)
 		pdf.Ln(10)
 		pdf.SetFont("Arial", "B", 12)
 		pdf.SetFillColor(220, 220, 220)
-		pdf.CellFormat(0, 8, "Gesamt", "0", 1, "L", true, 0, "")
+		pdf.CellFormat(0, 8, tr("Gesamt"), "0", 1, "L", true, 0, "")
 		pdf.Ln(3)
 
 		pdf.SetFont("Arial", "", 10)
-		pdf.Cell(0, 6, fmt.Sprintf("Anzahl Fahrten: %d", len(journey.SavedTrips)))
+		pdf.Cell(0, 6, tr(fmt.Sprintf("Anzahl Fahrten: %d", len(journey.SavedTrips))))
 		pdf.Ln(6)
 
 		hours := int(totalDuration.Hours())
 		minutes := int(totalDuration.Minutes()) % 60
 		if hours > 0 {
-			pdf.Cell(0, 6, fmt.Sprintf("Gesamtdauer: %d Std. %d Min.", hours, minutes))
+			pdf.Cell(0, 6, tr(fmt.Sprintf("Gesamtdauer: %d Std. %d Min.", hours, minutes)))
 		} else {
-			pdf.Cell(0, 6, fmt.Sprintf("Gesamtdauer: %d Min.", minutes))
+			pdf.Cell(0, 6, tr(fmt.Sprintf("Gesamtdauer: %d Min.", minutes)))
 		}
 	}
 
@@ -688,9 +967,49 @@ func (a *App) ExportJourneyToPDF(journey models.JourneyData) (string, error) {
 	return filePath, nil
 }
 
-// getRouteTypeName returns the German name for a GTFS route type
+// transportCategory maps a GTFS route type (standard 0-12 or an extended
+// 100-1700 code) to a transport category id, mirroring routeTypeCategoryExpr in
+// internal/db and transportCategory() in the frontend.
+func transportCategory(routeType int) int {
+	switch {
+	case routeType == 101 || routeType == 102:
+		return 101
+	case routeType == 103 || (routeType >= 106 && routeType <= 108):
+		return 106
+	case routeType == 109:
+		return 109
+	case routeType >= 100 && routeType < 200:
+		return 2
+	case routeType >= 200 && routeType < 300:
+		return 3
+	case routeType == 405:
+		return 12
+	case routeType >= 400 && routeType < 500:
+		return 1
+	case routeType >= 700 && routeType < 800:
+		return 3
+	case routeType == 800:
+		return 11
+	case routeType >= 900 && routeType < 1000:
+		return 0
+	case routeType == 1000 || routeType == 1200:
+		return 4
+	case routeType >= 1300 && routeType < 1400:
+		return 6
+	case routeType >= 1400 && routeType < 1500:
+		return 7
+	case routeType >= 1500 && routeType < 1600:
+		return 3
+	default:
+		return routeType
+	}
+}
+
+// getRouteTypeName returns the German name for a GTFS route type, mapping
+// extended route types (used by feeds like DELFI) onto a category first so they
+// are not all labelled "ÖPNV".
 func getRouteTypeName(routeType int) string {
-	switch routeType {
+	switch transportCategory(routeType) {
 	case 0:
 		return "Straßenbahn"
 	case 1:
@@ -711,6 +1030,12 @@ func getRouteTypeName(routeType int) string {
 		return "Oberleitungsbus"
 	case 12:
 		return "Einschienenbahn"
+	case 101:
+		return "Fernverkehr"
+	case 106:
+		return "Regionalzug"
+	case 109:
+		return "S-Bahn"
 	default:
 		return "ÖPNV"
 	}

@@ -24,7 +24,7 @@
         <key>NSHumanReadableCopyright</key>
         <string>{{.Info.Copyright}}</string>
         <key>NSLocationWhenInUseUsageDescription</key>
-        <string>Bus Planning möchte Ihren Standort verwenden, um die Karte zu zentrieren.</string>
+        <string>GTFS Planner möchte Ihren Standort verwenden, um die Karte zu zentrieren.</string>
         {{if .Info.FileAssociations}}
         <key>CFBundleDocumentTypes</key>
         <array>

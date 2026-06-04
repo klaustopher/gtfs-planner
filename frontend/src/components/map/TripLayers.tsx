@@ -6,6 +6,11 @@ interface TripLayersProps {
   lineOpacity: number
 }
 
+// White casing rendered under each colored line so overlapping/parallel lines get
+// a crisp separating border (metro-map style) instead of blending into one band.
+const CASING_COLOR = '#ffffff'
+const CASING_EXTRA_WIDTH = 3
+
 export default function TripLayers({ data, lineOpacity }: TripLayersProps) {
   if (!data) {
     return null
@@ -13,9 +18,11 @@ export default function TripLayers({ data, lineOpacity }: TripLayersProps) {
 
   return (
     <Source id="trip-lines" type="geojson" data={data}>
+      {/* Colored line sits just below the stop markers… */}
       <Layer
         id="trip-lines"
         type="line"
+        beforeId="stops-layer"
         layout={{
           'line-cap': 'round',
           'line-join': 'round',
@@ -23,6 +30,26 @@ export default function TripLayers({ data, lineOpacity }: TripLayersProps) {
         paint={{
           'line-color': ['get', 'line_color'],
           'line-width': ['get', 'line_width'],
+          // Constant screen-space offset so overlapping lines stay separated at
+          // every zoom level (a metre-based geometry offset vanishes when zoomed out).
+          'line-offset': ['get', 'line_offset'],
+          'line-opacity': lineOpacity,
+        }}
+      />
+      {/* …and the wider white casing goes below the colored line (not just below
+          the markers), so it forms a border instead of covering the colors. */}
+      <Layer
+        id="trip-lines-casing"
+        type="line"
+        beforeId="trip-lines"
+        layout={{
+          'line-cap': 'round',
+          'line-join': 'round',
+        }}
+        paint={{
+          'line-color': CASING_COLOR,
+          'line-width': ['+', ['get', 'line_width'], CASING_EXTRA_WIDTH],
+          'line-offset': ['get', 'line_offset'],
           'line-opacity': lineOpacity,
         }}
       />

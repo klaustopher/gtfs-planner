@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { models } from '../../../wailsjs/go/models'
 import { useStationSearch } from './hooks/useStationSearch'
@@ -6,9 +7,10 @@ import { faTimes } from '@fortawesome/free-solid-svg-icons'
 
 interface MapSearchPanelProps {
   onResultSelect: (stop: models.Stop) => void
+  onResultsChange?: (results: models.Stop[], activeIndex: number) => void
 }
 
-export default function MapSearchPanel({ onResultSelect }: MapSearchPanelProps) {
+export default function MapSearchPanel({ onResultSelect, onResultsChange }: MapSearchPanelProps) {
   const { t } = useTranslation()
   const {
     searchTerm,
@@ -23,6 +25,11 @@ export default function MapSearchPanel({ onResultSelect }: MapSearchPanelProps) 
     showEmptyState,
     setActiveResultIndex,
   } = useStationSearch({ onResultSelect })
+
+  // Surface the current results so the map can show and zoom to them.
+  useEffect(() => {
+    onResultsChange?.(searchResults, activeResultIndex)
+  }, [searchResults, activeResultIndex, onResultsChange])
 
   return (
     <div className="map-search" role="search">

@@ -2,12 +2,14 @@
 package db
 
 import (
+	"database/sql"
 	"fmt"
 	"math"
 	"strings"
 
-	"bus-planning/internal/models"
-	"bus-planning/internal/timeutil"
+	"gtfs-planner/internal/models"
+	"gtfs-planner/internal/textfold"
+	"gtfs-planner/internal/timeutil"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
@@ -28,13 +30,53 @@ func Open(path string) (*DB, error) {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
+	// Serialize on a single connection so the read-tuning PRAGMAs below apply to
+	// every query. The app's reads are quick point/range lookups, so this is
+	// cheaper than registering a per-connection hook.
+	conn.SetMaxOpenConns(1)
+
 	// Verify connection works
 	if err := conn.Ping(); err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
+	// Read-side tuning for the static, read-only database.
+	pragmas := []string{
+		"PRAGMA query_only=ON",
+		"PRAGMA cache_size=-65536",   // ~64 MB page cache
+		"PRAGMA mmap_size=268435456", // 256 MB memory-mapped I/O
+		"PRAGMA temp_store=MEMORY",
+	}
+	for _, p := range pragmas {
+		if _, err := conn.Exec(p); err != nil {
+			conn.Close()
+			return nil, fmt.Errorf("failed to apply pragma %q: %w", p, err)
+		}
+	}
+
 	return &DB{conn: conn}, nil
+}
+
+// GetServiceDateRange returns the earliest and latest service dates (YYYYMMDD)
+// present in the calendar and calendar_dates tables. ok is false when the
+// database holds no service data.
+func (db *DB) GetServiceDateRange() (minDate, maxDate string, ok bool, err error) {
+	var minVal, maxVal sql.NullString
+	err = db.conn.QueryRow(`
+		SELECT MIN(min_date), MAX(max_date) FROM (
+			SELECT MIN(start_date) AS min_date, MAX(end_date) AS max_date FROM calendar
+			UNION ALL
+			SELECT MIN(date) AS min_date, MAX(date) AS max_date FROM calendar_dates
+		)
+	`).Scan(&minVal, &maxVal)
+	if err != nil {
+		return "", "", false, fmt.Errorf("service date range query failed: %w", err)
+	}
+	if !minVal.Valid || !maxVal.Valid {
+		return "", "", false, nil
+	}
+	return minVal.String, maxVal.String, true, nil
 }
 
 // Close closes the database connection.
@@ -48,7 +90,7 @@ func (db *DB) Close() error {
 // GetStops returns all stations within the given bounding box.
 func (db *DB) GetStops(north, south, east, west float64) ([]models.Stop, error) {
 	query := `
-		SELECT stop_id, stop_name, stop_lat, stop_lon
+		SELECT stop_id, stop_name, stop_lat, stop_lon, station_category
 		FROM stops
 		WHERE stop_lat BETWEEN ? AND ?
 		  AND stop_lon BETWEEN ? AND ?
@@ -62,6 +104,18 @@ func (db *DB) GetStops(north, south, east, west float64) ([]models.Stop, error) 
 	}
 
 	return stops, nil
+}
+
+// GetStationName returns just the stop_name for a stop id (empty if not found),
+// used for building human-readable export filenames without the heavier
+// GetStationDetails query.
+func (db *DB) GetStationName(stopID string) (string, error) {
+	var name sql.NullString
+	err := db.conn.QueryRow(`SELECT stop_name FROM stops WHERE stop_id = ?`, stopID).Scan(&name)
+	if err != nil {
+		return "", err
+	}
+	return name.String, nil
 }
 
 // GetStationDetails returns details about a station including its routes.
@@ -90,11 +144,11 @@ func (db *DB) GetStationDetails(stopID string) (*models.StationDetails, error) {
 		JOIN trips t ON t.route_id = r.route_id
 		JOIN stop_times st ON st.trip_id = t.trip_id
 		JOIN stops child ON child.stop_id = st.stop_id
-		WHERE child.parent_station = ?
+		WHERE child.parent_station = ? OR child.stop_id = ?
 		ORDER BY r.route_short_name, r.route_long_name
 	`
 
-	rows, err := db.conn.Query(routeQuery, stopID)
+	rows, err := db.conn.Query(routeQuery, stopID, stopID)
 	if err != nil {
 		return nil, fmt.Errorf("routes query failed: %w", err)
 	}
@@ -127,10 +181,10 @@ func (db *DB) GetRoutesForStation(stopID string) (*models.RoutesData, error) {
 		JOIN trips t ON t.route_id = r.route_id
 		JOIN stop_times st ON st.trip_id = t.trip_id
 		JOIN stops child ON child.stop_id = st.stop_id
-		WHERE child.parent_station = ?
+		WHERE child.parent_station = ? OR child.stop_id = ?
 	`
 
-	routeRows, err := db.conn.Query(routeIDsQuery, stopID)
+	routeRows, err := db.conn.Query(routeIDsQuery, stopID, stopID)
 	if err != nil {
 		return nil, fmt.Errorf("routes query failed: %w", err)
 	}
@@ -179,7 +233,12 @@ func (db *DB) GetRoutesForStation(stopID string) (*models.RoutesData, error) {
 	return result, nil
 }
 
-// SearchStations returns stations whose names loosely match the provided query text.
+// SearchStations returns stations whose names match the query. The query is
+// split into tokens that must all appear (AND), common German abbreviations are
+// expanded (e.g. "Hbf" also matches "Hauptbahnhof"), and results are ranked so
+// names beginning with the first token come first. This keeps relevant hits
+// (e.g. "Frankfurt Hbf") from being buried under incidental substring matches
+// (e.g. "… Frankfurter Straße") in dense feeds like DELFI.
 func (db *DB) SearchStations(query string, limit int) ([]models.Stop, error) {
 	trimmed := strings.TrimSpace(query)
 	if trimmed == "" {
@@ -193,22 +252,119 @@ func (db *DB) SearchStations(query string, limit int) ([]models.Stop, error) {
 		limit = 50
 	}
 
-	searchTerm := "%" + trimmed + "%"
+	// Names are matched on the precomputed folded column (stop_name_fold), so the
+	// search is case- and accent-insensitive: "koln", "köln" and "Köln" all match
+	// "Köln Hbf". SQLite's UPPER/LOWER/NOCASE are ASCII-only (no ICU), so the
+	// folding is precomputed by the importer instead of relying on them.
+	tokens := strings.Fields(trimmed)
+	conditions := make([]string, 0, len(tokens))
+	args := make([]interface{}, 0, len(tokens)+3)
+	for _, tok := range tokens {
+		variants := searchVariants(strings.ToUpper(tok))
+		ors := make([]string, 0, len(variants))
+		for _, v := range variants {
+			ors = append(ors, "s.stop_name_fold LIKE ?")
+			args = append(args, "%"+textfold.Fold(v)+"%")
+		}
+		conditions = append(conditions, "("+strings.Join(ors, " OR ")+")")
+	}
+
+	// Match against every stop's folded name (including child platforms) and
+	// resolve each hit to its location_type=1 station. This lets a station be
+	// found by a platform/alternative name — e.g. gtfs.de's "Stuttgart Hbf"
+	// platforms whose parent pin is the cityless "Hauptbahnhof (oben)".
+	firstToken := textfold.Fold(tokens[0])
+	sqlQuery := `
+		SELECT p.stop_id, p.stop_name, p.stop_lat, p.stop_lon, p.station_category
+		FROM stops s
+		JOIN stops p
+			ON p.stop_id = COALESCE(NULLIF(s.parent_station, ''), s.stop_id)
+		   AND p.location_type = 1
+		WHERE ` + strings.Join(conditions, "\n\t\t  AND ") + `
+		GROUP BY p.stop_id
+		ORDER BY
+			MIN(CASE
+				WHEN s.stop_name_fold LIKE ? THEN 0
+				WHEN s.stop_name_fold LIKE ? THEN 1
+				ELSE 2
+			END),
+			length(p.stop_name),
+			p.stop_name
+		LIMIT ?`
+	args = append(args, firstToken+"%", "% "+firstToken+"%", limit)
 
 	var results []models.Stop
-	err := db.conn.Select(&results, `
-		SELECT stop_id, stop_name, stop_lat, stop_lon
-		FROM stops
-		WHERE location_type = 1
-		  AND UPPER(stop_name) LIKE UPPER(?)
-		ORDER BY stop_name
-		LIMIT ?
-	`, searchTerm, limit)
-	if err != nil {
+	if err := db.conn.Select(&results, sqlQuery, args...); err != nil {
 		return nil, fmt.Errorf("station search failed: %w", err)
 	}
 
 	return results, nil
+}
+
+// nullIntToPtr converts a nullable SQL integer to a *int (nil when NULL), used
+// for the optional station_category column.
+func nullIntToPtr(n sql.NullInt64) *int {
+	if !n.Valid {
+		return nil
+	}
+	v := int(n.Int64)
+	return &v
+}
+
+// searchVariants returns the uppercased forms a search token should match,
+// expanding common German station-name abbreviations.
+func searchVariants(tokenUpper string) []string {
+	switch tokenUpper {
+	case "HBF":
+		return []string{"HBF", "HAUPTBAHNHOF"}
+	case "BF":
+		return []string{"BF", "BAHNHOF"}
+	default:
+		return []string{tokenUpper}
+	}
+}
+
+// routeTypeCategoryExpr returns a SQL expression mapping a GTFS route_type
+// column (a standard 0-12 value or an extended 100-1700 code) to a transport
+// category id used for filtering and labelling. Most categories reuse the base
+// GTFS code; the extended rail codes split into distinct categories so feeds
+// like DELFI can be filtered by Fernverkehr (101), Regionalzug (106) and S-Bahn
+// (109). See the Google Extended GTFS Route Types. The frontend's
+// transportCategory() mirrors this mapping.
+func routeTypeCategoryExpr(col string) string {
+	return `CASE
+		WHEN ` + col + ` IN (101, 102) THEN 101
+		WHEN ` + col + ` IN (103, 106, 107, 108) THEN 106
+		WHEN ` + col + ` = 109 THEN 109
+		WHEN ` + col + ` BETWEEN 100 AND 199 THEN 2
+		WHEN ` + col + ` BETWEEN 200 AND 299 THEN 3
+		WHEN ` + col + ` = 405 THEN 12
+		WHEN ` + col + ` BETWEEN 400 AND 499 THEN 1
+		WHEN ` + col + ` BETWEEN 700 AND 799 THEN 3
+		WHEN ` + col + ` = 800 THEN 11
+		WHEN ` + col + ` BETWEEN 900 AND 999 THEN 0
+		WHEN ` + col + ` IN (1000, 1200) THEN 4
+		WHEN ` + col + ` BETWEEN 1300 AND 1399 THEN 6
+		WHEN ` + col + ` BETWEEN 1400 AND 1499 THEN 7
+		WHEN ` + col + ` BETWEEN 1500 AND 1599 THEN 3
+		ELSE ` + col + ` END`
+}
+
+// GetTransportCategories returns the distinct transport category ids actually
+// present in the feed, so the frontend filter only offers categories that exist
+// (e.g. DELFI exposes S-Bahn/Regional/Fernverkehr, gtfs.de does not).
+func (db *DB) GetTransportCategories() ([]int, error) {
+	var categories []int
+	err := db.conn.Select(&categories, `
+		SELECT DISTINCT `+routeTypeCategoryExpr("route_type")+` AS category
+		FROM routes
+		WHERE route_type IS NOT NULL
+		ORDER BY category
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("transport categories query failed: %w", err)
+	}
+	return categories, nil
 }
 
 // GetNearbyStations returns all parent stations within radiusMeters of the given station.
@@ -287,7 +443,8 @@ func (db *DB) getRouteGeometry(routeID, stationID, shortName, longName, color st
 			COALESCE(parent.stop_id, s.stop_id) as station_id,
 			COALESCE(parent.stop_name, s.stop_name) as station_name,
 			COALESCE(parent.stop_lat, s.stop_lat) as station_lat,
-			COALESCE(parent.stop_lon, s.stop_lon) as station_lon
+			COALESCE(parent.stop_lon, s.stop_lon) as station_lon,
+			COALESCE(parent.station_category, s.station_category) as station_category
 		FROM stop_times st
 		JOIN stops s ON s.stop_id = st.stop_id
 		LEFT JOIN stops parent ON parent.stop_id = s.parent_station AND parent.location_type = 1
@@ -308,8 +465,9 @@ func (db *DB) getRouteGeometry(routeID, stationID, shortName, longName, color st
 		var stopLat, stopLon float64
 		var stationIDVal, stationName string
 		var stationLat, stationLon float64
+		var stationCategory sql.NullInt64
 
-		if err := stopRows.Scan(&stopLat, &stopLon, &stationIDVal, &stationName, &stationLat, &stationLon); err != nil {
+		if err := stopRows.Scan(&stopLat, &stopLon, &stationIDVal, &stationName, &stationLat, &stationLon, &stationCategory); err != nil {
 			continue
 		}
 
@@ -318,10 +476,11 @@ func (db *DB) getRouteGeometry(routeID, stationID, shortName, longName, color st
 
 		if stationIDVal != "" {
 			stations = append(stations, models.Stop{
-				StopID:   stationIDVal,
-				StopName: stationName,
-				StopLat:  stationLat,
-				StopLon:  stationLon,
+				StopID:          stationIDVal,
+				StopName:        stationName,
+				StopLat:         stationLat,
+				StopLon:         stationLon,
+				StationCategory: nullIntToPtr(stationCategory),
 			})
 		}
 	}
@@ -593,10 +752,12 @@ func (db *DB) queryTripsForMultipleStations(stopIDs []string, date, minTime, day
 		"limit":        limit,
 	}
 
-	// Add route type filter if specified
+	// Add route type filter if specified. The route_type is normalized to its
+	// transport category first, so the frontend filters by category (matching the
+	// extended route types used by feeds like DELFI).
 	if len(routeTypes) > 0 {
 		baseQuery += `
-		WHERE r.route_type IN (:routeTypes)`
+		WHERE ` + routeTypeCategoryExpr("r.route_type") + ` IN (:routeTypes)`
 		params["routeTypes"] = routeTypes
 	}
 
@@ -706,7 +867,8 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 			COALESCE(parent.stop_id, s.stop_id) as station_id,
 			COALESCE(parent.stop_name, s.stop_name) as station_name,
 			COALESCE(parent.stop_lat, s.stop_lat) as station_lat,
-			COALESCE(parent.stop_lon, s.stop_lon) as station_lon
+			COALESCE(parent.stop_lon, s.stop_lon) as station_lon,
+			COALESCE(parent.station_category, s.station_category) as station_category
 		FROM stop_times st
 		JOIN stops s ON s.stop_id = st.stop_id
 		LEFT JOIN stops parent ON parent.stop_id = s.parent_station AND parent.location_type = 1
@@ -734,8 +896,9 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 		var stopSequence int
 		var stationIDVal, stationName string
 		var stationLat, stationLon float64
+		var stationCategory sql.NullInt64
 
-		if err := stopRows.Scan(&stopLat, &stopLon, &arrivalTime, &depTime, &stopSequence, &stationIDVal, &stationName, &stationLat, &stationLon); err != nil {
+		if err := stopRows.Scan(&stopLat, &stopLon, &arrivalTime, &depTime, &stopSequence, &stationIDVal, &stationName, &stationLat, &stationLon, &stationCategory); err != nil {
 			continue
 		}
 
@@ -756,10 +919,11 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 
 		if stationIDVal != "" {
 			stations = append(stations, models.Stop{
-				StopID:   stationIDVal,
-				StopName: stationName,
-				StopLat:  stationLat,
-				StopLon:  stationLon,
+				StopID:          stationIDVal,
+				StopName:        stationName,
+				StopLat:         stationLat,
+				StopLon:         stationLon,
+				StationCategory: nullIntToPtr(stationCategory),
 			})
 
 			// Normalize GTFS times to ISO 8601 datetimes
@@ -774,6 +938,7 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 				ArrivalDateTime:   arrivalDateTime,
 				DepartureDateTime: departureDateTime,
 				StopSequence:      stopSequence,
+				StationCategory:   nullIntToPtr(stationCategory),
 			})
 		}
 	}
@@ -811,6 +976,7 @@ func (db *DB) getTripGeometryFromSequence(tripID string, fromSequence int, route
 		Destination:       destination,
 		StartStationID:    startStationID,
 		StartStationName:  startStationName,
+		ServiceDate:       serviceDate,
 		Coordinates:       coordinates,
 		StopTimes:         stopTimes,
 	}, stations
@@ -847,7 +1013,8 @@ func (db *DB) GetTripDetails(tripID string, serviceDate string) (*models.TripDet
 			COALESCE(parent.stop_name, s.stop_name) as station_name,
 			COALESCE(parent.stop_lat, s.stop_lat) as station_lat,
 			COALESCE(parent.stop_lon, s.stop_lon) as station_lon,
-			COALESCE(s.platform_code, '') as platform_code
+			COALESCE(s.platform_code, '') as platform_code,
+			COALESCE(parent.station_category, s.station_category) as station_category
 		FROM stop_times st
 		JOIN stops s ON s.stop_id = st.stop_id
 		LEFT JOIN stops parent ON parent.stop_id = s.parent_station AND parent.location_type = 1
@@ -870,8 +1037,9 @@ func (db *DB) GetTripDetails(tripID string, serviceDate string) (*models.TripDet
 		var stationIDVal, stationName string
 		var stationLat, stationLon float64
 		var platformCode string
+		var stationCategory sql.NullInt64
 
-		if err := rows.Scan(&arrivalTime, &depTime, &stopSequence, &stationIDVal, &stationName, &stationLat, &stationLon, &platformCode); err != nil {
+		if err := rows.Scan(&arrivalTime, &depTime, &stopSequence, &stationIDVal, &stationName, &stationLat, &stationLon, &platformCode, &stationCategory); err != nil {
 			continue
 		}
 
@@ -893,6 +1061,7 @@ func (db *DB) GetTripDetails(tripID string, serviceDate string) (*models.TripDet
 				DepartureDateTime: departureDateTime,
 				StopSequence:      stopSequence,
 				PlatformCode:      platformCode,
+				StationCategory:   nullIntToPtr(stationCategory),
 			})
 		}
 	}

@@ -27,6 +27,44 @@ export namespace geolocation {
 
 export namespace main {
 	
+	export class DatabaseInfo {
+	    path: string;
+	    exists: boolean;
+	    sizeBytes: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new DatabaseInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.exists = source["exists"];
+	        this.sizeBytes = source["sizeBytes"];
+	    }
+	}
+	export class DatabaseStatus {
+	    exists: boolean;
+	    hasData: boolean;
+	    firstDate: string;
+	    lastDate: string;
+	    daysRemaining: number;
+	    state: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DatabaseStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.exists = source["exists"];
+	        this.hasData = source["hasData"];
+	        this.firstDate = source["firstDate"];
+	        this.lastDate = source["lastDate"];
+	        this.daysRemaining = source["daysRemaining"];
+	        this.state = source["state"];
+	    }
+	}
 	export class LoadJourneyResult {
 	    journey?: models.JourneyData;
 	    filePath: string;
@@ -226,6 +264,7 @@ export namespace models {
 	    stop_name: string;
 	    stop_lat: number;
 	    stop_lon: number;
+	    station_category?: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new Stop(source);
@@ -237,6 +276,7 @@ export namespace models {
 	        this.stop_name = source["stop_name"];
 	        this.stop_lat = source["stop_lat"];
 	        this.stop_lon = source["stop_lon"];
+	        this.station_category = source["station_category"];
 	    }
 	}
 	export class RoutesData {
@@ -320,6 +360,7 @@ export namespace models {
 	    departure_datetime: string;
 	    stop_sequence: number;
 	    platform_code: string;
+	    station_category?: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new StopTime(source);
@@ -335,6 +376,7 @@ export namespace models {
 	        this.departure_datetime = source["departure_datetime"];
 	        this.stop_sequence = source["stop_sequence"];
 	        this.platform_code = source["platform_code"];
+	        this.station_category = source["station_category"];
 	    }
 	}
 	export class TripDetails {
@@ -392,6 +434,7 @@ export namespace models {
 	    destination: string;
 	    start_station_id: string;
 	    start_station_name: string;
+	    service_date: string;
 	    coordinates: Coordinate[];
 	    stop_times: StopTime[];
 	
@@ -411,6 +454,7 @@ export namespace models {
 	        this.destination = source["destination"];
 	        this.start_station_id = source["start_station_id"];
 	        this.start_station_name = source["start_station_name"];
+	        this.service_date = source["service_date"];
 	        this.coordinates = this.convertValues(source["coordinates"], Coordinate);
 	        this.stop_times = this.convertValues(source["stop_times"], StopTime);
 	    }

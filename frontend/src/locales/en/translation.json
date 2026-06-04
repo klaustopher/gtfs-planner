@@ -8,7 +8,10 @@
         "en": "English"
       }
     },
-    "close": "Close"
+    "close": "Close",
+    "confirm": "Continue",
+    "cancel": "Cancel",
+    "ok": "OK"
   },
   "journey": {
     "title": "Journey Planning",
@@ -40,6 +43,10 @@
     "clearConfirm": {
       "title": "Clear journey",
       "message": "Are you sure you want to clear all saved trips? This cannot be undone."
+    },
+    "loadError": {
+      "title": "Couldn't load journey",
+      "message": "This journey can no longer be reconstructed against the current GTFS database — either it was created with a different feed (e.g. gtfs.de instead of DELFI) or the schedule has changed since. Import the matching feed and try again."
     },
     "export": {
       "title": "Export Journey",
@@ -78,7 +85,14 @@
     "nearbyStations": "Nearby stations (within 200m)",
     "loadMore": "Load more departures",
     "loadingMore": "Loading more departures...",
-    "dayOffsetTitle": "Departure {{days}} day(s) later"
+    "dayOffsetTitle": "Departure {{days}} day(s) later",
+    "stepBack": "Back one stop",
+    "clearStation": "Clear station",
+    "arriveHere": "Arriving here at {{time}}",
+    "layover": "{{minutes}} min buffer",
+    "layoverTitle": "Layover at this station before departure",
+    "layoverMissed": "{{minutes}} min too late",
+    "layoverMissedTitle": "This connection departs before you arrive"
   },
   "tripModal": {
     "loading": "Loading trip details...",
@@ -97,7 +111,22 @@
     "connectionTimeUnit": "min",
     "openButton": "Settings",
     "openButtonTooltip": "Open app settings",
-    "close": "Close settings"
+    "close": "Close settings",
+    "database": {
+      "title": "GTFS database",
+      "hint": "The imported GTFS database on this device.",
+      "pathLabel": "Location",
+      "sizeLabel": "Size",
+      "notPresent": "Not present",
+      "delete": "Delete database",
+      "confirmTitle": "Delete database",
+      "confirmMessage": "Are you sure you want to delete the GTFS database? You will need to download or import it again afterwards.",
+      "firstDate": "First trip",
+      "lastDate": "Last trip",
+      "daysRemaining": "Remaining",
+      "daysValue": "{{days}} days",
+      "expired": "Expired"
+    }
   },
   "journeyMarker": {
     "arrival": "Arr",
@@ -120,7 +149,11 @@
       "funicular": "Funicular",
       "trolleybus": "Trolleybus",
       "monorail": "Monorail",
-      "unknown": "?"
+      "unknown": "?",
+      "longDistanceRail": "LD",
+      "regionalRail": "Regional",
+      "suburbanRail": "S-Bahn",
+      "railOther": "Other rail"
     },
     "name": {
       "tram": "Tram / Light rail",
@@ -133,7 +166,11 @@
       "funicular": "Funicular",
       "trolleybus": "Trolleybus",
       "monorail": "Monorail",
-      "unknown": "Unknown ({{routeType}})"
+      "unknown": "Unknown ({{routeType}})",
+      "longDistanceRail": "Long-distance (ICE/IC)",
+      "regionalRail": "Regional (RE/RB)",
+      "suburbanRail": "Suburban (S-Bahn)",
+      "railOther": "Other rail"
     }
   },
   "map": {
@@ -156,10 +193,14 @@
       "none": "None"
     },
     "datetime": {
+      "title": "When do you want to start?",
       "date": "Date",
       "time": "Time",
       "resetButton": "Reset",
       "resetTooltip": "Reset to current time or last arrival + connection time"
+    },
+    "hoverPanel": {
+      "prompt": "Which connection?"
     },
     "locateButton": "Show my location",
     "loading": {
@@ -167,39 +208,41 @@
       "stationDetails": "Loading station details",
       "trips": "Loading trips",
       "location": "Determining location"
-    }
+    },
+    "resizeSidebar": "Resize sidebar"
   },
   "gtfsSetup": {
-    "title": "GTFS Database Required",
-    "description": "To use the app, you must first download and import a GTFS database.",
-    "steps": {
-      "title": "Setup Instructions",
-      "openTerminal": {
-        "title": "Open Terminal",
-        "description": "Open a terminal in the project directory."
-      },
-      "download": {
-        "title": "Download GTFS Data",
-        "description": "Download the current GTFS schedule data:",
-        "hint": "This downloads the GTFS data according to the configuration in gtfs-config.yaml."
-      },
-      "import": {
-        "title": "Import Data",
-        "description": "Import the downloaded data into the SQLite database:",
-        "hint": "The import may take several minutes depending on the file size."
-      },
-      "restart": {
-        "title": "Restart App",
-        "description": "Restart the application. The database should now be available and the app ready to use."
+    "title": "GTFS database required",
+    "description": "Before you can use the app, a GTFS database must be downloaded and imported.",
+    "updateTitle": "Update GTFS data",
+    "updateDescription": "The schedule data is about to expire or has already expired. Please update the database.",
+    "validUntil": "Valid until {{date}} ({{days}} days remaining)",
+    "online": {
+      "title": "gtfs.de (free)",
+      "description": "The free, Germany-wide GTFS feed from gtfs.de — directly downloadable, great for a quick start. However it only covers about 30 days.",
+      "learnMore": "Which feeds does gtfs.de offer?",
+      "download": "Download",
+      "import": "Import",
+      "feeds": {
+        "full": "All of Germany (every mode)",
+        "nv": "Local transit (subway, tram, bus, ferry)",
+        "fv": "Long-distance rail (ICE, IC, EC, night trains)",
+        "rv": "Regional rail (RB, RE, S-Bahn)",
+        "custom": "Custom URL…"
       }
     },
-    "info": {
-      "title": "Check Status",
-      "description": "To check the database status and available date ranges, use:"
-    },
-    "note": {
-      "title": "Note",
-      "description": "GTFS data is updated regularly. It is recommended to periodically re-download and import the data to get current schedules."
+    "downloading": "Downloading… {{percent}}%",
+    "downloadComplete": "Download complete. Import now.",
+    "importingStart": "Preparing import…",
+    "cancel": "Cancel",
+    "importingFile": "Importing {{file}}… {{percent}}%",
+    "normalizing": "Normalizing stations – this can take a moment",
+    "indexing": "Building indexes – this can take a moment",
+    "categorizing": "Assigning transport types – this can take a moment",
+    "eta": "~{{time}} left",
+    "local": {
+      "hint": "Already have a GTFS zip file?",
+      "open": "Open local GTFS zip…"
     }
   }
 }

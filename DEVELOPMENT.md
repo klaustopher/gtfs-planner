@@ -1,6 +1,6 @@
 # Development Guide
 
-This document provides technical information for developers working on Bus Planning.
+This document provides technical information for developers working on GTFS Planner.
 
 ## Technology Stack
 
@@ -16,17 +16,17 @@ This document provides technical information for developers working on Bus Plann
 gtfs-planner/
 ├── main.go                 # Wails app entry point
 ├── app.go                  # Core App struct with Wails bindings
-├── cmd/
-│   └── gtfs-manager/       # GTFS data management CLI
-│       ├── main.go         # CLI entry point
-│       ├── config.go       # YAML config loader
-│       ├── status.go       # Status command
-│       ├── download.go     # Download command
-│       └── import.go       # Import command
 ├── internal/
-│   ├── db/                 # Database operations
+│   ├── db/                 # Database operations (read-only)
 │   │   ├── db.go           # GTFS queries (~800 lines)
 │   │   └── db_test.go      # Database tests
+│   ├── gtfsimport/         # Native Go GTFS importer + downloader
+│   │   ├── schema.go       # Lean SQLite schema + indexes
+│   │   ├── importer.go     # Streaming zip → SQLite import
+│   │   ├── normalize.go    # DELFI/IFOPT station normalization
+│   │   ├── download.go     # HTTP feed download
+│   │   └── *_test.go       # Importer tests
+│   ├── paths/              # Platform-specific data directory
 │   ├── models/             # Data structures
 │   │   └── models.go       # Go structs (JSON-serializable)
 │   └── timeutil/           # GTFS time utilities
@@ -42,12 +42,11 @@ gtfs-planner/
 │   │       └── map/                 # Map-related hooks & utils
 │   ├── package.json
 │   └── wailsjs/            # Auto-generated Wails bindings
-├── gtfs-data/
-│   ├── feeds/              # GTFS ZIP files (gitignored)
-│   └── sqlite/             # SQLite database (gitignored)
-├── gtfs-config.yaml        # GTFS manager configuration
 └── build/                  # Build configuration
 ```
+
+The GTFS database and downloaded feed are stored outside the repo in a
+platform-specific data directory (see `internal/paths`); there is no config file.
 
 ## Common Commands
 
@@ -57,11 +56,13 @@ wails dev                    # Start dev server with hot reload
 
 # Building
 wails build                  # Build production executable
-go build -o build/bin/gtfs-manager ./cmd/gtfs-manager/  # Build GTFS manager CLI
 
 # Testing
 go test ./...                # Run all Go tests
 go test -v ./internal/db/    # Run database tests with verbose output
+
+# Real-feed importer smoke test (uses a local GTFS zip, no network)
+GTFS_SMOKE_ZIP=/path/to/feed.zip go test -run TestRealFeedSmoke -timeout 30m -v ./internal/gtfsimport/
 
 # Frontend only
 cd frontend && npm run dev   # Run Vite dev server standalone
@@ -69,12 +70,10 @@ cd frontend && npm run build # Build frontend assets
 
 # Generate Wails bindings (after changing Go methods)
 wails generate module
-
-# GTFS Data Management
-gtfs-manager status          # Check database status and data availability
-gtfs-manager download        # Download GTFS feed from configured URL
-gtfs-manager import          # Import GTFS feed into SQLite database
 ```
+
+GTFS data management (download/import/delete) is done in-app via the setup
+dialog and settings — there is no longer a separate CLI.
 
 ## Architecture Overview
 
@@ -84,23 +83,23 @@ gtfs-manager import          # Import GTFS feed into SQLite database
 
 - `main.go` - Wails app initialization
 - `app.go` - Main `App` struct with Wails-bound methods
-- `cmd/gtfs-manager/` - CLI tool for GTFS data management
 
 **Key Packages:**
 
-- `internal/db/` - All database queries (~800 lines)
+- `internal/db/` - All database queries (~800 lines, read-only)
+- `internal/gtfsimport/` - Native Go GTFS importer + downloader (replaces `npx gtfs-import`)
+- `internal/paths/` - Platform-specific data directory
 - `internal/models/` - Data structures with JSON tags
 - `internal/timeutil/` - GTFS time normalization utilities
 
-**GTFS Manager CLI (`cmd/gtfs-manager/`):**
+**GTFS importer (`internal/gtfsimport/`):**
 
-- `main.go` - Cobra CLI entry point and command registration
-- `config.go` - YAML config file loader
-- `status.go` - Database status check with date range display
-- `download.go` - Feed download with Bubble Tea progress UI
-- `import.go` - GTFS import via `npx gtfs-import`
+- `schema.go` - Lean SQLite schema (the 6 tables db.go reads) + indexes
+- `importer.go` - Streams the GTFS zip and builds the database atomically
+- `normalize.go` - Maps the DELFI/IFOPT station hierarchy onto the gtfs.de model
+- `download.go` - HTTP feed download with progress callback
 
-**Wails Bindings (app.go:29-80):**
+**Wails Bindings (`app.go`):**
 
 ```go
 GetStops(n, s, e, w float64)              // Stations in bounding box
@@ -289,12 +288,13 @@ go test ./internal/db/  # Specific package
 
 Edit `wails.json` for build configuration. See [Wails documentation](https://wails.io/docs/reference/project-config) for options.
 
-The GTFS manager CLI reads settings from `gtfs-config.yaml`:
+There is no GTFS config file. The database and downloaded feed live in a
+platform-specific data directory resolved by `internal/paths`:
 
-```yaml
-feed_url: "https://download.gtfs.de/germany/nv_free/latest.zip"
-feed_path: "gtfs-data/feeds/latest.zip"
-database_path: "gtfs-data/sqlite/gtfs.sqlite"
-```
+- Linux: `$XDG_DATA_HOME/gtfs-planner` (or `~/.local/share/gtfs-planner`)
+- macOS: `~/Library/Application Support/gtfs-planner`
+- Windows: `%LocalAppData%\gtfs-planner`
 
-Use `--config` flag to specify an alternate config file location.
+`GTFS_PLANNING_DATA_DIR` overrides the directory; `GTFS_DATABASE_PATH` overrides
+just the database path (handy for pointing the app at a sample database during
+development).

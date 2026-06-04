@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"bus-planning/internal/models"
+	"gtfs-planner/internal/models"
 
 	"codeberg.org/go-pdf/fpdf"
 )
@@ -181,7 +181,7 @@ func TestExportJourneyToICS_Content(t *testing.T) {
 	var icsContent strings.Builder
 	icsContent.WriteString("BEGIN:VCALENDAR\r\n")
 	icsContent.WriteString("VERSION:2.0\r\n")
-	icsContent.WriteString("PRODID:-//Bus Planning//Journey Export//EN\r\n")
+	icsContent.WriteString("PRODID:-//GTFS Planner//Journey Export//EN\r\n")
 
 	for _, trip := range journey.SavedTrips {
 		departureTime, _ := time.ParseInLocation("2006-01-02T15:04:05", trip.DepartureDateTime, time.Local)
@@ -492,4 +492,39 @@ func TestJourneyWithMultipleTrips(t *testing.T) {
 	}
 
 	t.Logf("Journey has %d trips with total duration: %v", len(journey.SavedTrips), totalDuration)
+}
+
+func TestSlugify(t *testing.T) {
+	cases := map[string]string{
+		"Köln Hbf":                     "koln-hbf",
+		"Frankfurt (Main) Hauptbahnhof": "frankfurt-main-hauptbahnhof",
+		"Saalfeld (Saale)":             "saalfeld-saale",
+		"  ---  ":                       "",
+		"Über/Straße":                   "uber-strasse",
+	}
+	for in, want := range cases {
+		if got := slugify(in, 30); got != want {
+			t.Errorf("slugify(%q) = %q, want %q", in, got, want)
+		}
+	}
+	if got := slugify("AbcdefghijklmnopqrstuvwxyzABCDEFGHIJ", 10); len(got) > 10 {
+		t.Errorf("slugify cap: len(%q) = %d, want <= 10", got, len(got))
+	}
+}
+
+func TestJourneyFileName(t *testing.T) {
+	app := &App{} // no db: station names resolve to empty
+
+	if got := app.journeyFileName(models.JourneyData{}, ".pdf"); got != "journey.pdf" {
+		t.Errorf("empty journey = %q, want journey.pdf", got)
+	}
+
+	j := models.JourneyData{SavedTrips: []models.SavedTripData{
+		{StartStationID: "A", DepartureDateTime: "2026-05-23T09:01:00", EndStationID: "B"},
+		{StartStationID: "B", DepartureDateTime: "2026-05-23T12:02:00", EndStationID: "C"},
+	}}
+	// Without a db the names are empty, so only the date remains.
+	if got := app.journeyFileName(j, ".journey"); got != "2026-05-23.journey" {
+		t.Errorf("journey filename = %q, want 2026-05-23.journey", got)
+	}
 }

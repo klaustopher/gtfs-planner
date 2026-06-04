@@ -1,17 +1,22 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef, type MouseEvent as ReactMouseEvent } from 'react'
 import Map, { MapViewState } from './components/Map'
 import Sidebar from './components/Sidebar'
 import TripDetailModal from './components/TripDetailModal'
 import GtfsSetupModal from './components/GtfsSetupModal'
-import { models } from '../wailsjs/go/models'
-import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, ShowConfirmDialog, GetNearbyStations, GetUpcomingTripsForStations, CheckDatabaseExists } from '../wailsjs/go/main/App'
+import { models, main } from '../wailsjs/go/models'
+import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, GetNearbyStations, GetUpcomingTripsForStations, GetDatabaseStatus, GetTransportCategories, GetTripDetails } from '../wailsjs/go/main/App'
 import { useTrips, TripQueryParams } from './components/map/useTrips'
 import { useJourneyView } from './hooks/useJourneyView'
 import { useSettings } from './hooks/useSettings'
+import { useConfirm } from './hooks/useConfirm'
 import { useTranslation } from 'react-i18next'
-import { ALL_TRANSPORT_TYPES } from './utils/transportType'
+import { ALL_TRANSPORT_TYPES, sortTransportCategories } from './utils/transportType'
 import { normalizeColor, FALLBACK_COLORS } from './components/map/geojson'
 import './App.css'
+
+const SIDEBAR_MIN_WIDTH = 280
+const SIDEBAR_MAX_WIDTH = 680
+const SIDEBAR_DEFAULT_WIDTH = 380
 
 const UPCOMING_TRIPS_LIMIT = 10
 
@@ -68,6 +73,7 @@ function addMinutesToDateTime(isoDateTime: string, minutes: number): { date: str
 function App() {
   const { t } = useTranslation()
   const { settings } = useSettings()
+  const { confirm, alert, confirmDialog } = useConfirm()
   const [viewState, setViewState] = useState<MapViewState | null>(null)
   const [selectedStation, setSelectedStation] = useState<models.StationDetails | null>(null)
 
@@ -76,11 +82,44 @@ function App() {
   const [selectedNearbyStationIds, setSelectedNearbyStationIds] = useState<Set<string>>(new Set())
 
   // Transport type filter state - always show all GTFS route types
+  // Resizable sidebar (persisted)
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    const saved = Number(localStorage.getItem('gtfs-planner-sidebar-width'))
+    return saved >= SIDEBAR_MIN_WIDTH && saved <= SIDEBAR_MAX_WIDTH ? saved : SIDEBAR_DEFAULT_WIDTH
+  })
+  useEffect(() => {
+    localStorage.setItem('gtfs-planner-sidebar-width', String(sidebarWidth))
+  }, [sidebarWidth])
+
+  const handleSidebarResize = useCallback((event: ReactMouseEvent) => {
+    event.preventDefault()
+    const startX = event.clientX
+    const startWidth = sidebarWidth
+    const onMove = (ev: MouseEvent) => {
+      // Sidebar sits on the right, so dragging left widens it.
+      const next = Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, startWidth - (ev.clientX - startX)))
+      setSidebarWidth(next)
+    }
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }, [sidebarWidth])
+
+  const [availableTransportTypes, setAvailableTransportTypes] = useState<number[]>(ALL_TRANSPORT_TYPES)
   const [selectedTransportTypes, setSelectedTransportTypes] = useState<Set<number>>(new Set(ALL_TRANSPORT_TYPES))
 
   // Accumulated trips state for load more functionality
   const [accumulatedTrips, setAccumulatedTrips] = useState<models.UpcomingTrip[]>([])
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  // Index of the first newly loaded trip, to scroll it into view after "load more".
+  const pendingScrollIndexRef = useRef<number | null>(null)
 
   // Date/time state - initialize with current date and time
   const now = useMemo(() => new Date(), [])
@@ -102,27 +141,63 @@ function App() {
 
   // GTFS Setup Modal state
   const [showGtfsSetupModal, setShowGtfsSetupModal] = useState(false)
+  const [dbStatus, setDbStatus] = useState<main.DatabaseStatus | null>(null)
 
   // Planning mode state
   const [planningMode, setPlanningMode] = useState<PlanningMode>('initial')
 
-  // Check if database exists on startup
-  useEffect(() => {
-    const checkDatabase = async () => {
-      try {
-        const dbExists = await CheckDatabaseExists()
-        console.log('Database exists check:', dbExists)
-        if (!dbExists) {
-          console.log('Database not found, showing setup modal')
-          setShowGtfsSetupModal(true)
+  // Check the database status on startup; prompt for setup when it is missing,
+  // expired, or close to expiry.
+  const refreshDbStatus = useCallback(async (): Promise<main.DatabaseStatus | null> => {
+    try {
+      const status = await GetDatabaseStatus()
+      setDbStatus(status)
+      const needsSetup =
+        status.state === 'missing' || status.state === 'expired' || status.state === 'critical'
+      setShowGtfsSetupModal(needsSetup)
+      if (status.hasData) {
+        // Build the transport filter from the categories actually in this feed.
+        try {
+          const cats = await GetTransportCategories()
+          if (cats && cats.length > 0) {
+            const sorted = sortTransportCategories(cats)
+            setAvailableTransportTypes(sorted)
+            setSelectedTransportTypes(new Set(sorted))
+          }
+        } catch (catErr) {
+          console.error('Failed to get transport categories:', catErr)
         }
-      } catch (err) {
-        console.error('Failed to check database:', err)
-        setShowGtfsSetupModal(true)
       }
+      return status
+    } catch (err) {
+      console.error('Failed to get database status:', err)
+      setShowGtfsSetupModal(true)
+      return null
     }
-    void checkDatabase()
   }, [])
+
+  useEffect(() => {
+    void refreshDbStatus()
+  }, [refreshDbStatus])
+
+  // The settings screen dispatches this after deleting the database.
+  useEffect(() => {
+    const handler = () => {
+      void refreshDbStatus()
+    }
+    window.addEventListener('gtfs:db-changed', handler)
+    return () => {
+      window.removeEventListener('gtfs:db-changed', handler)
+    }
+  }, [refreshDbStatus])
+
+  const handleGtfsImported = useCallback(() => {
+    void refreshDbStatus().then((status) => {
+      if (status && (status.state === 'ok' || status.state === 'warning')) {
+        setShowGtfsSetupModal(false)
+      }
+    })
+  }, [refreshDbStatus])
 
   // Derived values
   const isViewingMode = planningMode === 'viewing'
@@ -190,12 +265,23 @@ function App() {
   // When removing the last trip, reset to the arrival station of the remaining trips
   const removeSavedTrip = useCallback(async (tripId: string) => {
     setSavedTrips(prev => {
+      const removed = prev.find(t => t.id === tripId)
       const newTrips = prev.filter(t => t.id !== tripId)
 
-      // If all trips removed, return to initial mode and clear station
+      // If all trips removed, return to the removed leg's departure station so
+      // the user lands back at the previous stop, not on the empty start screen.
       if (newTrips.length === 0) {
         setPlanningMode('initial')
-        handleStationSelect(null)
+        if (removed) {
+          GetStationDetails(removed.startStationId)
+            .then(stationDetails => setSelectedStation(stationDetails))
+            .catch(err => console.error('Failed to fetch station details:', err))
+          const departure = new Date(removed.departureDateTime)
+          setSelectedDate(formatDateForInput(departure))
+          setSelectedTime(formatTimeForInput(departure))
+        } else {
+          handleStationSelect(null)
+        }
       }
 
       // If there are remaining trips, reset to the last trip's arrival station
@@ -344,7 +430,7 @@ function App() {
   const handleLoadJourney = useCallback(async () => {
     // Warn about unsaved changes only if there are actual saved trips
     if (hasUnsavedChanges && savedTrips.length > 0) {
-      const confirmed = await ShowConfirmDialog(
+      const confirmed = await confirm(
         t('journey.unsaved.title'),
         t('journey.unsaved.message')
       )
@@ -369,6 +455,18 @@ function App() {
             const startStation = await GetStationDetails(tripData.startStationId)
             const endStation = await GetStationDetails(tripData.endStationId)
 
+            // Verify the trip still serves this leg (start before end in its stop
+            // sequence). Catches feeds whose schedule changed since the export, not
+            // just a wholly different feed.
+            const serviceDate = tripData.departureDateTime.split('T')[0].replace(/-/g, '')
+            const details = await GetTripDetails(tripData.tripId, serviceDate)
+            const stopTimes = details?.stop_times ?? []
+            const startIdx = stopTimes.findIndex((st) => st.stop_id === tripData.startStationId)
+            const endIdx = stopTimes.findIndex((st) => st.stop_id === tripData.endStationId)
+            if (startIdx === -1 || endIdx === -1 || startIdx > endIdx) {
+              throw new Error(`trip ${tripData.tripId} no longer serves ${tripData.startStationId} -> ${tripData.endStationId}`)
+            }
+
             // Compute display color with fallback (using trip index in journey)
             const normalizedColor = normalizeColor(route.route_color)
             const displayColor = normalizedColor ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]
@@ -392,6 +490,16 @@ function App() {
             console.error('Failed to hydrate trip:', err)
           }
         }
+
+        // A journey must restore fully. If any leg can't be resolved against the
+        // current database, abort without touching the current state — almost
+        // always a journey exported with a different feed (e.g. gtfs.de numeric ids
+        // vs DELFI's "de:…" ids) or whose schedule has since changed.
+        if (journey.savedTrips.length > 0 && hydratedTrips.length !== journey.savedTrips.length) {
+          await alert(t('journey.loadError.title'), t('journey.loadError.message'))
+          return
+        }
+
         setSavedTrips(hydratedTrips)
 
         // Restore date/time from ISO 8601
@@ -425,7 +533,7 @@ function App() {
     } catch (err) {
       console.error('Failed to load journey:', err)
     }
-  }, [hasUnsavedChanges, savedTrips.length, t])
+  }, [hasUnsavedChanges, savedTrips.length, t, confirm, alert])
 
   // Start new journey
   const handleNewJourney = useCallback(async () => {
@@ -434,7 +542,7 @@ function App() {
       const title = hasUnsavedChanges ? t('journey.unsaved.title') : t('journey.clearConfirm.title')
       const message = hasUnsavedChanges ? t('journey.unsaved.message') : t('journey.clearConfirm.message')
 
-      const confirmed = await ShowConfirmDialog(title, message)
+      const confirmed = await confirm(title, message)
       if (!confirmed) {
         return
       }
@@ -449,7 +557,7 @@ function App() {
     setSelectedTime(formatTimeForInput(now))
     setCurrentFilePath(null)
     setHasUnsavedChanges(false)
-  }, [hasUnsavedChanges, savedTrips.length, t])
+  }, [hasUnsavedChanges, savedTrips.length, t, confirm])
 
   // Track previous connection time to detect changes
   const prevConnectionTimeRef = useRef(settings.connectionTimeMinutes)
@@ -505,6 +613,7 @@ function App() {
             stop_name: stopTime.stop_name,
             stop_lat: stopTime.stop_lat,
             stop_lon: stopTime.stop_lon,
+            station_category: stopTime.station_category,
           })
         }
       }
@@ -521,12 +630,14 @@ function App() {
   useEffect(() => {
     setAccumulatedTrips([])
     // Reset to all types selected
-    setSelectedTransportTypes(new Set(ALL_TRANSPORT_TYPES))
-  }, [selectedStation, selectedDate, selectedTime, selectedNearbyStationIds])
+    setSelectedTransportTypes(new Set(availableTransportTypes))
+  }, [selectedStation, selectedDate, selectedTime, selectedNearbyStationIds, availableTransportTypes])
 
   // Handler to load more trips
   const handleLoadMore = useCallback(async () => {
     if (!selectedStation || accumulatedTrips.length === 0 || isLoadingMore) return
+
+    const firstNewIndex = accumulatedTrips.length
 
     // Find the trip with the latest departure time
     const latestTrip = accumulatedTrips.reduce((latest, trip) => {
@@ -557,6 +668,7 @@ function App() {
         Array.from(selectedTransportTypes)
       )
       if (moreTrips && moreTrips.trips && moreTrips.trips.length > 0) {
+        pendingScrollIndexRef.current = firstNewIndex
         setAccumulatedTrips(prev => {
           const combined = [...prev, ...moreTrips.trips]
           // Sort by departure_datetime to ensure chronological order
@@ -572,10 +684,33 @@ function App() {
     }
   }, [selectedStation, selectedNearbyStationIds, accumulatedTrips, isLoadingMore, selectedTransportTypes])
 
+  // After "load more" completes, scroll the first newly loaded departure into view.
+  useEffect(() => {
+    if (pendingScrollIndexRef.current === null) return
+    const index = pendingScrollIndexRef.current
+    pendingScrollIndexRef.current = null
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-trip-index="${index}"]`)
+      el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }, [accumulatedTrips])
+
+  // Quick "step back": same as the X button in the journey view — remove the
+  // last boarded leg. When nothing is boarded, clear the current station.
+  const handleStepBack = useCallback(() => {
+    if (savedTrips.length > 0) {
+      void removeSavedTrip(savedTrips[savedTrips.length - 1].id)
+    } else if (selectedStation) {
+      handleStationSelect(null)
+    }
+  }, [savedTrips, selectedStation, removeSavedTrip, handleStationSelect])
+
   // Fetch journey view data when in journey view mode
+  // Compute journey geometry whenever a journey exists (not only in viewing
+  // mode) so the route so far can be drawn as a faint backdrop while editing.
   const { data: journeyViewData, isLoading: isLoadingJourneyView } = useJourneyView(
     savedTrips,
-    isViewingMode
+    isViewingMode || savedTrips.length > 0
   )
 
   // Build journey data for export
@@ -625,10 +760,18 @@ function App() {
           journeyViewData={journeyViewData}
           selectedTransportTypes={selectedTransportTypes}
           onToggleTransportType={setSelectedTransportTypes}
-          availableTransportTypes={ALL_TRANSPORT_TYPES}
+          availableTransportTypes={availableTransportTypes}
         />
       </div>
+      <div
+        className="sidebar-resize-handle"
+        onMouseDown={handleSidebarResize}
+        role="separator"
+        aria-orientation="vertical"
+        title={t('map.resizeSidebar')}
+      />
       <Sidebar
+        width={sidebarWidth}
         selectedStation={selectedStation}
         tripsData={currentTripsData}
         isLoadingTrips={isLoadingTrips}
@@ -651,22 +794,32 @@ function App() {
         onToggleNearbyStation={toggleNearbyStation}
         onLoadMore={handleLoadMore}
         isLoadingMore={isLoadingMore}
+        onStepBack={handleStepBack}
+        canStepBack={savedTrips.length > 0 || !!selectedStation}
         selectedDate={selectedDate}
         selectedTime={selectedTime}
+        currentArrivalDateTime={savedTrips.length > 0 ? savedTrips[savedTrips.length - 1].arrivalDateTime : null}
       />
       {tripModalData && selectedStation && (
         <TripDetailModal
           trip={tripModalData.trip}
           tripIndex={tripModalData.tripIndex}
-          serviceDate={selectedDate.replace(/-/g, '')}
+          serviceDate={tripModalData.trip.service_date || selectedDate.replace(/-/g, '')}
           onClose={closeTripModal}
           onTripSelection={handleTripSelection}
         />
       )}
       <GtfsSetupModal
         isOpen={showGtfsSetupModal}
-        onClose={undefined}
+        status={dbStatus}
+        onClose={
+          dbStatus && dbStatus.state !== 'missing'
+            ? () => setShowGtfsSetupModal(false)
+            : undefined
+        }
+        onImported={handleGtfsImported}
       />
+      {confirmDialog}
     </div>
   )
 }
