@@ -31,6 +31,9 @@ jobs:
   macos:
     name: macOS (universal)
     runs-on: macos-latest
+    # Scopes the MACOS_* signing secrets to this job (and applies any protection
+    # rules, e.g. a required reviewer, configured on the "release" environment).
+    environment: release
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
