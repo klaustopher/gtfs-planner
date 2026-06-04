@@ -16,6 +16,7 @@ import (
 	"gtfs-planner/internal/gtfsimport"
 	"gtfs-planner/internal/models"
 	"gtfs-planner/internal/paths"
+	"gtfs-planner/internal/textfold"
 
 	"codeberg.org/go-pdf/fpdf"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -393,6 +394,69 @@ func (a *App) GetTransportCategories() ([]int, error) {
 	return a.db.GetTransportCategories()
 }
 
+// journeyFileName builds a human-readable default export filename of the form
+// "<YYYY-MM-DD>-<start>-<end>.<ext>", e.g. "2026-05-23-koln-hbf-frankfurt-hbf.pdf".
+// Station names are resolved from the database and slugified; missing parts are
+// omitted, falling back to "journey.<ext>".
+func (a *App) journeyFileName(journey models.JourneyData, ext string) string {
+	parts := make([]string, 0, 3)
+	if n := len(journey.SavedTrips); n > 0 {
+		first, last := journey.SavedTrips[0], journey.SavedTrips[n-1]
+		if date, _, ok := strings.Cut(first.DepartureDateTime, "T"); ok && date != "" {
+			parts = append(parts, date)
+		}
+		if s := slugify(a.stationName(first.StartStationID), 30); s != "" {
+			parts = append(parts, s)
+		}
+		if s := slugify(a.stationName(last.EndStationID), 30); s != "" {
+			parts = append(parts, s)
+		}
+	}
+	base := strings.Join(parts, "-")
+	if base == "" {
+		base = "journey"
+	}
+	return base + ext
+}
+
+// stationName resolves a stop id to its name (empty if unavailable).
+func (a *App) stationName(stopID string) string {
+	a.mu.Lock()
+	database := a.db
+	a.mu.Unlock()
+	if database == nil {
+		return ""
+	}
+	name, err := database.GetStationName(stopID)
+	if err != nil {
+		return ""
+	}
+	return name
+}
+
+// slugify lowercases, folds German umlauts, and reduces a station name to a
+// filename-safe slug ("Köln Hbf" -> "koln-hbf"), capped at maxLen characters.
+func slugify(s string, maxLen int) string {
+	folded := textfold.Fold(s)
+	var b strings.Builder
+	prevDash := false
+	for _, r := range folded {
+		switch {
+		case (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9'):
+			b.WriteRune(r)
+			prevDash = false
+		case !prevDash:
+			b.WriteByte('-')
+			prevDash = true
+		}
+	}
+	out := strings.Trim(b.String(), "-")
+	if maxLen > 0 && len(out) > maxLen {
+		out = strings.Trim(out[:maxLen], "-")
+	}
+	return out
+}
+
 // SaveJourney opens a save file dialog and writes journey data to the selected file.
 // Returns the saved file path, or empty string if cancelled.
 func (a *App) SaveJourney(journey models.JourneyData) (string, error) {
@@ -407,7 +471,7 @@ func (a *App) SaveJourney(journey models.JourneyData) (string, error) {
 	// Show save dialog
 	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:           "Reise speichern",
-		DefaultFilename: "journey.journey",
+		DefaultFilename: a.journeyFileName(journey, ".journey"),
 		Filters: []runtime.FileFilter{
 			{
 				DisplayName: "Journey Files (*.journey)",
@@ -501,7 +565,7 @@ func (a *App) ExportJourneyToICS(journey models.JourneyData) (string, error) {
 	// Show save dialog
 	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:           "Reise als ICS exportieren",
-		DefaultFilename: "journey.ics",
+		DefaultFilename: a.journeyFileName(journey, ".ics"),
 		Filters: []runtime.FileFilter{
 			{
 				DisplayName: "iCalendar Files (*.ics)",
@@ -684,7 +748,7 @@ func (a *App) ExportJourneyToPDF(journey models.JourneyData) (string, error) {
 	// Show save dialog
 	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:           "Reise als PDF exportieren",
-		DefaultFilename: "journey.pdf",
+		DefaultFilename: a.journeyFileName(journey, ".pdf"),
 		Filters: []runtime.FileFilter{
 			{
 				DisplayName: "PDF Files (*.pdf)",

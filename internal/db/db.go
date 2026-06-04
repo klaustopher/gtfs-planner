@@ -106,6 +106,18 @@ func (db *DB) GetStops(north, south, east, west float64) ([]models.Stop, error) 
 	return stops, nil
 }
 
+// GetStationName returns just the stop_name for a stop id (empty if not found),
+// used for building human-readable export filenames without the heavier
+// GetStationDetails query.
+func (db *DB) GetStationName(stopID string) (string, error) {
+	var name sql.NullString
+	err := db.conn.QueryRow(`SELECT stop_name FROM stops WHERE stop_id = ?`, stopID).Scan(&name)
+	if err != nil {
+		return "", err
+	}
+	return name.String, nil
+}
+
 // GetStationDetails returns details about a station including its routes.
 func (db *DB) GetStationDetails(stopID string) (*models.StationDetails, error) {
 	// Get station info
