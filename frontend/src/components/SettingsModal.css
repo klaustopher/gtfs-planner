@@ -92,7 +92,10 @@
 .settings-modal__select {
   border-radius: var(--radius-md);
   border: 1px solid var(--input-border);
-  background: var(--input-bg);
+  /* Opaque, not the translucent --input-bg: the native control base color is
+     OS-controlled (light on Linux), so a translucent overlay can't guarantee
+     contrast. See issue #15. */
+  background: var(--input-bg-solid);
   color: var(--color-text-primary);
   padding: 10px 12px;
   font-size: var(--font-size-sm);
@@ -100,14 +103,20 @@
   transition: var(--transition-fast);
 }
 
+/* Explicitly theme the dropdown options for platforms that honour it. */
+.settings-modal__select option {
+  background: var(--input-bg-solid);
+  color: var(--color-text-primary);
+}
+
 .settings-modal__select:hover {
-  border-color: var(--input-border-hover);
+  border-color: var(--color-border-strong);
 }
 
 .settings-modal__select:focus {
   outline: none;
-  border-color: var(--input-border-focus);
-  background: var(--input-bg-focus);
+  border-color: var(--input-focus-border);
+  background: var(--input-bg-solid);
 }
 
 .settings-modal__slider-container {
