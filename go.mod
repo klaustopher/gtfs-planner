@@ -1,9 +1,9 @@
 module gtfs-planner
 
-go 1.24.0
+go 1.25.0
 
 require (
-	codeberg.org/go-pdf/fpdf v0.11.1
+	codeberg.org/go-pdf/fpdf v0.12.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/mattn/go-sqlite3 v1.14.44
 	github.com/wailsapp/wails/v2 v2.12.0
