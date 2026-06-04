@@ -98,6 +98,44 @@ data directory:
 - macOS: `~/Library/Application Support/gtfs-planner`
 - Windows: `%LocalAppData%\gtfs-planner`
 
+## Linux notes
+
+### webkit2gtk 4.0 vs 4.1
+
+The app renders through the system WebKitGTK. The two generations are not
+ABI-compatible, so they are shipped as **separate downloads** — pick the one that
+matches your distribution:
+
+- **webkit2gtk 4.1** — Arch, Ubuntu 24.04+, Fedora and other current distros
+  (`libwebkit2gtk-4.1-0` / `webkit2gtk-4.1`, plus `gtk3`).
+- **webkit2gtk 4.0** — older distros such as Ubuntu 22.04
+  (`libwebkit2gtk-4.0-37`, plus `gtk3`).
+
+Building from source, install the matching `-dev` package and add the
+`webkit2_41` build tag for the 4.1 variant:
+
+```bash
+# 4.1 (Arch / Ubuntu 24.04+ / Fedora)
+wails build -tags webkit2_41
+
+# 4.0 (older distros)
+wails build
+```
+
+### Blank or white window
+
+On some setups — notably NVIDIA drivers and certain Mesa/WebKitGTK combinations —
+the window stays blank because of WebKitGTK's DMABUF renderer. Launch with it
+disabled:
+
+```bash
+WEBKIT_DISABLE_DMABUF_RENDERER=1 ./gtfs-planner
+```
+
+To make it permanent, set the variable in a wrapper script or in the `Exec=` line
+of a `.desktop` entry. For stubborn cases, `WEBKIT_DISABLE_COMPOSITING_MODE=1` is
+an additional fallback.
+
 ## Development
 
 For information about the project structure, architecture, and development guidelines, see [DEVELOPMENT.md](DEVELOPMENT.md).
