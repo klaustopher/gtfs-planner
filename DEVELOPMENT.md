@@ -75,6 +75,40 @@ wails generate module
 GTFS data management (download/import/delete) is done in-app via the setup
 dialog and settings — there is no longer a separate CLI.
 
+## Releasing
+
+Versioning and the changelog are managed with [knope](https://knope.tech)
+(`brew install knope-dev/tap/knope`). The single source of truth for the
+version is the set of versioned files (`frontend/package.json` and
+`wails.json`'s `info.productVersion`); they must always agree.
+
+1. **Describe each change** as you work — for anything user-facing, run:
+
+   ```bash
+   knope document-change   # pick patch/minor/major, write a summary
+   ```
+
+   This drops a markdown changeset in `.changeset/`. Commit it with your code.
+
+2. **Cut a release** when ready:
+
+   ```bash
+   knope release           # run locally
+   ```
+
+   This consumes the pending changesets, bumps the versioned files, prepends
+   the entry to `CHANGELOG.md`, commits, and creates + pushes the `vX.Y.Z` tag.
+
+3. The pushed tag triggers `.github/workflows/release.yml`, which builds all
+   platform artifacts (macOS, Windows, Linux amd64/arm64) and creates the
+   draft GitHub release. Publish it, and `update-cask.yml` then bumps the
+   Homebrew cask's version + sha256.
+
+Run `knope release` **locally** (not from CI): pushing the tag as yourself is
+what triggers `release.yml`, whereas a tag pushed by the default `GITHUB_TOKEN`
+would not. knope is configured without a `[github]` section on purpose, so it
+only creates the tag — `release.yml` owns the GitHub release.
+
 ## Architecture Overview
 
 ### Backend (Go)

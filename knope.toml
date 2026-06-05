@@ -1,0 +1,44 @@
+# Version + changelog management via knope (https://knope.tech).
+#
+#   knope document-change   # add a changeset describing your change
+#   knope release           # consume changesets: bump versions, write
+#                           # CHANGELOG.md, commit, tag (vX.Y.Z) and push
+#
+# The pushed tag triggers .github/workflows/release.yml, which builds the
+# artifacts and creates the GitHub release. There is intentionally no
+# [github] section here: without one, knope's Release step only creates and
+# pushes the git tag — it does not create the GitHub release itself, so it
+# does not collide with release.yml.
+#
+# The Homebrew cask version + sha256 are handled separately by
+# .github/workflows/update-cask.yml when the release is published.
+
+[package]
+versioned_files = [
+    "frontend/package.json",
+    { path = "wails.json", regex = '"productVersion": "(?<version>\d+\.\d+\.\d+)"' },
+]
+changelog = "CHANGELOG.md"
+
+[[workflows]]
+name = "release"
+
+[[workflows.steps]]
+type = "PrepareRelease"
+
+[[workflows.steps]]
+type = "Command"
+command = "git commit -m \"chore: prepare release $version\""
+
+[[workflows.steps]]
+type = "Command"
+command = "git push"
+
+[[workflows.steps]]
+type = "Release"
+
+[[workflows]]
+name = "document-change"
+
+[[workflows.steps]]
+type = "CreateChangeFile"
