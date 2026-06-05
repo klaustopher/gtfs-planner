@@ -43,11 +43,13 @@ Silicon and Intel.
 
 ### Linux
 
-WebKitGTK comes in two ABI-incompatible generations, so there are two builds —
-pick the one for your distribution (see [Linux notes](#linux-notes)):
+Builds are provided for both **amd64** (x86-64) and **arm64** (aarch64) — match
+the `_amd64_`/`_arm64_` part of the filename to your CPU. WebKitGTK also comes in
+two ABI-incompatible generations, so pick the one for your distribution (see
+[Linux notes](#linux-notes)):
 
-- **`…_linux_amd64_webkit2gtk-4.1.tar.gz`** — Arch, Ubuntu 24.04+, Fedora, other current distros
-- **`…_linux_amd64_webkit2gtk-4.0.tar.gz`** — older distros (e.g. Ubuntu 22.04)
+- **`…_linux_<arch>_webkit2gtk-4.1.tar.gz`** — Arch, Ubuntu 24.04+, Fedora, other current distros
+- **`…_linux_<arch>_webkit2gtk-4.0.tar.gz`** — older distros (e.g. Ubuntu 22.04)
 
 Install the runtime dependencies, extract and run:
 

@@ -10,6 +10,16 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version string for artifact filenames (e.g. v1.0.0). Defaults to the ref name. Use to backfill artifacts for an existing release."
+        required: false
+        default: ""
+      linux_only:
+        description: "Build only the Linux artifacts (skip macOS/Windows)."
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: release-${{ github.ref }}
@@ -31,9 +41,12 @@ jobs:
   macos:
     name: macOS (universal)
     runs-on: macos-latest
+    if: ${{ !inputs.linux_only }}
     # Scopes the MACOS_* signing secrets to this job (and applies any protection
     # rules, e.g. a required reviewer, configured on the "release" environment).
     environment: release
+    env:
+      VERSION: ${{ inputs.version || github.ref_name }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -79,7 +92,7 @@ jobs:
       - name: Package DMG
         run: |
           APP=$(ls -d build/bin/*.app | head -1)
-          DMG="gtfs-planner_${{ github.ref_name }}_macOS_universal.dmg"
+          DMG="gtfs-planner_${VERSION}_macOS_universal.dmg"
           hdiutil create -volname "GTFS Planner" -srcfolder "$APP" -ov -format UDZO "$DMG"
 
       - name: Sign, notarize and staple DMG
@@ -91,7 +104,7 @@ jobs:
           NOTARY_ISSUER_ID: ${{ secrets.MACOS_NOTARY_ISSUER_ID }}
         run: |
           set -euo pipefail
-          DMG="gtfs-planner_${{ github.ref_name }}_macOS_universal.dmg"
+          DMG="gtfs-planner_${VERSION}_macOS_universal.dmg"
           codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG"
           echo "$NOTARY_KEY_P8" | base64 --decode > notary_key.p8
           # --wait exits non-zero if notarization is rejected; `xcrun notarytool
@@ -108,9 +121,23 @@ jobs:
           path: gtfs-planner_*_macOS_universal.dmg
           if-no-files-found: error
 
-  linux-webkit40:
-    name: Linux (webkit2gtk 4.0)
-    runs-on: ubuntu-22.04
+  # Native build on each arch — go-sqlite3 + WebKitGTK need cgo, so a native
+  # runner is far simpler than cross-compiling. WebKitGTK 4.0 and 4.1 are not
+  # ABI-compatible, hence the two variants per arch. arm64 uses GitHub's free
+  # *-arm runners (public repos).
+  linux:
+    name: Linux (${{ matrix.arch }}, webkit2gtk ${{ matrix.webkit }})
+    runs-on: ${{ matrix.runner }}
+    env:
+      VERSION: ${{ inputs.version || github.ref_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-22.04,     arch: amd64, webkit: "4.0", tags: "",           apt: libwebkit2gtk-4.0-dev }
+          - { runner: ubuntu-22.04-arm, arch: arm64, webkit: "4.0", tags: "",           apt: libwebkit2gtk-4.0-dev }
+          - { runner: ubuntu-24.04,     arch: amd64, webkit: "4.1", tags: "webkit2_41", apt: libwebkit2gtk-4.1-dev }
+          - { runner: ubuntu-24.04-arm, arch: arm64, webkit: "4.1", tags: "webkit2_41", apt: libwebkit2gtk-4.1-dev }
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -125,60 +152,29 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+          sudo apt-get install -y libgtk-3-dev ${{ matrix.apt }}
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
       - name: Build
-        run: wails build -clean
+        run: wails build -clean ${{ matrix.tags && format('-tags {0}', matrix.tags) || '' }}
       - name: Package tarball
         run: |
-          OUT="gtfs-planner_${{ github.ref_name }}_linux_amd64_webkit2gtk-4.0.tar.gz"
+          OUT="gtfs-planner_${VERSION}_linux_${{ matrix.arch }}_webkit2gtk-${{ matrix.webkit }}.tar.gz"
           chmod +x build/bin/gtfs-planner
           tar -czf "$OUT" -C build/bin gtfs-planner
       - uses: actions/upload-artifact@v4
         with:
-          name: linux-webkit40
-          path: gtfs-planner_*_linux_amd64_webkit2gtk-4.0.tar.gz
-          if-no-files-found: error
-
-  linux-webkit41:
-    name: Linux (webkit2gtk 4.1)
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-          cache: true
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
-      - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
-      - name: Build (webkit2gtk 4.1)
-        run: wails build -clean -tags webkit2_41
-      - name: Package tarball
-        run: |
-          OUT="gtfs-planner_${{ github.ref_name }}_linux_amd64_webkit2gtk-4.1.tar.gz"
-          chmod +x build/bin/gtfs-planner
-          tar -czf "$OUT" -C build/bin gtfs-planner
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux-webkit41
-          path: gtfs-planner_*_linux_amd64_webkit2gtk-4.1.tar.gz
+          name: linux-${{ matrix.arch }}-webkit${{ matrix.webkit }}
+          path: gtfs-planner_*_linux_*.tar.gz
           if-no-files-found: error
 
   windows:
     name: Windows (NSIS installer)
     runs-on: windows-latest
+    if: ${{ !inputs.linux_only }}
     env:
       CGO_ENABLED: "1" # go-sqlite3 needs cgo; the runner ships MinGW gcc + NSIS
+      VERSION: ${{ inputs.version || github.ref_name }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -203,7 +199,7 @@ jobs:
         shell: bash
         run: |
           INSTALLER=$(ls build/bin/*installer.exe | head -1)
-          cp "$INSTALLER" "gtfs-planner_${{ github.ref_name }}_windows_amd64_installer.exe"
+          cp "$INSTALLER" "gtfs-planner_${VERSION}_windows_amd64_installer.exe"
       - uses: actions/upload-artifact@v4
         with:
           name: windows
@@ -212,7 +208,7 @@ jobs:
 
   release:
     name: Publish release
-    needs: [macos, linux-webkit40, linux-webkit41, windows]
+    needs: [macos, linux, windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
