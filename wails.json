@@ -9,5 +9,12 @@
   "author": {
     "name": "Klaus Zanders",
     "email": "code@kgz.me"
+  },
+  "info": {
+    "companyName": "Klaus Zanders",
+    "productName": "GTFS Planner",
+    "productVersion": "1.0.0",
+    "copyright": "© 2026 Klaus Zanders",
+    "comments": "Visualize GTFS transit data and plan multi-leg journeys"
   }
 }
