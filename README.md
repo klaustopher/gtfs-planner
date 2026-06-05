@@ -21,6 +21,21 @@ first launch (see [GTFS Data](#gtfs-data)).
 
 ### macOS
 
+#### Homebrew (recommended)
+
+This repository doubles as its own Homebrew tap, so you can install and update
+straight from `brew`:
+
+```bash
+brew tap klaustopher/gtfs-planner https://github.com/klaustopher/gtfs-planner
+brew install --cask gtfs-planner
+```
+
+Later updates come with `brew upgrade --cask gtfs-planner`. The cask installs the
+signed, notarized universal `.dmg` from the latest release.
+
+#### Manual download
+
 Download `gtfs-planner_<version>_macOS_universal.dmg`, open it and drag **GTFS
 Planner** into your Applications folder. The app is signed and notarized, so it
 opens normally without any Gatekeeper workaround. Runs natively on both Apple
