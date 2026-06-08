@@ -2,6 +2,8 @@
 
 A desktop application for visualizing and planning trips using GTFS (General Transit Feed Specification) public transit data. Built with Go, React, and MapLibre GL.
 
+![GTFS Planner showing a multi-leg journey from Köln to Sinsheim](docs/journey.webp)
+
 ## Features
 
 - **Interactive Map** - Browse transit stations on an OpenStreetMap-based map with MapLibre GL
