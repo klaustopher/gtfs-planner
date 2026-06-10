@@ -115,7 +115,7 @@ jobs:
           xcrun stapler staple "$DMG"
           rm -f notary_key.p8
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos
           path: gtfs-planner_*_macOS_universal.dmg
@@ -162,7 +162,7 @@ jobs:
           OUT="gtfs-planner_${VERSION}_linux_${{ matrix.arch }}_webkit2gtk-${{ matrix.webkit }}.tar.gz"
           chmod +x build/bin/gtfs-planner
           tar -czf "$OUT" -C build/bin gtfs-planner
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: linux-${{ matrix.arch }}-webkit${{ matrix.webkit }}
           path: gtfs-planner_*_linux_*.tar.gz
@@ -200,7 +200,7 @@ jobs:
         run: |
           INSTALLER=$(ls build/bin/*installer.exe | head -1)
           cp "$INSTALLER" "gtfs-planner_${VERSION}_windows_amd64_installer.exe"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows
           path: gtfs-planner_*_windows_amd64_installer.exe
