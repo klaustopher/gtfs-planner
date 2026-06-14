@@ -6,6 +6,7 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
 )
 
 //go:embed all:frontend/dist
@@ -28,6 +29,12 @@ func main() {
 		OnShutdown:       app.shutdown,
 		Bind: []interface{}{
 			app,
+		},
+		Mac: &mac.Options{
+			// Handle .gtfs-journey files opened from Finder (file association
+			// registered in wails.json). macOS-only; on Windows the path arrives
+			// as a command-line argument instead.
+			OnFileOpen: app.onFileOpen,
 		},
 	})
 

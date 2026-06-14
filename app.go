@@ -22,6 +22,10 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+// journeyFileExt is the extension (including dot) for saved journeys. It is
+// registered as a file association in wails.json; see onFileOpen.
+const journeyFileExt = ".gtfs-journey"
+
 // App struct
 type App struct {
 	ctx      context.Context
@@ -30,6 +34,11 @@ type App struct {
 	dbPath   string
 	feedPath string
 	cancelOp context.CancelFunc // cancels the in-flight download or import
+
+	// pendingOpenFile holds a journey path the OS asked us to open (file
+	// association) before the frontend was ready to receive the event. The
+	// frontend drains it on startup via GetPendingJourneyFile.
+	pendingOpenFile string
 }
 
 // NewApp creates a new App application struct
@@ -60,10 +69,48 @@ func (a *App) startup(ctx context.Context) {
 	a.dbPath = dbPath
 	a.feedPath = feedPath
 
+	// On Windows a .gtfs-journey opened from Explorer arrives as a command-line
+	// argument rather than via Mac.OnFileOpen. Stash it for the frontend to drain.
+	for _, arg := range os.Args[1:] {
+		if strings.HasSuffix(arg, journeyFileExt) {
+			a.pendingOpenFile = arg
+			break
+		}
+	}
+
 	// The database may not exist yet; the frontend prompts for setup in that case.
 	if err := a.reopenDB(); err != nil {
 		fmt.Printf("Database not opened: %v\n", err)
 	}
+}
+
+// onFileOpen is invoked by the OS (via Mac.OnFileOpen) when the user opens an
+// associated .gtfs-journey file. It may fire before the frontend has mounted, so
+// we stash the path and also emit an event for the warm case where the app is
+// already running.
+func (a *App) onFileOpen(path string) {
+	if path == "" {
+		return
+	}
+
+	a.mu.Lock()
+	a.pendingOpenFile = path
+	ctx := a.ctx
+	a.mu.Unlock()
+
+	if ctx != nil {
+		runtime.EventsEmit(ctx, "journey:open-file", path)
+	}
+}
+
+// GetPendingJourneyFile returns and clears a journey path the OS asked us to open
+// before the frontend was listening. Returns "" if there is none.
+func (a *App) GetPendingJourneyFile() string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	path := a.pendingOpenFile
+	a.pendingOpenFile = ""
+	return path
 }
 
 // shutdown is called when the app is closing
@@ -471,11 +518,11 @@ func (a *App) SaveJourney(journey models.JourneyData) (string, error) {
 	// Show save dialog
 	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:           "Reise speichern",
-		DefaultFilename: a.journeyFileName(journey, ".journey"),
+		DefaultFilename: a.journeyFileName(journey, journeyFileExt),
 		Filters: []runtime.FileFilter{
 			{
-				DisplayName: "Journey Files (*.journey)",
-				Pattern:     "*.journey",
+				DisplayName: "GTFS Journey Files (*" + journeyFileExt + ")",
+				Pattern:     "*" + journeyFileExt,
 			},
 		},
 	})
@@ -488,9 +535,9 @@ func (a *App) SaveJourney(journey models.JourneyData) (string, error) {
 		return "", nil
 	}
 
-	// Ensure .journey extension
-	if !strings.HasSuffix(filePath, ".journey") {
-		filePath += ".journey"
+	// Ensure .gtfs-journey extension
+	if !strings.HasSuffix(filePath, journeyFileExt) {
+		filePath += journeyFileExt
 	}
 
 	// Marshal to JSON with indentation for readability
@@ -516,13 +563,14 @@ type LoadJourneyResult struct {
 // LoadJourney opens a file dialog and reads journey data from the selected file.
 // Returns nil journey and empty path if cancelled.
 func (a *App) LoadJourney() (*LoadJourneyResult, error) {
-	// Show open dialog
+	// Show open dialog. We still accept the legacy ".journey" extension so files
+	// exported by older versions keep opening.
 	filePath, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
 		Title: "Reise laden",
 		Filters: []runtime.FileFilter{
 			{
-				DisplayName: "Journey Files (*.journey)",
-				Pattern:     "*.journey",
+				DisplayName: "GTFS Journey Files (*" + journeyFileExt + ")",
+				Pattern:     "*" + journeyFileExt + ";*.journey",
 			},
 		},
 	})
@@ -535,7 +583,21 @@ func (a *App) LoadJourney() (*LoadJourneyResult, error) {
 		return &LoadJourneyResult{}, nil
 	}
 
-	// Read file
+	return a.readJourneyFile(filePath)
+}
+
+// OpenJourneyFile reads a journey from a path the OS handed us (file association)
+// rather than from a dialog. Exposed to the frontend so it can load the file the
+// user double-clicked. See onFileOpen / GetPendingJourneyFile.
+func (a *App) OpenJourneyFile(filePath string) (*LoadJourneyResult, error) {
+	if filePath == "" {
+		return &LoadJourneyResult{}, nil
+	}
+	return a.readJourneyFile(filePath)
+}
+
+// readJourneyFile reads and parses a journey file from disk.
+func (a *App) readJourneyFile(filePath string) (*LoadJourneyResult, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)

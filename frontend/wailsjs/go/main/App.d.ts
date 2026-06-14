@@ -24,6 +24,8 @@ export function GetDatabaseStatus():Promise<main.DatabaseStatus>;
 
 export function GetNearbyStations(arg1:string,arg2:number):Promise<Array<models.Stop>>;
 
+export function GetPendingJourneyFile():Promise<string>;
+
 export function GetRouteByID(arg1:string):Promise<models.Route>;
 
 export function GetRoutesForStation(arg1:string):Promise<models.RoutesData>;
@@ -45,6 +47,8 @@ export function ImportGTFS():Promise<void>;
 export function ImportGTFSFromFile():Promise<void>;
 
 export function LoadJourney():Promise<main.LoadJourneyResult>;
+
+export function OpenJourneyFile(arg1:string):Promise<main.LoadJourneyResult>;
 
 export function SaveJourney(arg1:models.JourneyData):Promise<string>;
 

@@ -4,7 +4,8 @@ import Sidebar from './components/Sidebar'
 import TripDetailModal from './components/TripDetailModal'
 import GtfsSetupModal from './components/GtfsSetupModal'
 import { models, main } from '../wailsjs/go/models'
-import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, GetNearbyStations, GetUpcomingTripsForStations, GetDatabaseStatus, GetTransportCategories, GetTripDetails } from '../wailsjs/go/main/App'
+import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, OpenJourneyFile, GetPendingJourneyFile, GetNearbyStations, GetUpcomingTripsForStations, GetDatabaseStatus, GetTransportCategories, GetTripDetails } from '../wailsjs/go/main/App'
+import { EventsOn } from '../wailsjs/runtime/runtime'
 import { useTrips, TripQueryParams } from './components/map/useTrips'
 import { useJourneyView } from './hooks/useJourneyView'
 import { useSettings } from './hooks/useSettings'
@@ -410,6 +411,7 @@ function App() {
         })),
         selectedStationId: selectedStation?.stop_id || '',
         currentDateTime: combineToISO8601(selectedDate, selectedTime),
+        selectedTransportTypes: Array.from(selectedTransportTypes),
         mapView: viewState ? new models.MapView({
           longitude: viewState.longitude,
           latitude: viewState.latitude,
@@ -424,23 +426,20 @@ function App() {
     } catch (err) {
       console.error('Failed to save journey:', err)
     }
-  }, [savedTrips, selectedStation, selectedDate, selectedTime, viewState])
+  }, [savedTrips, selectedStation, selectedDate, selectedTime, selectedTransportTypes, viewState])
 
-  // Load journey from file
-  const handleLoadJourney = useCallback(async () => {
-    // Warn about unsaved changes only if there are actual saved trips
+  // Warn about unsaved changes before replacing the current journey.
+  const confirmDiscardUnsaved = useCallback(async () => {
     if (hasUnsavedChanges && savedTrips.length > 0) {
-      const confirmed = await confirm(
-        t('journey.unsaved.title'),
-        t('journey.unsaved.message')
-      )
-      if (!confirmed) {
-        return
-      }
+      return confirm(t('journey.unsaved.title'), t('journey.unsaved.message'))
     }
+    return true
+  }, [hasUnsavedChanges, savedTrips.length, t, confirm])
 
+  // Hydrate a loaded journey from the database and apply it to state. Shared by
+  // the load dialog and the .gtfs-journey file association.
+  const applyLoadedJourney = useCallback(async (result: main.LoadJourneyResult) => {
     try {
-      const result = await LoadJourney()
       if (result && result.journey) {
         const journey = result.journey
 
@@ -522,6 +521,12 @@ function App() {
           setSelectedStation(null)
         }
 
+        // Restore the transport-type filter. Absent in older files, where we keep
+        // the current (feed-derived) default.
+        if (journey.selectedTransportTypes && journey.selectedTransportTypes.length > 0) {
+          setSelectedTransportTypes(new Set(journey.selectedTransportTypes))
+        }
+
         setCurrentFilePath(result.filePath)
         setHasUnsavedChanges(false)
 
@@ -533,7 +538,39 @@ function App() {
     } catch (err) {
       console.error('Failed to load journey:', err)
     }
-  }, [hasUnsavedChanges, savedTrips.length, t, confirm, alert])
+  }, [t, alert])
+
+  // Load a journey via the open-file dialog.
+  const handleLoadJourney = useCallback(async () => {
+    if (!(await confirmDiscardUnsaved())) return
+    const result = await LoadJourney()
+    await applyLoadedJourney(result)
+  }, [confirmDiscardUnsaved, applyLoadedJourney])
+
+  // Open a journey the OS handed us via the .gtfs-journey file association.
+  const handleOpenJourneyFile = useCallback(async (filePath: string) => {
+    if (!filePath) return
+    if (!(await confirmDiscardUnsaved())) return
+    try {
+      const result = await OpenJourneyFile(filePath)
+      await applyLoadedJourney(result)
+    } catch (err) {
+      console.error('Failed to open journey file:', err)
+    }
+  }, [confirmDiscardUnsaved, applyLoadedJourney])
+
+  // React to journeys opened from Finder. The event covers the warm case (app
+  // already running); GetPendingJourneyFile drains a file the app was cold-started
+  // with, before this listener existed.
+  useEffect(() => {
+    const cancel = EventsOn('journey:open-file', (filePath: string) => {
+      handleOpenJourneyFile(filePath)
+    })
+    GetPendingJourneyFile().then(filePath => {
+      if (filePath) handleOpenJourneyFile(filePath)
+    })
+    return cancel
+  }, [handleOpenJourneyFile])
 
   // Start new journey
   const handleNewJourney = useCallback(async () => {

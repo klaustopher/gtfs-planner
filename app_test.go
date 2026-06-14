@@ -524,7 +524,7 @@ func TestJourneyFileName(t *testing.T) {
 		{StartStationID: "B", DepartureDateTime: "2026-05-23T12:02:00", EndStationID: "C"},
 	}}
 	// Without a db the names are empty, so only the date remains.
-	if got := app.journeyFileName(j, ".journey"); got != "2026-05-23.journey" {
-		t.Errorf("journey filename = %q, want 2026-05-23.journey", got)
+	if got := app.journeyFileName(j, journeyFileExt); got != "2026-05-23"+journeyFileExt {
+		t.Errorf("journey filename = %q, want 2026-05-23%s", got, journeyFileExt)
 	}
 }

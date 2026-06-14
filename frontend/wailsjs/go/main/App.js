@@ -42,6 +42,10 @@ export function GetNearbyStations(arg1, arg2) {
   return window['go']['main']['App']['GetNearbyStations'](arg1, arg2);
 }
 
+export function GetPendingJourneyFile() {
+  return window['go']['main']['App']['GetPendingJourneyFile']();
+}
+
 export function GetRouteByID(arg1) {
   return window['go']['main']['App']['GetRouteByID'](arg1);
 }
@@ -84,6 +88,10 @@ export function ImportGTFSFromFile() {
 
 export function LoadJourney() {
   return window['go']['main']['App']['LoadJourney']();
+}
+
+export function OpenJourneyFile(arg1) {
+  return window['go']['main']['App']['OpenJourneyFile'](arg1);
 }
 
 export function SaveJourney(arg1) {

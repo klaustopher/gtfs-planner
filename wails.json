@@ -15,6 +15,15 @@
     "productName": "GTFS Planner",
     "productVersion": "1.0.0",
     "copyright": "© 2026 Klaus Zanders",
-    "comments": "Visualize GTFS transit data and plan multi-leg journeys"
+    "comments": "Visualize GTFS transit data and plan multi-leg journeys",
+    "fileAssociations": [
+      {
+        "ext": "gtfs-journey",
+        "name": "GTFS Journey",
+        "description": "GTFS Planner Journey",
+        "iconName": "journeyFileIcon",
+        "role": "Editor"
+      }
+    ]
   }
 }

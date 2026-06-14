@@ -162,6 +162,7 @@ export namespace models {
 	    selectedStationId?: string;
 	    currentDateTime: string;
 	    mapView?: MapView;
+	    selectedTransportTypes?: number[];
 	
 	    static createFrom(source: any = {}) {
 	        return new JourneyData(source);
@@ -176,6 +177,7 @@ export namespace models {
 	        this.selectedStationId = source["selectedStationId"];
 	        this.currentDateTime = source["currentDateTime"];
 	        this.mapView = this.convertValues(source["mapView"], MapView);
+	        this.selectedTransportTypes = source["selectedTransportTypes"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

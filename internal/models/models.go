@@ -132,4 +132,8 @@ type JourneyData struct {
 	SelectedStationID string          `json:"selectedStationId,omitempty"`
 	CurrentDateTime   string          `json:"currentDateTime"`
 	MapView           *MapView        `json:"mapView,omitempty"`
+	// SelectedTransportTypes is the transport-category filter active when the
+	// journey was saved. Omitted (and ignored on load) for older files, which fall
+	// back to the feed's full set.
+	SelectedTransportTypes []int `json:"selectedTransportTypes,omitempty"`
 }
