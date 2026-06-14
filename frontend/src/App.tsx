@@ -626,12 +626,12 @@ function App() {
     })
   }, [tripsData, accumulatedTrips])
 
-  // Reset accumulated trips and transport filter when station changes
+  // Reset accumulated trips when station/date/time changes. The transport
+  // filter is intentionally NOT reset here — it is a global selection that
+  // persists across stations (initialized once when the feed loads).
   useEffect(() => {
     setAccumulatedTrips([])
-    // Reset to all types selected
-    setSelectedTransportTypes(new Set(availableTransportTypes))
-  }, [selectedStation, selectedDate, selectedTime, selectedNearbyStationIds, availableTransportTypes])
+  }, [selectedStation, selectedDate, selectedTime, selectedNearbyStationIds])
 
   // Handler to load more trips
   const handleLoadMore = useCallback(async () => {
