@@ -48,7 +48,7 @@ jobs:
     env:
       VERSION: ${{ inputs.version || github.ref_name }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
@@ -139,7 +139,7 @@ jobs:
           - { runner: ubuntu-24.04,     arch: amd64, webkit: "4.1", tags: "webkit2_41", apt: libwebkit2gtk-4.1-dev }
           - { runner: ubuntu-24.04-arm, arch: arm64, webkit: "4.1", tags: "webkit2_41", apt: libwebkit2gtk-4.1-dev }
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
@@ -176,7 +176,7 @@ jobs:
       CGO_ENABLED: "1" # go-sqlite3 needs cgo; the runner ships MinGW gcc + NSIS
       VERSION: ${{ inputs.version || github.ref_name }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
@@ -214,7 +214,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
