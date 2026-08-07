@@ -229,7 +229,7 @@ jobs:
           if [ ! -s notes.md ]; then echo "No CHANGELOG.md section for $VERSION" >&2; exit 1; fi
           echo "--- release notes ---"; cat notes.md
       - name: Create draft release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: dist/**
           draft: true
