@@ -49,7 +49,7 @@ jobs:
       VERSION: ${{ inputs.version || github.ref_name }}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -140,7 +140,7 @@ jobs:
           - { runner: ubuntu-24.04-arm, arch: arm64, webkit: "4.1", tags: "webkit2_41", apt: libwebkit2gtk-4.1-dev }
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -177,7 +177,7 @@ jobs:
       VERSION: ${{ inputs.version || github.ref_name }}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
