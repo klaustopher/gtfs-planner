@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	codeberg.org/go-pdf/fpdf v0.12.0
 	github.com/jmoiron/sqlx v1.4.0
-	github.com/mattn/go-sqlite3 v1.14.50
+	github.com/mattn/go-sqlite3 v1.14.52
 	github.com/wailsapp/wails/v2 v2.15.0
 )
 
