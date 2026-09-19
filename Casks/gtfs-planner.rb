@@ -2,8 +2,7 @@ cask "gtfs-planner" do
   version "1.0.0"
   sha256 "c914e7646e5a84708de8cf78e65adb37fd97d828e0f508ed7e147059f3f54676"
 
-  url "https://github.com/klaustopher/gtfs-planner/releases/download/v#{version}/gtfs-planner_v#{version}_macOS_universal.dmg",
-      verified: "github.com/klaustopher/gtfs-planner/"
+  url "https://github.com/klaustopher/gtfs-planner/releases/download/v#{version}/gtfs-planner_v#{version}_macOS_universal.dmg"
   name "GTFS Planner"
   desc "Visualize GTFS transit data and plan multi-leg journeys"
   homepage "https://github.com/klaustopher/gtfs-planner"
