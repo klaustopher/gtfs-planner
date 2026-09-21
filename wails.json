@@ -13,7 +13,7 @@
   "info": {
     "companyName": "Klaus Zanders",
     "productName": "GTFS Planner",
-    "productVersion": "1.0.0",
+    "productVersion": "1.1.0",
     "copyright": "© 2026 Klaus Zanders",
     "comments": "Visualize GTFS transit data and plan multi-leg journeys",
     "fileAssociations": [
