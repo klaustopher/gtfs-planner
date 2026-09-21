@@ -8,10 +8,11 @@ GTFS Planner is a desktop application for visualizing GTFS (General Transit Feed
 
 ## Technology Stack
 
-- **Backend:** Go 1.23 with Wails v2.11.0 (desktop framework)
-- **Frontend:** React 18.2 + TypeScript + Vite
-- **Map:** MapLibre GL 5.15.0 with react-map-gl
+- **Backend:** Go 1.25 with Wails v2.16.0 (desktop framework)
+- **Frontend:** React 19 + TypeScript 7 + Vite 8
+- **Map:** MapLibre GL 6.10 with react-map-gl 8.1
 - **Database:** SQLite (read-only mode)
+- **Frontend tooling:** oxlint (lint) + Vitest (tests)
 
 ## Common Commands
 
@@ -29,9 +30,11 @@ go test -v ./internal/db/    # Run database tests with verbose output
 # Real-feed smoke test for the importer (downloads not required, uses a local zip)
 GTFS_SMOKE_ZIP=/path/to/feed.zip go test -run TestRealFeedSmoke -timeout 30m -v ./internal/gtfsimport/
 
-# Frontend only
-cd frontend && npm run dev   # Run Vite dev server standalone
-cd frontend && npm run build # Build frontend assets
+# Frontend only (from frontend/)
+npm run dev                  # Run Vite dev server standalone
+npm run build                # Typecheck (tsc) + build frontend assets
+npm run lint                 # oxlint
+npm test                     # Vitest, single run
 
 # Generate Wails bindings (after changing Go methods)
 wails generate module
@@ -198,6 +201,13 @@ The database module has comprehensive tests covering:
 - Trip exclusion rules
 
 Run with: `go test -v ./internal/db/`
+
+The frontend uses Vitest (jsdom + Testing Library). Tests sit next to the code
+as `*.test.ts(x)` under `src/`; `src/test/setup.ts` holds the shared setup. Run
+with `npm test` from `frontend/`.
+
+There is deliberately no `@types/node` in the frontend — it would pull Node
+globals into a browser typecheck. Use `vi.stubEnv()` instead of `process.env`.
 
 ## UI Notes
 

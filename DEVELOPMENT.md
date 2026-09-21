@@ -4,11 +4,12 @@ This document provides technical information for developers working on GTFS Plan
 
 ## Technology Stack
 
-- **Backend:** Go 1.23 with [Wails](https://wails.io/) v2.11.0 (desktop framework)
-- **Frontend:** React 18.2 + TypeScript + Vite
-- **Map:** MapLibre GL 5.15.0 with react-map-gl
+- **Backend:** Go 1.25 with [Wails](https://wails.io/) v2.16.0 (desktop framework)
+- **Frontend:** React 19 + TypeScript 7 + Vite 8
+- **Map:** MapLibre GL 6.10 with react-map-gl 8.1
 - **Database:** SQLite (read-only mode)
 - **Build:** Vite + npm
+- **Frontend tooling:** oxlint (lint) + Vitest (tests)
 
 ## Project Structure
 
@@ -19,27 +20,35 @@ gtfs-planner/
 ├── internal/
 │   ├── db/                 # Database operations (read-only)
 │   │   ├── db.go           # GTFS queries (~800 lines)
-│   │   └── db_test.go      # Database tests
+│   │   └── *_test.go       # Database + midnight boundary tests
 │   ├── gtfsimport/         # Native Go GTFS importer + downloader
 │   │   ├── schema.go       # Lean SQLite schema + indexes
 │   │   ├── importer.go     # Streaming zip → SQLite import
 │   │   ├── normalize.go    # DELFI/IFOPT station normalization
 │   │   ├── download.go     # HTTP feed download
 │   │   └── *_test.go       # Importer tests
+│   ├── geolocation/        # Per-platform user location lookup (cgo on macOS)
 │   ├── paths/              # Platform-specific data directory
 │   ├── models/             # Data structures
 │   │   └── models.go       # Go structs (JSON-serializable)
+│   ├── textfold/           # Case/accent folding for station search (ö→o, ß→ss)
 │   └── timeutil/           # GTFS time utilities
 │       ├── timeutil.go     # Time normalization
 │       └── timeutil_test.go
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx         # Main app component
-│   │   └── components/
-│   │       ├── Map.tsx              # MapLibre map component
-│   │       ├── TripDetailModal.tsx  # Trip details view
-│   │       ├── Sidebar.tsx          # Journey planner UI
-│   │       └── map/                 # Map-related hooks & utils
+│   │   ├── components/
+│   │   │   ├── Map.tsx              # MapLibre map component
+│   │   │   ├── TripDetailModal.tsx  # Trip details view
+│   │   │   ├── Sidebar.tsx          # Journey planner UI
+│   │   │   └── map/                 # Map layers, panels & hooks
+│   │   ├── hooks/          # Journey view, settings, default map location
+│   │   ├── utils/          # Pure helpers + co-located *.test.ts
+│   │   ├── locales/        # de/en i18next translations
+│   │   └── test/setup.ts   # Vitest setup (jsdom + jest-dom matchers)
+│   ├── .oxlintrc.json      # Lint rules
+│   ├── vite.config.ts      # Vite + Vitest configuration
 │   ├── package.json
 │   └── wailsjs/            # Auto-generated Wails bindings
 └── build/                  # Build configuration
@@ -64,9 +73,12 @@ go test -v ./internal/db/    # Run database tests with verbose output
 # Real-feed importer smoke test (uses a local GTFS zip, no network)
 GTFS_SMOKE_ZIP=/path/to/feed.zip go test -run TestRealFeedSmoke -timeout 30m -v ./internal/gtfsimport/
 
-# Frontend only
-cd frontend && npm run dev   # Run Vite dev server standalone
-cd frontend && npm run build # Build frontend assets
+# Frontend only (from frontend/)
+npm run dev                  # Run Vite dev server standalone
+npm run build                # Typecheck (tsc) + build frontend assets
+npm run lint                 # oxlint
+npm test                     # Vitest, single run
+npm run test:watch           # Vitest in watch mode
 
 # Generate Wails bindings (after changing Go methods)
 wails generate module
@@ -136,12 +148,28 @@ only creates the tag — `release.yml` owns the GitHub release.
 **Wails Bindings (`app.go`):**
 
 ```go
-GetStops(n, s, e, w float64)              // Stations in bounding box
-GetStationDetails(stopID string)           // Station info + routes
-GetRoutesForStation(stopID string)         // Route geometries
-SearchStations(query string, limit int)    // Station search
-GetUpcomingTrips(stopID, datetime, limit)  // Upcoming departures
-GetTripDetails(tripID, serviceDate)        // Full trip itinerary
+// Read queries
+GetStops(north, south, east, west float64)              // Stations in bounding box
+GetStationDetails(stopID string)                        // Station info + routes
+GetRoutesForStation(stopID string)                      // Route geometries
+SearchStations(query string, limit int)                 // Station search
+GetNearbyStations(stopID string, radiusMeters float64)  // Neighbouring stations
+GetUpcomingTripsForStations(stopIDs []string, datetime string, limit int, routeTypes []int)
+GetTripDetails(tripID, serviceDate string)              // Full trip itinerary
+GetRouteByID(routeID string)                            // Single route
+GetTransportCategories()                                // Categories present in the feed
+
+// Data management (download/import emit gtfs:download:* / gtfs:import:* events)
+GetDatabaseStatus() / CheckDatabaseExists()
+DownloadGTFS(url string) / ImportGTFS() / ImportGTFSFromFile() / CancelGTFS()
+GetDatabaseInfo() / DeleteDatabase()
+
+// Journeys
+SaveJourney(journey) / LoadJourney() / OpenJourneyFile(path) / GetPendingJourneyFile()
+ExportJourneyToICS(journey) / ExportJourneyToPDF(journey)
+
+// Misc
+GetUserLocation() / GetAbsolutePath(relativePath string)
 ```
 
 ### Frontend (React + TypeScript)
@@ -181,12 +209,23 @@ The Go backend exposes these methods to the frontend:
 
 | Method | Description |
 |--------|-------------|
-| `GetStops(n, s, e, w)` | Get stations within bounding box |
+| `GetStops(north, south, east, west)` | Get stations within bounding box |
 | `GetStationDetails(stopID)` | Get station info + serving routes |
 | `GetRoutesForStation(stopID)` | Get route geometries |
-| `SearchStations(query, limit)` | Search stations by name |
-| `GetUpcomingTrips(stopID, datetime, limit)` | Get upcoming departures |
+| `SearchStations(query, limit)` | Search stations by name (accent/case folded) |
+| `GetNearbyStations(stopID, radiusMeters)` | Get stations around a station |
+| `GetUpcomingTripsForStations(stopIDs, datetime, limit, routeTypes)` | Get upcoming departures across one or more stations |
 | `GetTripDetails(tripID, serviceDate)` | Get full trip itinerary |
+| `GetRouteByID(routeID)` | Get a single route |
+| `GetTransportCategories()` | Transport categories present in the feed |
+| `CheckDatabaseExists()` / `GetDatabaseStatus()` | Presence and validity window of the database |
+| `DownloadGTFS(url)` / `ImportGTFS()` / `ImportGTFSFromFile()` / `CancelGTFS()` | Feed download and import |
+| `GetDatabaseInfo()` / `DeleteDatabase()` | Database path/size, deletion |
+| `SaveJourney(journey)` / `LoadJourney()` / `OpenJourneyFile(path)` | Journey persistence |
+| `GetPendingJourneyFile()` | Journey file the app was opened with |
+| `ExportJourneyToICS(journey)` / `ExportJourneyToPDF(journey)` | Journey export |
+| `GetUserLocation()` | Platform geolocation lookup |
+| `GetAbsolutePath(relativePath)` | Resolve a path for the frontend |
 
 ## GTFS Specifics
 
@@ -238,6 +277,8 @@ Trips are excluded when the selected station is the final destination (no onward
 
 ## Testing
 
+### Go
+
 The database module has comprehensive tests covering:
 
 - Bounding box queries
@@ -246,12 +287,33 @@ The database module has comprehensive tests covering:
 - Calendar date exceptions
 - Trip exclusion rules
 
-Run with:
+`internal/gtfsimport`, `internal/paths` and `internal/timeutil` are covered too.
+
 ```bash
 go test ./...           # All tests
 go test -v ./...        # Verbose output
 go test ./internal/db/  # Specific package
 ```
+
+### Frontend
+
+[Vitest](https://vitest.dev) with jsdom and Testing Library. Tests live next to
+the code as `*.test.ts(x)` and are picked up from `src/**`; `src/test/setup.ts`
+registers the jest-dom matchers and cleans up the DOM between tests.
+
+```bash
+cd frontend
+npm test                # Single run
+npm run test:watch      # Watch mode
+```
+
+Note there is no `@types/node` in the frontend, deliberately — it would pull Node
+globals into a browser typecheck. Use `vi.stubEnv()` rather than `process.env`
+when a test needs an environment variable (the timezone tests in
+`src/utils/time.test.ts` do this).
+
+CI runs `go test ./...` for the backend and lint + tests + build for the
+frontend (see `.github/workflows/ci.yml`).
 
 ## UI Notes
 
