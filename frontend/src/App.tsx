@@ -71,6 +71,24 @@ function addMinutesToDateTime(isoDateTime: string, minutes: number): { date: str
   }
 }
 
+interface LoadedNearbyStations {
+  stationId: string
+  stations: models.Stop[]
+}
+
+interface NearbySelection {
+  stationId: string
+  ids: Set<string>
+}
+
+interface LoadedExtraTrips {
+  key: string
+  trips: models.UpcomingTrip[]
+}
+
+const EMPTY_NEARBY_STATIONS: models.Stop[] = []
+const EMPTY_STATION_IDS: Set<string> = new Set()
+
 function App() {
   const { t } = useTranslation()
   const { settings } = useSettings()
@@ -78,9 +96,16 @@ function App() {
   const [viewState, setViewState] = useState<MapViewState | null>(null)
   const [selectedStation, setSelectedStation] = useState<models.StationDetails | null>(null)
 
-  // Nearby stations state
-  const [nearbyStations, setNearbyStations] = useState<models.Stop[]>([])
-  const [selectedNearbyStationIds, setSelectedNearbyStationIds] = useState<Set<string>>(new Set())
+  // Nearby stations state, keyed by the station they belong to so both reset
+  // by derivation when the selected station changes.
+  const selectedStationId = selectedStation?.stop_id ?? null
+  const [loadedNearby, setLoadedNearby] = useState<LoadedNearbyStations | null>(null)
+  const [nearbySelection, setNearbySelection] = useState<NearbySelection | null>(null)
+
+  const nearbyStations =
+    loadedNearby?.stationId === selectedStationId ? loadedNearby.stations : EMPTY_NEARBY_STATIONS
+  const selectedNearbyStationIds =
+    nearbySelection?.stationId === selectedStationId ? nearbySelection.ids : EMPTY_STATION_IDS
 
   // Transport type filter state - always show all GTFS route types
   // Resizable sidebar (persisted)
@@ -116,8 +141,9 @@ function App() {
   const [availableTransportTypes, setAvailableTransportTypes] = useState<number[]>(ALL_TRANSPORT_TYPES)
   const [selectedTransportTypes, setSelectedTransportTypes] = useState<Set<number>>(new Set(ALL_TRANSPORT_TYPES))
 
-  // Accumulated trips state for load more functionality
-  const [accumulatedTrips, setAccumulatedTrips] = useState<models.UpcomingTrip[]>([])
+  // Pages fetched by "load more", keyed by the query they extend. The first
+  // page always comes from useTrips.
+  const [extraTrips, setExtraTrips] = useState<LoadedExtraTrips | null>(null)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   // Index of the first newly loaded trip, to scroll it into view after "load more".
   const pendingScrollIndexRef = useRef<number | null>(null)
@@ -178,6 +204,9 @@ function App() {
   }, [])
 
   useEffect(() => {
+    // refreshDbStatus only sets state after awaiting GetDatabaseStatus; the
+    // rule does not track the await boundary across a callee.
+    // oxlint-disable-next-line react/set-state-in-effect
     void refreshDbStatus()
   }, [refreshDbStatus])
 
@@ -218,43 +247,47 @@ function App() {
 
   // Fetch nearby stations when selected station changes
   useEffect(() => {
-    if (!selectedStation) {
-      setNearbyStations([])
-      setSelectedNearbyStationIds(new Set())
-      setAccumulatedTrips([])
+    if (!selectedStationId) {
       return
     }
 
-    const fetchNearbyStations = async () => {
-      try {
-        const nearby = await GetNearbyStations(selectedStation.stop_id, 200)
-        setNearbyStations(nearby || [])
-        // Reset selected nearby stations when main station changes
-        setSelectedNearbyStationIds(new Set())
-        setAccumulatedTrips([])
-      } catch (err) {
-        console.error('Failed to fetch nearby stations:', err)
-        setNearbyStations([])
-        setSelectedNearbyStationIds(new Set())
-        setAccumulatedTrips([])
-      }
-    }
+    let cancelled = false
 
-    void fetchNearbyStations()
-  }, [selectedStation])
+    GetNearbyStations(selectedStationId, 200)
+      .then(nearby => {
+        if (!cancelled) {
+          setLoadedNearby({ stationId: selectedStationId, stations: nearby || [] })
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch nearby stations:', err)
+        if (!cancelled) {
+          setLoadedNearby({ stationId: selectedStationId, stations: [] })
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [selectedStationId])
 
   // Handler to toggle nearby station selection
   const toggleNearbyStation = useCallback((stationId: string) => {
-    setSelectedNearbyStationIds(prev => {
-      const newSet = new Set(prev)
+    if (!selectedStationId) {
+      return
+    }
+
+    setNearbySelection(prev => {
+      const current = prev?.stationId === selectedStationId ? prev.ids : EMPTY_STATION_IDS
+      const newSet = new Set(current)
       if (newSet.has(stationId)) {
         newSet.delete(stationId)
       } else {
         newSet.add(stationId)
       }
-      return newSet
+      return { stationId: selectedStationId, ids: newSet }
     })
-  }, [])
+  }, [selectedStationId])
 
   // Handler to add a trip to the saved list
   const addSavedTrip = useCallback((trip: SavedTrip) => {
@@ -626,15 +659,22 @@ function App() {
     }
   }, [selectedStation, selectedDate, selectedTime, selectedNearbyStationIds, selectedTransportTypes])
 
+  const tripsQueryKey = tripQueryParams ? JSON.stringify(tripQueryParams) : null
+
   // Fetch upcoming trips when a station is selected
   const { tripsData, isLoading: isLoadingTrips } = useTrips(tripQueryParams)
 
-  // Update accumulated trips when new trips are fetched (reset on parameter change)
-  useEffect(() => {
-    if (tripsData && tripsData.trips) {
-      setAccumulatedTrips(tripsData.trips)
+  const accumulatedTrips = useMemo(() => {
+    const base = tripsData?.trips ?? []
+    const extra = extraTrips?.key === tripsQueryKey ? extraTrips.trips : []
+    if (extra.length === 0) {
+      return base
     }
-  }, [tripsData])
+
+    return [...base, ...extra].sort((a, b) =>
+      a.departure_datetime.localeCompare(b.departure_datetime)
+    )
+  }, [tripsData, extraTrips, tripsQueryKey])
 
   // Build single source of truth for trips data using accumulated trips
   const currentTripsData = useMemo(() => {
@@ -663,16 +703,9 @@ function App() {
     })
   }, [tripsData, accumulatedTrips])
 
-  // Reset accumulated trips when station/date/time changes. The transport
-  // filter is intentionally NOT reset here — it is a global selection that
-  // persists across stations (initialized once when the feed loads).
-  useEffect(() => {
-    setAccumulatedTrips([])
-  }, [selectedStation, selectedDate, selectedTime, selectedNearbyStationIds])
-
   // Handler to load more trips
   const handleLoadMore = useCallback(async () => {
-    if (!selectedStation || accumulatedTrips.length === 0 || isLoadingMore) return
+    if (!selectedStation || !tripsQueryKey || accumulatedTrips.length === 0 || isLoadingMore) return
 
     const firstNewIndex = accumulatedTrips.length
 
@@ -706,12 +739,9 @@ function App() {
       )
       if (moreTrips && moreTrips.trips && moreTrips.trips.length > 0) {
         pendingScrollIndexRef.current = firstNewIndex
-        setAccumulatedTrips(prev => {
-          const combined = [...prev, ...moreTrips.trips]
-          // Sort by departure_datetime to ensure chronological order
-          return combined.sort((a, b) =>
-            a.departure_datetime.localeCompare(b.departure_datetime)
-          )
+        setExtraTrips(prev => {
+          const previous = prev?.key === tripsQueryKey ? prev.trips : []
+          return { key: tripsQueryKey, trips: [...previous, ...moreTrips.trips] }
         })
       }
     } catch (err) {
@@ -719,7 +749,7 @@ function App() {
     } finally {
       setIsLoadingMore(false)
     }
-  }, [selectedStation, selectedNearbyStationIds, accumulatedTrips, isLoadingMore, selectedTransportTypes])
+  }, [selectedStation, selectedNearbyStationIds, accumulatedTrips, isLoadingMore, selectedTransportTypes, tripsQueryKey])
 
   // After "load more" completes, scroll the first newly loaded departure into view.
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { ChangeEvent, KeyboardEvent, Dispatch, SetStateAction } from 'react'
 import { SearchStations } from '../../../../wailsjs/go/main/App'
 import { models } from '../../../../wailsjs/go/models'
@@ -25,67 +25,67 @@ export interface UseStationSearchResult {
   setActiveResultIndex: Dispatch<SetStateAction<number>>
 }
 
+interface LoadedResults {
+  term: string
+  results: models.Stop[]
+}
+
+const EMPTY_RESULTS: models.Stop[] = []
+
 export function useStationSearch({ onResultSelect }: UseStationSearchOptions): UseStationSearchResult {
   const [searchTerm, setSearchTerm] = useState('')
-  const [searchResults, setSearchResults] = useState<models.Stop[]>([])
-  const [isSearching, setIsSearching] = useState(false)
+  const [loaded, setLoaded] = useState<LoadedResults | null>(null)
+  const [dismissedTerm, setDismissedTerm] = useState<string | null>(null)
   const [activeResultIndex, setActiveResultIndex] = useState(-1)
-  const searchDebounceRef = useRef<number | null>(null)
-  const searchRequestIdRef = useRef(0)
+
+  const trimmedSearchTerm = searchTerm.trim()
+  const query = trimmedSearchTerm.length >= SEARCH_MIN_LENGTH ? trimmedSearchTerm : null
+  const isDismissed = query !== null && dismissedTerm === query
+
+  const searchResults =
+    query !== null && !isDismissed && loaded?.term === query ? loaded.results : EMPTY_RESULTS
+  const isSearching = query !== null && !isDismissed && loaded?.term !== query
 
   useEffect(() => {
-    if (searchDebounceRef.current !== null) {
-      window.clearTimeout(searchDebounceRef.current)
-    }
-
-    const trimmed = searchTerm.trim()
-    if (trimmed.length < SEARCH_MIN_LENGTH) {
-      setSearchResults([])
-      setIsSearching(false)
-      setActiveResultIndex(-1)
+    if (query === null || isDismissed) {
       return
     }
 
-    searchDebounceRef.current = window.setTimeout(() => {
-      setIsSearching(true)
-      const currentRequestId = ++searchRequestIdRef.current
+    let cancelled = false
 
-      SearchStations(trimmed, SEARCH_RESULT_LIMIT)
+    const timer = window.setTimeout(() => {
+      SearchStations(query, SEARCH_RESULT_LIMIT)
         .then((results) => {
-          if (currentRequestId !== searchRequestIdRef.current) {
+          if (cancelled) {
             return
           }
-          setSearchResults(results ?? [])
+          setLoaded({ term: query, results: results ?? [] })
           setActiveResultIndex(results && results.length > 0 ? 0 : -1)
         })
         .catch((err) => {
-          if (currentRequestId === searchRequestIdRef.current) {
-            console.error('Station search failed:', err)
-            setSearchResults([])
-            setActiveResultIndex(-1)
+          console.error('Station search failed:', err)
+          if (cancelled) {
+            return
           }
-        })
-        .finally(() => {
-          if (currentRequestId === searchRequestIdRef.current) {
-            setIsSearching(false)
-          }
+          setLoaded({ term: query, results: [] })
+          setActiveResultIndex(-1)
         })
     }, SEARCH_DEBOUNCE_MS)
 
     return () => {
-      if (searchDebounceRef.current !== null) {
-        window.clearTimeout(searchDebounceRef.current)
-      }
+      cancelled = true
+      window.clearTimeout(timer)
     }
-  }, [searchTerm])
+  }, [query, isDismissed])
 
   const handleInputChange = useCallback((evt: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(evt.target.value)
+    setDismissedTerm(null)
   }, [])
 
   const handleClear = useCallback(() => {
     setSearchTerm('')
-    setSearchResults([])
+    setDismissedTerm(null)
     setActiveResultIndex(-1)
   }, [])
 
@@ -96,7 +96,7 @@ export function useStationSearch({ onResultSelect }: UseStationSearchOptions): U
       }
 
       setSearchTerm(stop.stop_name)
-      setSearchResults([])
+      setDismissedTerm(stop.stop_name.trim())
       setActiveResultIndex(-1)
       onResultSelect(stop)
     },
@@ -131,15 +131,14 @@ export function useStationSearch({ onResultSelect }: UseStationSearchOptions): U
       } else if (evt.key === 'Escape') {
         if (searchResults.length > 0) {
           evt.preventDefault()
-          setSearchResults([])
+          setDismissedTerm(query)
           setActiveResultIndex(-1)
         }
       }
     },
-    [activeResultIndex, searchResults, handleResultSelect]
+    [activeResultIndex, searchResults, handleResultSelect, query]
   )
 
-  const trimmedSearchTerm = searchTerm.trim()
   const showResults = searchResults.length > 0 && trimmedSearchTerm.length >= SEARCH_MIN_LENGTH
   const showEmptyState =
     !isSearching && trimmedSearchTerm.length >= SEARCH_MIN_LENGTH && searchResults.length === 0
@@ -148,7 +147,7 @@ export function useStationSearch({ onResultSelect }: UseStationSearchOptions): U
     searchTerm,
     searchResults,
     isSearching,
-    activeResultIndex,
+    activeResultIndex: searchResults.length === 0 ? -1 : Math.min(activeResultIndex, searchResults.length - 1),
     handleInputChange,
     handleKeyDown,
     handleClear,

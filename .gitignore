@@ -10,3 +10,10 @@ tmp/
 
 # Stray build output (Wails binary)
 /gtfs-planner
+
+# TypeScript incremental build state
+*.tsbuildinfo
+
+# Emitted by tsc -b from vite.config.ts
+frontend/vite.config.js
+frontend/vite.config.d.ts

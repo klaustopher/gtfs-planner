@@ -22,7 +22,8 @@ import TransportFilterDropdown from './map/TransportFilterDropdown'
 import { useFitBounds } from './map/hooks/useFitBounds'
 import { STATION_MARKER_ICONS, stationCategoryIconExpression } from './map/markerIcons'
 import { useHoverStationPanel } from './map/hooks/useHoverStationPanel'
-import { useDefaultMapLocation } from '../hooks/useDefaultMapLocation'
+import { useDefaultMapLocation, FALLBACK_LOCATION } from '../hooks/useDefaultMapLocation'
+import type { MapLocation } from '../hooks/useDefaultMapLocation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLocationCrosshairs, faSpinner } from '@fortawesome/free-solid-svg-icons'
 import './Map.css'
@@ -152,18 +153,18 @@ export default function Map({
   availableTransportTypes,
 }: MapProps) {
   const { t } = useTranslation()
-  const { location: defaultLocation, fetchLocation, isLoading: isLoadingLocation } = useDefaultMapLocation()
+  const { fetchLocation, isLoading: isLoadingLocation } = useDefaultMapLocation()
 
   // Derived values
   const isInitialMode = planningMode === 'initial' && !hasJourney
   const isViewingMode = planningMode === 'viewing'
 
-  const [viewState, setViewState] = useState(defaultLocation)
+  const [viewState, setViewState] = useState<MapLocation>(FALLBACK_LOCATION)
   const [isLoadingStation, setIsLoadingStation] = useState(false)
   const [hoveredJourneyMarkerIndex, setHoveredJourneyMarkerIndex] = useState<number | null>(null)
   const [searchResults, setSearchResults] = useState<models.Stop[]>([])
   const [searchActiveIndex, setSearchActiveIndex] = useState(-1)
-  const boundsRef = useRef<Bounds | undefined>(undefined)
+  const [bounds, setBounds] = useState<Bounds | undefined>(undefined)
   const mapRef = useRef<MapRef | null>(null)
   const lastSelectedStationIdRef = useRef<string | null>(null)
   const hoverTimeoutRef = useRef<number | null>(null)
@@ -245,20 +246,19 @@ export default function Map({
     return groups
   }, [journeyViewData])
 
-  // Update viewState when defaultLocation changes (after geolocation is fetched)
-  useEffect(() => {
-    setViewState(defaultLocation)
-  }, [defaultLocation])
-
   // Handle locate button click
   const handleLocateClick = useCallback(() => {
-    fetchLocation()
+    void fetchLocation().then((location) => {
+      if (location) {
+        setViewState(location)
+      }
+    })
   }, [fetchLocation])
 
   // Fetch viewport stops when no station is selected
   const { stops: viewportStops, isLoading: isLoadingStops } = useStops({
     zoom: viewState.zoom,
-    bounds: boundsRef.current,
+    bounds,
     zoomThreshold: ZOOM_THRESHOLD,
     enabled: !selectedStation,
   })
@@ -378,7 +378,7 @@ export default function Map({
           }
         : undefined
 
-      boundsRef.current = boundsObj
+      setBounds(boundsObj)
 
       if (onViewStateChange) {
         onViewStateChange({
@@ -416,16 +416,14 @@ export default function Map({
       }
       selectedImg.src = 'data:image/svg+xml;base64,' + btoa(SELECTED_STOP_ICON)
 
-      const bounds = map.getBounds()
-      if (bounds) {
-        boundsRef.current = {
-          north: bounds.getNorth(),
-          south: bounds.getSouth(),
-          east: bounds.getEast(),
-          west: bounds.getWest(),
-        }
-        // Trigger a re-render to fetch stops with the initial bounds
-        setViewState(prev => ({ ...prev }))
+      const initialBounds = map.getBounds()
+      if (initialBounds) {
+        setBounds({
+          north: initialBounds.getNorth(),
+          south: initialBounds.getSouth(),
+          east: initialBounds.getEast(),
+          west: initialBounds.getWest(),
+        })
       }
     }
   }, [])
@@ -481,7 +479,7 @@ export default function Map({
         zoom: Math.max(prev.zoom, SEARCH_FOCUS_ZOOM),
       }))
 
-      boundsRef.current = undefined
+      setBounds(undefined)
       selectStationById(stop.stop_id)
     },
     [selectStationById]

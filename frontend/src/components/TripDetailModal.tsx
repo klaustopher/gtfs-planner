@@ -23,6 +23,12 @@ interface TripDetailModalProps {
   ) => void
 }
 
+interface LoadedTripDetails {
+  key: string
+  details: models.TripDetails | null
+  hasError: boolean
+}
+
 // Format ISO 8601 datetime to HH:MM display
 function formatTimeDisplay(isoDateTime: string, locale: string): string {
   const date = new Date(isoDateTime)
@@ -36,9 +42,7 @@ export default function TripDetailModal({
   onClose,
   onTripSelection,
 }: TripDetailModalProps) {
-  const [tripDetails, setTripDetails] = useState<models.TripDetails | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [hasError, setHasError] = useState(false)
+  const [loaded, setLoaded] = useState<LoadedTripDetails | null>(null)
   const { t, i18n } = useTranslation()
   const resolvedLanguage = i18n.language || i18n.resolvedLanguage || 'en'
   const selectedStopRef = useRef<HTMLDivElement>(null)
@@ -47,22 +51,34 @@ export default function TripDetailModal({
   const normalizedColor = normalizeColor(trip.route_color)
   const tripColor = normalizedColor ?? FALLBACK_COLORS[tripIndex % FALLBACK_COLORS.length]
 
+  const detailsKey = `${trip.trip_id}:${serviceDate}`
+
   // Fetch full trip details when modal opens
   useEffect(() => {
-    setIsLoading(true)
-    setHasError(false)
+    let cancelled = false
 
     GetTripDetails(trip.trip_id, serviceDate)
       .then((details) => {
-        setTripDetails(details)
-        setIsLoading(false)
+        if (!cancelled) {
+          setLoaded({ key: detailsKey, details, hasError: false })
+        }
       })
       .catch((err) => {
         console.error('Failed to fetch trip details:', err)
-        setHasError(true)
-        setIsLoading(false)
+        if (!cancelled) {
+          setLoaded({ key: detailsKey, details: null, hasError: true })
+        }
       })
-  }, [trip.trip_id, serviceDate])
+
+    return () => {
+      cancelled = true
+    }
+  }, [detailsKey, trip.trip_id, serviceDate])
+
+  const current = loaded?.key === detailsKey ? loaded : null
+  const tripDetails = current?.details ?? null
+  const isLoading = current === null
+  const hasError = current?.hasError ?? false
 
   // Auto-scroll to selected station (at 1/3 position)
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { GetStops } from '../../../wailsjs/go/main/App'
 import { models } from '../../../wailsjs/go/models'
 
@@ -22,6 +22,11 @@ export interface UseStopsResult {
   isLoading: boolean
 }
 
+interface LoadedStops {
+  key: string
+  stops: models.Stop[]
+}
+
 export function useStops({
   zoom,
   bounds,
@@ -29,59 +34,42 @@ export function useStops({
   debounceMs = 300,
   enabled = true,
 }: UseStopsOptions): UseStopsResult {
-  const [stops, setStops] = useState<models.Stop[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const debounceTimerRef = useRef<number | null>(null)
-  const requestIdRef = useRef(0)
+  const [loaded, setLoaded] = useState<LoadedStops | null>(null)
+
+  const activeBounds = enabled && zoom >= zoomThreshold && bounds ? bounds : null
+  const key = activeBounds ? JSON.stringify(activeBounds) : null
 
   useEffect(() => {
-    if (!enabled) {
+    if (!activeBounds || !key) {
       return
     }
 
-    // Clear any pending debounce timer
-    if (debounceTimerRef.current !== null) {
-      window.clearTimeout(debounceTimerRef.current)
-    }
+    let cancelled = false
+    const { north, south, east, west } = activeBounds
 
-    if (zoom >= zoomThreshold && bounds) {
-      const { north, south, east, west } = bounds
+    const timer = window.setTimeout(() => {
+      GetStops(north, south, east, west)
+        .then((fetchedStops) => {
+          if (!cancelled) {
+            setLoaded({ key, stops: fetchedStops || [] })
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to fetch stops:', err)
+          if (!cancelled) {
+            setLoaded((prev) => ({ key, stops: prev?.stops ?? [] }))
+          }
+        })
+    }, debounceMs)
 
-      // Set loading state immediately when bounds change
-      setIsLoading(true)
-
-      // Debounce the fetch request
-      debounceTimerRef.current = window.setTimeout(() => {
-        // Increment request ID to track the latest request
-        const currentRequestId = ++requestIdRef.current
-
-        GetStops(north, south, east, west)
-          .then((fetchedStops) => {
-            // Only update if this is still the latest request
-            if (currentRequestId === requestIdRef.current) {
-              setStops(fetchedStops || [])
-              setIsLoading(false)
-            }
-          })
-          .catch((err) => {
-            if (currentRequestId === requestIdRef.current) {
-              console.error('Failed to fetch stops:', err)
-              setIsLoading(false)
-            }
-          })
-      }, debounceMs)
-    } else {
-      setStops([])
-      setIsLoading(false)
-    }
-
-    // Cleanup on unmount or before next effect
     return () => {
-      if (debounceTimerRef.current !== null) {
-        window.clearTimeout(debounceTimerRef.current)
-      }
+      cancelled = true
+      window.clearTimeout(timer)
     }
-  }, [zoom, bounds, zoomThreshold, debounceMs, enabled])
+  }, [key, activeBounds, debounceMs])
 
-  return { stops, isLoading }
+  return {
+    stops: key === null ? [] : (loaded?.stops ?? []),
+    isLoading: key !== null && loaded?.key !== key,
+  }
 }
