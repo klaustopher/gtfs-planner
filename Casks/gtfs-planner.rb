@@ -1,6 +1,6 @@
 cask "gtfs-planner" do
-  version "1.0.0"
-  sha256 "c914e7646e5a84708de8cf78e65adb37fd97d828e0f508ed7e147059f3f54676"
+  version "1.1.0"
+  sha256 "1ebb6fab4761707b176395f0f564f212a18e2de2af740e277fc50463496ac4a4"
 
   url "https://github.com/klaustopher/gtfs-planner/releases/download/v#{version}/gtfs-planner_v#{version}_macOS_universal.dmg"
   name "GTFS Planner"
