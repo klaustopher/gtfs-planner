@@ -135,23 +135,31 @@ function calculateAnchorPosition(
   }
 }
 
+interface LoadedJourney {
+  key: string
+  details: Map<string, models.TripDetails>
+  error: string | null
+}
+
+const EMPTY_TRIP_DETAILS = new Map<string, models.TripDetails>()
+
 export function useJourneyView(
   savedTrips: SavedTrip[],
   enabled: boolean
 ): { data: JourneyViewData | null; isLoading: boolean; error: string | null } {
-  const [tripDetails, setTripDetails] = useState<Map<string, models.TripDetails>>(new Map())
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [loaded, setLoaded] = useState<LoadedJourney | null>(null)
 
-  // Fetch trip details when enabled
+  const key =
+    enabled && savedTrips.length > 0
+      ? JSON.stringify(savedTrips.map((trip) => [trip.tripId, trip.departureDateTime]))
+      : null
+
   useEffect(() => {
-    if (!enabled || savedTrips.length === 0) {
-      setTripDetails(new Map())
+    if (!key) {
       return
     }
 
-    setIsLoading(true)
-    setError(null)
+    let cancelled = false
 
     const fetchAll = async () => {
       const details = new Map<string, models.TripDetails>()
@@ -175,16 +183,25 @@ export function useJourneyView(
         }
       }
 
-      setTripDetails(details)
-      setIsLoading(false)
+      if (!cancelled) {
+        setLoaded({ key, details, error: null })
+      }
     }
 
     fetchAll().catch(err => {
       console.error('Failed to fetch journey details:', err)
-      setError('Failed to load journey details')
-      setIsLoading(false)
+      if (!cancelled) {
+        setLoaded({ key, details: EMPTY_TRIP_DETAILS, error: 'Failed to load journey details' })
+      }
     })
-  }, [savedTrips, enabled])
+
+    return () => {
+      cancelled = true
+    }
+  }, [key, savedTrips])
+
+  const current = loaded?.key === key ? loaded : null
+  const tripDetails = current?.details ?? EMPTY_TRIP_DETAILS
 
   // Build journey view data from trip details
   const data = useMemo<JourneyViewData | null>(() => {
@@ -383,5 +400,9 @@ export function useJourneyView(
     }
   }, [savedTrips, tripDetails, enabled])
 
-  return { data, isLoading, error }
+  return {
+    data,
+    isLoading: key !== null && current === null,
+    error: current?.error ?? null,
+  }
 }
