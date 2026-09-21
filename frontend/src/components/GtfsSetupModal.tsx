@@ -214,8 +214,22 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
               {isUpdate ? t('gtfsSetup.updateDescription') : t('gtfsSetup.description')}
             </p>
             {isUpdate && status && (
-              <p className="gtfs-setup-modal__status">
-                {t('gtfsSetup.validUntil', { date: status.lastDate, days: status.daysRemaining })}
+              <p
+                className={
+                  status.daysRemaining < 0
+                    ? 'gtfs-setup-modal__status gtfs-setup-modal__status--expired'
+                    : 'gtfs-setup-modal__status'
+                }
+              >
+                {status.daysRemaining < 0
+                  ? t('gtfsSetup.validUntilExpired', {
+                      date: status.lastDate,
+                      count: Math.abs(status.daysRemaining),
+                    })
+                  : t('gtfsSetup.validUntil', {
+                      date: status.lastDate,
+                      count: status.daysRemaining,
+                    })}
               </p>
             )}
           </div>

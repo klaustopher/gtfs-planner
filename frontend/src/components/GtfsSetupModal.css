@@ -214,6 +214,11 @@
   color: var(--color-accent-warning-light);
 }
 
+.gtfs-setup-modal__status--expired {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
 .gtfs-setup-modal__error {
   padding: var(--space-md);
   background: var(--color-bg-secondary);

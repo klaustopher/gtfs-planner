@@ -216,7 +216,10 @@
     "description": "Um die App nutzen zu können, muss zunächst eine GTFS-Datenbank heruntergeladen und importiert werden.",
     "updateTitle": "GTFS-Daten aktualisieren",
     "updateDescription": "Die Fahrplandaten laufen bald ab oder sind bereits abgelaufen. Bitte aktualisiere die Datenbank.",
-    "validUntil": "Gültig bis {{date}} ({{days}} Tage verbleibend)",
+    "validUntil_one": "Gültig bis {{date}} (noch {{count}} Tag)",
+    "validUntil_other": "Gültig bis {{date}} (noch {{count}} Tage)",
+    "validUntilExpired_one": "Gültig bis {{date}} (seit {{count}} Tag abgelaufen)",
+    "validUntilExpired_other": "Gültig bis {{date}} (seit {{count}} Tagen abgelaufen)",
     "online": {
       "title": "gtfs.de (kostenlos)",
       "description": "Der kostenlose, deutschlandweite GTFS-Feed von gtfs.de — direkt herunterladbar, ideal für den schnellen Start. Deckt allerdings nur rund 30 Tage ab.",
