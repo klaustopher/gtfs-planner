@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTimes, faTrash } from '@fortawesome/free-solid-svg-icons'
 import { useSettings } from '../hooks/useSettings'
-import { GetDatabaseInfo, GetDatabaseStatus, DeleteDatabase } from '../../wailsjs/go/main/App'
+import { GetAppVersion, GetDatabaseInfo, GetDatabaseStatus, DeleteDatabase } from '../../wailsjs/go/main/App'
 import { useConfirm } from '../hooks/useConfirm'
 import { formatDateDisplay } from '../utils/time'
 import type { main } from '../../wailsjs/go/models'
@@ -30,6 +30,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const normalizedLanguage = rawLanguage.split('-')[0]
   const [dbInfo, setDbInfo] = useState<main.DatabaseInfo | null>(null)
   const [dbStatus, setDbStatus] = useState<main.DatabaseStatus | null>(null)
+  const [appVersion, setAppVersion] = useState<string | null>(null)
 
   const refreshDbInfo = useCallback(() => {
     void GetDatabaseInfo().then(setDbInfo).catch((err: unknown) => {
@@ -45,6 +46,15 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       refreshDbInfo()
     }
   }, [isOpen, refreshDbInfo])
+
+  useEffect(() => {
+    if (!isOpen || appVersion) {
+      return
+    }
+    void GetAppVersion().then(setAppVersion).catch((err: unknown) => {
+      console.error('Failed to get app version:', err)
+    })
+  }, [isOpen, appVersion])
 
   const handleDeleteDatabase = useCallback(async () => {
     const confirmed = await confirm(
@@ -116,78 +126,88 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <FontAwesomeIcon icon={faTimes} />
           </button>
         </header>
-        <section className="settings-modal__section">
-          <label htmlFor="settings-language" className="settings-modal__section-title">
-            {t('settings.languageLabel')}
-          </label>
-          <p className="settings-modal__hint">{t('settings.languageHint')}</p>
-          <select
-            id="settings-language"
-            value={normalizedLanguage}
-            onChange={handleLanguageChange}
-            className="settings-modal__select"
-          >
-            <option value="de">{t('common.language.options.de')}</option>
-            <option value="en">{t('common.language.options.en')}</option>
-          </select>
-        </section>
-        <section className="settings-modal__section">
-          <label htmlFor="settings-connection-time" className="settings-modal__section-title">
-            {t('settings.connectionTimeLabel')}
-          </label>
-          <p className="settings-modal__hint">{t('settings.connectionTimeHint')}</p>
-          <div className="settings-modal__slider-container">
-            <input
-              id="settings-connection-time"
-              type="range"
-              min="0"
-              max="30"
-              step="1"
-              value={settings.connectionTimeMinutes}
-              onChange={handleConnectionTimeChange}
-              className="settings-modal__slider"
-            />
-            <div className="settings-modal__slider-value">
-              <strong>{settings.connectionTimeMinutes}</strong> {t('settings.connectionTimeUnit')}
+        <div className="settings-modal__body">
+          <section className="settings-modal__section">
+            <label htmlFor="settings-language" className="settings-modal__section-title">
+              {t('settings.languageLabel')}
+            </label>
+            <p className="settings-modal__hint">{t('settings.languageHint')}</p>
+            <select
+              id="settings-language"
+              value={normalizedLanguage}
+              onChange={handleLanguageChange}
+              className="settings-modal__select"
+            >
+              <option value="de">{t('common.language.options.de')}</option>
+              <option value="en">{t('common.language.options.en')}</option>
+            </select>
+          </section>
+          <section className="settings-modal__section">
+            <label htmlFor="settings-connection-time" className="settings-modal__section-title">
+              {t('settings.connectionTimeLabel')}
+            </label>
+            <p className="settings-modal__hint">{t('settings.connectionTimeHint')}</p>
+            <div className="settings-modal__slider-container">
+              <input
+                id="settings-connection-time"
+                type="range"
+                min="0"
+                max="30"
+                step="1"
+                value={settings.connectionTimeMinutes}
+                onChange={handleConnectionTimeChange}
+                className="settings-modal__slider"
+              />
+              <div className="settings-modal__slider-value">
+                <strong>{settings.connectionTimeMinutes}</strong> {t('settings.connectionTimeUnit')}
+              </div>
             </div>
-          </div>
-        </section>
-        <section className="settings-modal__section">
-          <h3 className="settings-modal__section-title">{t('settings.database.title')}</h3>
-          <p className="settings-modal__hint">{t('settings.database.hint')}</p>
-          <dl className="settings-modal__db-info">
-            <dt>{t('settings.database.pathLabel')}</dt>
-            <dd className="settings-modal__db-path">{dbInfo?.path ?? '—'}</dd>
-            <dt>{t('settings.database.sizeLabel')}</dt>
-            <dd>
-              {dbInfo?.exists
-                ? formatBytes(dbInfo.sizeBytes)
-                : t('settings.database.notPresent')}
-            </dd>
-            {dbStatus?.hasData && (
-              <>
-                <dt>{t('settings.database.firstDate')}</dt>
-                <dd>{formatDateDisplay(dbStatus.firstDate, i18n.language)}</dd>
-                <dt>{t('settings.database.lastDate')}</dt>
-                <dd>{formatDateDisplay(dbStatus.lastDate, i18n.language)}</dd>
-                <dt>{t('settings.database.daysRemaining')}</dt>
-                <dd className={dbStatus.daysRemaining < 7 ? 'settings-modal__db-warn' : ''}>
-                  {dbStatus.daysRemaining < 0
-                    ? t('settings.database.expired')
-                    : t('settings.database.daysValue', { days: dbStatus.daysRemaining })}
-                </dd>
-              </>
-            )}
-          </dl>
-          <button
-            type="button"
-            className="settings-modal__delete-button"
-            onClick={() => void handleDeleteDatabase()}
-            disabled={!dbInfo?.exists}
-          >
-            <FontAwesomeIcon icon={faTrash} /> {t('settings.database.delete')}
-          </button>
-        </section>
+          </section>
+          <section className="settings-modal__section">
+            <h3 className="settings-modal__section-title">{t('settings.database.title')}</h3>
+            <p className="settings-modal__hint">{t('settings.database.hint')}</p>
+            <dl className="settings-modal__info-list">
+              <dt>{t('settings.database.pathLabel')}</dt>
+              <dd className="settings-modal__db-path">{dbInfo?.path ?? '—'}</dd>
+              <dt>{t('settings.database.sizeLabel')}</dt>
+              <dd>
+                {dbInfo?.exists
+                  ? formatBytes(dbInfo.sizeBytes)
+                  : t('settings.database.notPresent')}
+              </dd>
+              {dbStatus?.hasData && (
+                <>
+                  <dt>{t('settings.database.firstDate')}</dt>
+                  <dd>{formatDateDisplay(dbStatus.firstDate, i18n.language)}</dd>
+                  <dt>{t('settings.database.lastDate')}</dt>
+                  <dd>{formatDateDisplay(dbStatus.lastDate, i18n.language)}</dd>
+                  <dt>{t('settings.database.daysRemaining')}</dt>
+                  <dd className={dbStatus.daysRemaining < 7 ? 'settings-modal__db-warn' : ''}>
+                    {dbStatus.daysRemaining < 0
+                      ? t('settings.database.expired')
+                      : t('settings.database.daysValue', { days: dbStatus.daysRemaining })}
+                  </dd>
+                </>
+              )}
+            </dl>
+            <button
+              type="button"
+              className="settings-modal__delete-button"
+              onClick={() => void handleDeleteDatabase()}
+              disabled={!dbInfo?.exists}
+            >
+              <FontAwesomeIcon icon={faTrash} /> {t('settings.database.delete')}
+            </button>
+          </section>
+          <section className="settings-modal__section">
+            <h3 className="settings-modal__section-title">{t('settings.about.title')}</h3>
+            <p className="settings-modal__hint">{t('settings.about.hint')}</p>
+            <dl className="settings-modal__info-list">
+              <dt>{t('settings.about.versionLabel')}</dt>
+              <dd>{appVersion ?? '—'}</dd>
+            </dl>
+          </section>
+        </div>
       </div>
       {confirmDialog}
     </div>

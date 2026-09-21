@@ -87,6 +87,7 @@ DownloadGTFS(url string)                   // Download feed (emits gtfs:download
 ImportGTFS()                               // Import downloaded feed (emits gtfs:import:*)
 ImportGTFSFromFile()                       // Pick + import a local zip
 GetDatabaseInfo() / DeleteDatabase()       // Settings: path/size, delete
+GetAppVersion()                            // Settings: released version
 ```
 
 ### Frontend (React + TypeScript)

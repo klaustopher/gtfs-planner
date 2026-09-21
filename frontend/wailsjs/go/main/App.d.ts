@@ -18,6 +18,8 @@ export function ExportJourneyToPDF(arg1:models.JourneyData):Promise<string>;
 
 export function GetAbsolutePath(arg1:string):Promise<string>;
 
+export function GetAppVersion():Promise<string>;
+
 export function GetDatabaseInfo():Promise<main.DatabaseInfo>;
 
 export function GetDatabaseStatus():Promise<main.DatabaseStatus>;

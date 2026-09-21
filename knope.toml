@@ -17,6 +17,7 @@
 versioned_files = [
     "frontend/package.json",
     { path = "wails.json", regex = '"productVersion": "(?<version>\d+\.\d+\.\d+)"' },
+    { path = "version.go", regex = 'const appVersion = "(?<version>\d+\.\d+\.\d+)"' },
 ]
 changelog = "CHANGELOG.md"
 

@@ -126,6 +126,11 @@
       "daysRemaining": "Remaining",
       "daysValue": "{{days}} days",
       "expired": "Expired"
+    },
+    "about": {
+      "title": "About",
+      "hint": "The version of GTFS Planner running on this device.",
+      "versionLabel": "Version"
     }
   },
   "journeyMarker": {

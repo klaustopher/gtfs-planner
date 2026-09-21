@@ -91,8 +91,9 @@ dialog and settings — there is no longer a separate CLI.
 
 Versioning and the changelog are managed with [knope](https://knope.tech)
 (`brew install knope-dev/tap/knope`). The single source of truth for the
-version is the set of versioned files (`frontend/package.json` and
-`wails.json`'s `info.productVersion`); they must always agree.
+version is the set of versioned files (`frontend/package.json`,
+`wails.json`'s `info.productVersion` and `appVersion` in `version.go`); they
+must always agree. `version.go` is what the Settings dialog displays.
 
 1. **Describe each change** as you work — for anything user-facing, run:
 

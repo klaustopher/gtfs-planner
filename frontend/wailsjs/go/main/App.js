@@ -30,6 +30,10 @@ export function GetAbsolutePath(arg1) {
   return window['go']['main']['App']['GetAbsolutePath'](arg1);
 }
 
+export function GetAppVersion() {
+  return window['go']['main']['App']['GetAppVersion']();
+}
+
 export function GetDatabaseInfo() {
   return window['go']['main']['App']['GetDatabaseInfo']();
 }
