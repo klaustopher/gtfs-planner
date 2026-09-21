@@ -6,6 +6,7 @@ import type {
   MapLayerMouseEvent,
 } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import './map/maplibreWorker'
 import { GetStationDetails } from '../../wailsjs/go/main/App'
 import { models } from '../../wailsjs/go/models'
 import { useStops, Bounds } from './map/useStops'
