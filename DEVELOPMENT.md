@@ -112,9 +112,38 @@ version is the set of versioned files (`frontend/package.json` and
    the entry to `CHANGELOG.md`, commits, and creates + pushes the `vX.Y.Z` tag.
 
 3. The pushed tag triggers `.github/workflows/release.yml`, which builds all
-   platform artifacts (macOS, Windows, Linux amd64/arm64) and creates the
-   draft GitHub release. Publish it, and `update-cask.yml` then bumps the
-   Homebrew cask's version + sha256.
+   platform artifacts (macOS, Windows, Linux amd64/arm64) and attaches them to
+   a **draft** GitHub release. Nothing is public at this point.
+
+4. **Publish the draft — this step is manual, and nothing downstream happens
+   until you do it:**
+
+   ```bash
+   gh release edit vX.Y.Z --draft=false --latest
+   ```
+
+   (or click "Publish release" on the releases page). This fires the
+   `release: published` event that `update-cask.yml` waits for; that workflow
+   then downloads the macOS `.dmg`, rewrites the version + sha256 in
+   `Casks/gtfs-planner.rb` and pushes the commit to `main`.
+
+   It is deliberately not automated, for two reasons: a draft's asset URLs are
+   not publicly reachable, so the sha256 cannot be computed before publishing;
+   and a release published by the default `GITHUB_TOKEN` would not trigger
+   `update-cask.yml` at all — the same token restriction described below.
+   Publishing as yourself, via the UI or `gh`, does trigger it.
+
+5. **Confirm the cask actually moved** — the release is easy to leave sitting as
+   a draft, in which case Homebrew users silently keep getting the old version:
+
+   ```bash
+   gh release list                           # vX.Y.Z should say "Latest", not "Draft"
+   gh run list --workflow=update-cask.yml    # expect a run with event `release`
+   git pull && grep -E '^  (version|sha256)' Casks/gtfs-planner.rb
+   ```
+
+   If that run failed or never happened, `update-cask.yml` also accepts a
+   manual `workflow_dispatch` with the tag as input.
 
 Run `knope release` **locally** (not from CI): pushing the tag as yourself is
 what triggers `release.yml`, whereas a tag pushed by the default `GITHUB_TOKEN`
