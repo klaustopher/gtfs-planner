@@ -6,6 +6,44 @@ on:
   pull_request:
 
 jobs:
+  # The release workflow installs the Wails CLI from a pin of its own and sets
+  # up Node independently, neither of which is tied to go.mod or to this file.
+  # They drift silently and only bite once a tag is pushed, so check here.
+  versions:
+    name: Version consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Wails CLI pin and Node version match across workflows
+        run: |
+          status=0
+
+          gomod=$(grep -E '^[[:space:]]*github\.com/wailsapp/wails/v2 v' go.mod | awk '{print $2}' || true)
+          pinned=$(grep -E '^[[:space:]]*WAILS_VERSION:' .github/workflows/release.yml | awk '{print $2}' || true)
+          echo "wails  go.mod=${gomod:-<none>}  release.yml=${pinned:-<none>}"
+
+          if [ -z "$gomod" ] || [ -z "$pinned" ]; then
+            echo "::error::could not read the Wails version from both files - has the format changed?"
+            status=1
+          elif [ "$gomod" != "$pinned" ]; then
+            echo "::error::WAILS_VERSION in .github/workflows/release.yml ($pinned) does not match go.mod ($gomod). Update the pin."
+            status=1
+          fi
+
+          node_versions=$(grep -hoE 'node-version: *[0-9]+' .github/workflows/ci.yml .github/workflows/release.yml | awk '{print $2}' | sort -u || true)
+          echo "node   $(echo "$node_versions" | tr '\n' ' ')"
+
+          if [ -z "$node_versions" ]; then
+            echo "::error::found no node-version pins - has the format changed?"
+            status=1
+          elif [ "$(echo "$node_versions" | wc -l)" -ne 1 ]; then
+            echo "::error::ci.yml and release.yml disagree on node-version: $(echo "$node_versions" | tr '\n' ' ')"
+            status=1
+          fi
+
+          exit "$status"
+
   go:
     name: Go tests
     runs-on: ubuntu-latest
