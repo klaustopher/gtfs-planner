@@ -11,7 +11,7 @@ info:
   description: "Visualize GTFS transit data and plan multi-leg journeys"
   copyright: "© 2026 Klaus Zanders"
   comments: "Visualize GTFS transit data and plan multi-leg journeys"
-  version: "1.1.0"
+  version: "2.0.0"
 
 # Dev mode configuration
 dev_mode:
