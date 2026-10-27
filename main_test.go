@@ -10,8 +10,7 @@ import (
 const sampleDBPath = "internal/db/testdata/test.sqlite"
 
 // TestMain points the App at the sample database (via the GTFS_DATABASE_PATH
-// override) so app.startup() opens it instead of the production database
-// configured in gtfs-config.yaml.
+// override) so app.ServiceStartup() opens it instead of the production database.
 func TestMain(m *testing.M) {
 	os.Setenv("GTFS_DATABASE_PATH", sampleDBPath)
 	os.Exit(m.Run())

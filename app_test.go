@@ -11,12 +11,13 @@ import (
 	"gtfs-planner/internal/models"
 
 	"codeberg.org/go-pdf/fpdf"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 func TestGetStops(t *testing.T) {
-	app := NewApp()
-	app.startup(context.Background())
-	defer app.shutdown(context.Background())
+	app := NewApp(nil)
+	app.ServiceStartup(context.Background(), application.ServiceOptions{})
+	defer app.ServiceShutdown()
 
 	if app.db == nil {
 		t.Fatal("Database connection failed")
@@ -58,9 +59,9 @@ func TestGetStops(t *testing.T) {
 }
 
 func TestGetStopsEmptyArea(t *testing.T) {
-	app := NewApp()
-	app.startup(context.Background())
-	defer app.shutdown(context.Background())
+	app := NewApp(nil)
+	app.ServiceStartup(context.Background(), application.ServiceOptions{})
+	defer app.ServiceShutdown()
 
 	if app.db == nil {
 		t.Fatal("Database connection failed")
@@ -81,7 +82,7 @@ func TestGetStopsEmptyArea(t *testing.T) {
 }
 
 func TestGetStopsWithoutDatabase(t *testing.T) {
-	app := NewApp()
+	app := NewApp(nil)
 	// Don't call startup - database should be nil
 
 	_, err := app.GetStops(52.6, 52.4, 13.5, 13.3)
@@ -119,9 +120,9 @@ func TestGetRouteTypeName(t *testing.T) {
 
 // Test ICS export content generation
 func TestExportJourneyToICS_Content(t *testing.T) {
-	app := NewApp()
-	app.startup(context.Background())
-	defer app.shutdown(context.Background())
+	app := NewApp(nil)
+	app.ServiceStartup(context.Background(), application.ServiceOptions{})
+	defer app.ServiceShutdown()
 
 	if app.db == nil {
 		t.Fatal("Database connection failed")
@@ -235,9 +236,9 @@ func TestExportJourneyToICS_Content(t *testing.T) {
 
 // Test PDF export with real data
 func TestExportJourneyToPDF_Content(t *testing.T) {
-	app := NewApp()
-	app.startup(context.Background())
-	defer app.shutdown(context.Background())
+	app := NewApp(nil)
+	app.ServiceStartup(context.Background(), application.ServiceOptions{})
+	defer app.ServiceShutdown()
 
 	if app.db == nil {
 		t.Fatal("Database connection failed")
@@ -425,9 +426,9 @@ func TestExportEmptyJourney(t *testing.T) {
 
 // Test journey with multiple trips
 func TestJourneyWithMultipleTrips(t *testing.T) {
-	app := NewApp()
-	app.startup(context.Background())
-	defer app.shutdown(context.Background())
+	app := NewApp(nil)
+	app.ServiceStartup(context.Background(), application.ServiceOptions{})
+	defer app.ServiceShutdown()
 
 	if app.db == nil {
 		t.Fatal("Database connection failed")
