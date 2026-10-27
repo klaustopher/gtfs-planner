@@ -6,9 +6,10 @@
 #
 # The pushed tag triggers .github/workflows/release.yml, which builds the
 # artifacts and creates the GitHub release. There is intentionally no
-# [github] section here: without one, knope's Release step only creates and
-# pushes the git tag — it does not create the GitHub release itself, so it
-# does not collide with release.yml.
+# [github] section here: without one, knope's Release step only creates the
+# git tag locally — it neither pushes it nor creates the GitHub release, so it
+# does not collide with release.yml. The tag is pushed by the Command step
+# after it.
 #
 # The Homebrew cask version + sha256 are handled separately by
 # .github/workflows/update-cask.yml when the release is published.
@@ -37,6 +38,10 @@ command = "git push"
 
 [[workflows.steps]]
 type = "Release"
+
+[[workflows.steps]]
+type = "Command"
+command = "git push origin v$version"
 
 [[workflows]]
 name = "document-change"
