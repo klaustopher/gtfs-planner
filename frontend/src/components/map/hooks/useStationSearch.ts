@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { ChangeEvent, KeyboardEvent, Dispatch, SetStateAction } from 'react'
-import { SearchStations } from '../../../../wailsjs/go/main/App'
-import { models } from '../../../../wailsjs/go/models'
+import { SearchStations } from '../../../../bindings/gtfs-planner/app'
+import * as models from '../../../../bindings/gtfs-planner/internal/models'
 
 const SEARCH_DEBOUNCE_MS = 250
 const SEARCH_RESULT_LIMIT = 8

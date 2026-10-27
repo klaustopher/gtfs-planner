@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { models } from '../../../wailsjs/go/models'
+import * as models from '../../../bindings/gtfs-planner/internal/models'
 import { useStationSearch } from './hooks/useStationSearch'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTimes } from '@fortawesome/free-solid-svg-icons'

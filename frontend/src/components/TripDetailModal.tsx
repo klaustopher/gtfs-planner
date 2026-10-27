@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { models } from '../../wailsjs/go/models'
-import { GetTripDetails } from '../../wailsjs/go/main/App'
+import * as models from '../../bindings/gtfs-planner/internal/models'
+import { GetTripDetails } from '../../bindings/gtfs-planner/app'
 import { normalizeColor, FALLBACK_COLORS } from './map/geojson'
 import { getTransportTypeLabel } from '../utils/transportType'
 import { useTranslation } from 'react-i18next'

@@ -1,70 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-    <dict>
-        <key>CFBundlePackageType</key>
-        <string>APPL</string>
-        <key>CFBundleName</key>
-        <string>{{.Info.ProductName}}</string>
-        <key>CFBundleExecutable</key>
-        <string>{{.OutputFilename}}</string>
-        <key>CFBundleIdentifier</key>
-        <string>me.kgz.gtfs-planner</string>
-        <key>CFBundleVersion</key>
-        <string>{{.Info.ProductVersion}}</string>
-        <key>CFBundleGetInfoString</key>
-        <string>{{.Info.Comments}}</string>
-        <key>CFBundleShortVersionString</key>
-        <string>{{.Info.ProductVersion}}</string>
-        <key>CFBundleIconFile</key>
-        <string>iconfile</string>
-        <key>LSMinimumSystemVersion</key>
-        <string>10.13.0</string>
-        <key>NSHighResolutionCapable</key>
-        <string>true</string>
-        <key>NSHumanReadableCopyright</key>
-        <string>{{.Info.Copyright}}</string>
-        <key>NSLocationWhenInUseUsageDescription</key>
-        <string>GTFS Planner möchte Ihren Standort verwenden, um die Karte zu zentrieren.</string>
-        {{if .Info.FileAssociations}}
-        <key>CFBundleDocumentTypes</key>
-        <array>
-          {{range .Info.FileAssociations}}
-          <dict>
-            <key>CFBundleTypeExtensions</key>
-            <array>
-              <string>{{.Ext}}</string>
-            </array>
-            <key>CFBundleTypeName</key>
-            <string>{{.Name}}</string>
-            <key>CFBundleTypeRole</key>
-            <string>{{.Role}}</string>
-            <key>CFBundleTypeIconFile</key>
-            <string>{{.IconName}}</string>
-          </dict>
-          {{end}}
-        </array>
-        {{end}}
-        {{if .Info.Protocols}}
-        <key>CFBundleURLTypes</key>
-        <array>
-          {{range .Info.Protocols}}
-            <dict>
-                <key>CFBundleURLName</key>
-                <string>me.kgz.{{.Scheme}}</string>
-                <key>CFBundleURLSchemes</key>
-                <array>
-                    <string>{{.Scheme}}</string>
-                </array>
-                <key>CFBundleTypeRole</key>
-                <string>{{.Role}}</string>
-            </dict>
-          {{end}}
-        </array>
-        {{end}}
-        <key>NSAppTransportSecurity</key>
-        <dict>
-            <key>NSAllowsLocalNetworking</key>
-            <true/>
-        </dict>
-    </dict>
+	<dict>
+		<key>CFBundleDocumentTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeExtensions</key>
+				<array>
+					<string>gtfs-journey</string>
+				</array>
+				<key>CFBundleTypeIconFile</key>
+				<string>journeyFileIcon</string>
+				<key>CFBundleTypeName</key>
+				<string>GTFS Journey</string>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+			</dict>
+		</array>
+		<key>CFBundleExecutable</key>
+		<string>gtfs-planner</string>
+		<key>CFBundleGetInfoString</key>
+		<string>Visualize GTFS transit data and plan multi-leg journeys</string>
+		<key>CFBundleIconFile</key>
+		<string>icons</string>
+		<key>CFBundleIdentifier</key>
+		<string>me.kgz.gtfs-planner</string>
+		<key>CFBundleName</key>
+		<string>GTFS Planner</string>
+		<key>CFBundlePackageType</key>
+		<string>APPL</string>
+		<key>CFBundleShortVersionString</key>
+		<string>1.1.0</string>
+		<key>CFBundleVersion</key>
+		<string>1.1.0</string>
+		<key>LSMinimumSystemVersion</key>
+		<string>12.0.0</string>
+		<key>NSAppTransportSecurity</key>
+		<dict>
+			<key>NSAllowsLocalNetworking</key>
+			<true/>
+		</dict>
+		<key>NSHighResolutionCapable</key>
+		<string>true</string>
+		<key>NSHumanReadableCopyright</key>
+		<string>© 2026 Klaus Zanders</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>GTFS Planner möchte Ihren Standort verwenden, um die Karte zu zentrieren.</string>
+	</dict>
 </plist>

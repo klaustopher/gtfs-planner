@@ -1,0 +1,49 @@
+# This file contains the configuration for this project.
+# When you update `info` or `fileAssociations`, run `wails3 task common:update:build-assets` to update the assets.
+# Note that this will overwrite any changes you have made to the assets.
+version: '3'
+
+# This information is used to generate the build assets.
+info:
+  companyName: "Klaus Zanders"
+  productName: "GTFS Planner"
+  productIdentifier: "me.kgz.gtfs-planner"
+  description: "Visualize GTFS transit data and plan multi-leg journeys"
+  copyright: "© 2026 Klaus Zanders"
+  comments: "Visualize GTFS transit data and plan multi-leg journeys"
+  version: "1.1.0"
+
+# Dev mode configuration
+dev_mode:
+  root_path: .
+  log_level: warn
+  debounce: 1000
+  ignore:
+    dir:
+      - .git
+      - node_modules
+      - frontend
+      - bin
+    file:
+      - .DS_Store
+      - .gitignore
+      - .gitkeep
+      - "*_test.go"
+    watched_extension:
+      - "*.go"
+    git_ignore: true
+  executes:
+    - cmd: wails3 build DEV=true
+      type: blocking
+    - cmd: wails3 task common:dev:frontend
+      type: background
+    - cmd: wails3 task run
+      type: primary
+      exit_policy: shutdown
+
+fileAssociations:
+  - ext: gtfs-journey
+    name: GTFS Journey
+    description: GTFS Planner Journey
+    iconName: journeyFileIcon
+    role: Editor

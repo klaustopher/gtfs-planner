@@ -1,6 +1,6 @@
 import StationHoverPanel from './StationHoverPanel'
 import { HoveredStationInfo } from './types'
-import { models } from '../../../wailsjs/go/models'
+import * as models from '../../../bindings/gtfs-planner/internal/models'
 
 interface StationHoverOverlayProps {
   hoveredStation: HoveredStationInfo | null

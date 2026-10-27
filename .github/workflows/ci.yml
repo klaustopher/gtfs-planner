@@ -19,7 +19,7 @@ jobs:
         run: |
           status=0
 
-          gomod=$(grep -E '^[[:space:]]*github\.com/wailsapp/wails/v2 v' go.mod | awk '{print $2}' || true)
+          gomod=$(grep -E '^[[:space:]]*github\.com/wailsapp/wails/v3 v' go.mod | awk '{print $2}' || true)
           pinned=$(grep -E '^[[:space:]]*WAILS_VERSION:' .github/workflows/release.yml | awk '{print $2}' || true)
           echo "wails  go.mod=${gomod:-<none>}  release.yml=${pinned:-<none>}"
 
@@ -54,6 +54,13 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+
+      # The root package imports the Wails desktop runtime, which links against
+      # GTK4/WebKitGTK via cgo on Linux.
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev
 
       # The root package uses //go:embed all:frontend/dist, which must exist
       # for `go test ./...` to compile — a placeholder is enough for tests.

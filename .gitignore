@@ -1,6 +1,10 @@
-build/bin
+/bin
+.task
 node_modules
 frontend/dist
+*.syso
+build/linux/appimage/build
+build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
 
 gtfs-data
 

@@ -1,4 +1,4 @@
-import { models } from '../../../wailsjs/go/models'
+import * as models from '../../../bindings/gtfs-planner/internal/models'
 import { detectOverlaps, applyOffset, type TripForOverlap } from './lineOffset'
 
 // Bright, high-contrast colors optimized for dark map backgrounds

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { GetUpcomingTripsForStations } from '../../../wailsjs/go/main/App'
-import { models } from '../../../wailsjs/go/models'
+import { GetUpcomingTripsForStations } from '../../../bindings/gtfs-planner/app'
+import * as models from '../../../bindings/gtfs-planner/internal/models'
 
 export interface TripQueryParams {
   stopIds: string[] // Array of station IDs to query

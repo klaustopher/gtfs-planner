@@ -8,7 +8,7 @@ GTFS Planner is a desktop application for visualizing GTFS (General Transit Feed
 
 ## Technology Stack
 
-- **Backend:** Go 1.25 with Wails v2.16.0 (desktop framework)
+- **Backend:** Go 1.25 with Wails v3.0.0 (desktop framework)
 - **Frontend:** React 19 + TypeScript 7 + Vite 8
 - **Map:** MapLibre GL 6.10 with react-map-gl 8.1
 - **Database:** SQLite (read-only mode)
@@ -18,10 +18,12 @@ GTFS Planner is a desktop application for visualizing GTFS (General Transit Feed
 
 ```bash
 # Development
-wails dev                    # Start dev server with hot reload
+wails3 dev                   # Start dev server with hot reload
 
-# Building
-wails build                  # Build production executable
+# Building (Taskfile-driven; output in bin/)
+wails3 build                 # Build production executable
+wails3 package               # .app (macOS) / NSIS installer (Windows)
+wails3 task darwin:package:universal  # Universal macOS .app (release)
 
 # Testing
 go test ./...                # Run all Go tests
@@ -36,9 +38,11 @@ npm run build                # Typecheck (tsc) + build frontend assets
 npm run lint                 # oxlint
 npm test                     # Vitest, single run
 
-# Generate Wails bindings (after changing Go methods)
-wails generate module
+# Generate Wails bindings (after changing Go methods; builds also regenerate them)
+wails3 generate bindings -clean=true -ts
 ```
+
+Linux builds need `libgtk-4-dev` and `libwebkitgtk-6.0-dev` (GTK4 + WebKitGTK 6.0).
 
 GTFS data management (download + import) happens **inside the app**: when the
 database is missing or expired the setup dialog offers download-from-URL,
@@ -51,8 +55,8 @@ registration). The database can be inspected and deleted under Settings.
 
 **Entry Points:**
 
-- `main.go` - Wails app initialization
-- `app.go` - Main `App` struct with Wails-bound methods
+- `main.go` - Wails app + window creation, registers `App` as a service, file-open event
+- `app.go` - Main `App` service (`ServiceStartup`/`ServiceShutdown`) with Wails-bound methods
 
 **Key Packages:**
 
@@ -105,7 +109,12 @@ GetAppVersion()                            // Settings: released version
 - `useTrips.ts` - Fetches upcoming trips for selected station
 - `useRoutes.ts` - Fetches route geometries
 
-**Wails JS Bindings:** Auto-generated at `frontend/wailsjs/go/main/App.ts`
+**Wails JS Bindings:** Auto-generated (committed) under `frontend/bindings/`:
+methods in `bindings/gtfs-planner/app.ts`, Go models in
+`bindings/gtfs-planner/internal/models` (imported as `import * as models`) and
+`bindings/gtfs-planner/models` (main-package types, imported as `main`). Go
+pointer returns are typed `T | null`. Runtime APIs (`Events`, `Browser`) come
+from `@wailsio/runtime`; event handlers receive a `WailsEvent` and read `.data`.
 
 ## Data Flow
 
@@ -222,8 +231,8 @@ globals into a browser typecheck. Use `vi.stubEnv()` instead of `process.env`.
 **Adding a new Wails binding:**
 
 1. Add method to `App` struct in `app.go`
-2. Run `wails generate module`
-3. Import from `wailsjs/go/main/App` in frontend
+2. Run `wails3 generate bindings -clean=true -ts`
+3. Import from `bindings/gtfs-planner/app` in frontend
 
 **Adding new data to trips:**
 

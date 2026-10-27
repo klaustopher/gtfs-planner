@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import type { RefObject } from 'react'
 import { LngLatBounds } from 'maplibre-gl'
 import type { MapRef } from 'react-map-gl/maplibre'
-import { models } from '../../../../wailsjs/go/models'
+import * as models from '../../../../bindings/gtfs-planner/internal/models'
 import type { JourneyViewData } from '../../../hooks/useJourneyView'
 
 interface UseFitBoundsOptions {

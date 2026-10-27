@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=GTFS Planner
+Comment=Visualize GTFS transit data and plan multi-leg journeys
+# The Exec line includes %u to pass the URL to the application
+Exec=/usr/local/bin/gtfs-planner %u
+Terminal=false
+Type=Application
+Icon=gtfs-planner
+Categories=Utility;
+StartupWMClass=gtfs-planner
+
+ 
