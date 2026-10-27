@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { models } from '../../../wailsjs/go/models'
+import * as models from '../../../bindings/gtfs-planner/internal/models'
 import { getTripColor } from './geojson'
 import { getTransportTypeIcon } from '../../utils/transportType'
 import { useTranslation } from 'react-i18next'

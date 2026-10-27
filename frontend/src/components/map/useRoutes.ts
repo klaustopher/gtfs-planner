@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { GetRoutesForStation } from '../../../wailsjs/go/main/App'
-import { models } from '../../../wailsjs/go/models'
+import { GetRoutesForStation } from '../../../bindings/gtfs-planner/app'
+import * as models from '../../../bindings/gtfs-planner/internal/models'
 
 interface LoadedRoutes {
   stopId: string

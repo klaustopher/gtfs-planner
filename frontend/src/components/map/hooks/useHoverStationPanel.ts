@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { MapLayerMouseEvent } from 'maplibre-gl'
-import { models } from '../../../../wailsjs/go/models'
+import * as models from '../../../../bindings/gtfs-planner/internal/models'
 import { HoveredStationInfo } from '../types'
 
 interface UseHoverStationPanelOptions {

@@ -4,7 +4,7 @@
   "categories": {
     "correctness": "error"
   },
-  "ignorePatterns": ["dist", "wailsjs", "node_modules"],
+  "ignorePatterns": ["dist", "bindings", "node_modules"],
   "rules": {
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "warn",

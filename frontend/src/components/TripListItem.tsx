@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { models } from '../../wailsjs/go/models'
+import * as models from '../../bindings/gtfs-planner/internal/models'
 import { getTripColor } from './map/geojson'
 import { getTransportTypeLabel, getTransportTypeIcon } from '../utils/transportType'
 import { formatTimeDisplay } from '../utils/time'

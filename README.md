@@ -46,22 +46,21 @@ Silicon and Intel.
 ### Linux
 
 Builds are provided for both **amd64** (x86-64) and **arm64** (aarch64) — match
-the `_amd64_`/`_arm64_` part of the filename to your CPU. WebKitGTK also comes in
-two ABI-incompatible generations, so pick the one for your distribution (see
-[Linux notes](#linux-notes)):
-
-- **`…_linux_<arch>_webkit2gtk-4.1.tar.gz`** — Arch, Ubuntu 24.04+, Fedora, other current distros
-- **`…_linux_<arch>_webkit2gtk-4.0.tar.gz`** — older distros (e.g. Ubuntu 22.04)
+the `_amd64`/`_arm64` part of the filename to your CPU. The app needs GTK4 and
+WebKitGTK 6.0 (Ubuntu 24.04+, Debian 13+, Fedora, Arch and other current
+distros).
 
 Install the runtime dependencies, extract and run:
 
 ```bash
-# Ubuntu 24.04+ / Debian (4.1)
-sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0
-# Arch (4.1)
-sudo pacman -S gtk3 webkit2gtk-4.1
+# Ubuntu 24.04+ / Debian
+sudo apt install libgtk-4-1 libwebkitgtk-6.0-4
+# Fedora
+sudo dnf install gtk4 webkitgtk6.0
+# Arch
+sudo pacman -S gtk4 webkitgtk-6.0
 
-tar xzf gtfs-planner_*_linux_amd64_webkit2gtk-4.1.tar.gz
+tar xzf gtfs-planner_*_linux_amd64.tar.gz
 ./gtfs-planner
 ```
 
@@ -80,13 +79,14 @@ to continue. The app is open source — if you prefer, you can
 
 - [Go](https://golang.org/) 1.24+
 - [Node.js](https://nodejs.org/) 18+
-- [Wails CLI](https://wails.io/docs/gettingstarted/installation)
+- [Wails v3 CLI](https://v3.wails.io/quick-start/installation/)
 - SQLite3
+- Linux only: `libgtk-4-dev` and `libwebkitgtk-6.0-dev` (or your distro's equivalent)
 
-Install Wails CLI:
+Install the Wails CLI:
 
 ```bash
-go install github.com/wailsapp/wails/v2/cmd/wails@latest
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
 ```
 
 ## Building from source
@@ -113,7 +113,7 @@ cd frontend && npm install && cd ..
 **Development mode:**
 
 ```bash
-wails dev
+wails3 dev
 ```
 
 This starts the Go backend with hot reload and the Vite dev server with HMR for the frontend.
@@ -121,10 +121,9 @@ This starts the Go backend with hot reload and the Vite dev server with HMR for 
 **Build for production:**
 
 ```bash
-wails build
+wails3 build      # executable in bin/
+wails3 package    # platform package: .app (macOS), NSIS installer (Windows)
 ```
-
-The executable will be in `build/bin/`.
 
 ## Usage
 
@@ -163,28 +162,6 @@ data directory:
 - Windows: `%LocalAppData%\gtfs-planner`
 
 ## Linux notes
-
-### webkit2gtk 4.0 vs 4.1
-
-The app renders through the system WebKitGTK. The two generations are not
-ABI-compatible, so they are shipped as **separate downloads** — pick the one that
-matches your distribution:
-
-- **webkit2gtk 4.1** — Arch, Ubuntu 24.04+, Fedora and other current distros
-  (`libwebkit2gtk-4.1-0` / `webkit2gtk-4.1`, plus `gtk3`).
-- **webkit2gtk 4.0** — older distros such as Ubuntu 22.04
-  (`libwebkit2gtk-4.0-37`, plus `gtk3`).
-
-Building from source, install the matching `-dev` package and add the
-`webkit2_41` build tag for the 4.1 variant:
-
-```bash
-# 4.1 (Arch / Ubuntu 24.04+ / Fedora)
-wails build -tags webkit2_41
-
-# 4.0 (older distros)
-wails build
-```
 
 ### Blank or white window
 

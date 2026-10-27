@@ -3,9 +3,10 @@ import Map, { MapViewState } from './components/Map'
 import Sidebar from './components/Sidebar'
 import TripDetailModal from './components/TripDetailModal'
 import GtfsSetupModal from './components/GtfsSetupModal'
-import { models, main } from '../wailsjs/go/models'
-import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, OpenJourneyFile, GetPendingJourneyFile, GetNearbyStations, GetUpcomingTripsForStations, GetDatabaseStatus, GetTransportCategories, GetTripDetails } from '../wailsjs/go/main/App'
-import { EventsOn } from '../wailsjs/runtime/runtime'
+import * as models from '../bindings/gtfs-planner/internal/models'
+import * as main from '../bindings/gtfs-planner/models'
+import { GetStationDetails, GetRouteByID, SaveJourney, LoadJourney, OpenJourneyFile, GetPendingJourneyFile, GetNearbyStations, GetUpcomingTripsForStations, GetDatabaseStatus, GetTransportCategories, GetTripDetails } from '../bindings/gtfs-planner/app'
+import { Events } from '@wailsio/runtime'
 import { useTrips, TripQueryParams } from './components/map/useTrips'
 import { useJourneyView } from './hooks/useJourneyView'
 import { useSettings } from './hooks/useSettings'
@@ -178,6 +179,7 @@ function App() {
   const refreshDbStatus = useCallback(async (): Promise<main.DatabaseStatus | null> => {
     try {
       const status = await GetDatabaseStatus()
+      if (!status) throw new Error('database status unavailable')
       setDbStatus(status)
       const needsSetup =
         status.state === 'missing' || status.state === 'expired' || status.state === 'critical'
@@ -471,7 +473,7 @@ function App() {
 
   // Hydrate a loaded journey from the database and apply it to state. Shared by
   // the load dialog and the .gtfs-journey file association.
-  const applyLoadedJourney = useCallback(async (result: main.LoadJourneyResult) => {
+  const applyLoadedJourney = useCallback(async (result: main.LoadJourneyResult | null) => {
     try {
       if (result && result.journey) {
         const journey = result.journey
@@ -486,6 +488,9 @@ function App() {
             // Fetch station names
             const startStation = await GetStationDetails(tripData.startStationId)
             const endStation = await GetStationDetails(tripData.endStationId)
+            if (!route || !startStation || !endStation) {
+              throw new Error(`cannot resolve leg ${tripData.tripId}`)
+            }
 
             // Verify the trip still serves this leg (start before end in its stop
             // sequence). Catches feeds whose schedule changed since the export, not
@@ -596,8 +601,8 @@ function App() {
   // already running); GetPendingJourneyFile drains a file the app was cold-started
   // with, before this listener existed.
   useEffect(() => {
-    const cancel = EventsOn('journey:open-file', (filePath: string) => {
-      handleOpenJourneyFile(filePath)
+    const cancel = Events.On('journey:open-file', (event) => {
+      handleOpenJourneyFile(event.data)
     })
     GetPendingJourneyFile().then(filePath => {
       if (filePath) handleOpenJourneyFile(filePath)

@@ -19,15 +19,16 @@ import (
 	"gtfs-planner/internal/textfold"
 
 	"codeberg.org/go-pdf/fpdf"
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 // journeyFileExt is the extension (including dot) for saved journeys. It is
-// registered as a file association in wails.json; see onFileOpen.
+// registered as a file association in build/config.yml; see onFileOpen.
 const journeyFileExt = ".gtfs-journey"
 
 // App struct
 type App struct {
+	app      *application.App
 	ctx      context.Context
 	mu       sync.Mutex
 	db       *db.DB
@@ -42,13 +43,13 @@ type App struct {
 }
 
 // NewApp creates a new App application struct
-func NewApp() *App {
-	return &App{}
+func NewApp(app *application.App) *App {
+	return &App{app: app}
 }
 
-// startup is called when the app starts. The context is saved
-// so we can call the runtime methods.
-func (a *App) startup(ctx context.Context) {
+// ServiceStartup is called by Wails when the app starts. The context is
+// cancelled on shutdown and parents in-flight downloads/imports.
+func (a *App) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
 	a.ctx = ctx
 
 	dbPath, err := paths.DatabasePath()
@@ -69,25 +70,17 @@ func (a *App) startup(ctx context.Context) {
 	a.dbPath = dbPath
 	a.feedPath = feedPath
 
-	// On Windows a .gtfs-journey opened from Explorer arrives as a command-line
-	// argument rather than via Mac.OnFileOpen. Stash it for the frontend to drain.
-	for _, arg := range os.Args[1:] {
-		if strings.HasSuffix(arg, journeyFileExt) {
-			a.pendingOpenFile = arg
-			break
-		}
-	}
-
 	// The database may not exist yet; the frontend prompts for setup in that case.
 	if err := a.reopenDB(); err != nil {
 		fmt.Printf("Database not opened: %v\n", err)
 	}
+	return nil
 }
 
-// onFileOpen is invoked by the OS (via Mac.OnFileOpen) when the user opens an
-// associated .gtfs-journey file. It may fire before the frontend has mounted, so
-// we stash the path and also emit an event for the warm case where the app is
-// already running.
+// onFileOpen is invoked (via the ApplicationOpenedWithFile event) when the user
+// opens an associated .gtfs-journey file. It may fire before the frontend has
+// mounted, so we stash the path and also emit an event for the warm case where
+// the app is already running.
 func (a *App) onFileOpen(path string) {
 	if path == "" {
 		return
@@ -95,12 +88,9 @@ func (a *App) onFileOpen(path string) {
 
 	a.mu.Lock()
 	a.pendingOpenFile = path
-	ctx := a.ctx
 	a.mu.Unlock()
 
-	if ctx != nil {
-		runtime.EventsEmit(ctx, "journey:open-file", path)
-	}
+	a.app.Event.Emit("journey:open-file", path)
 }
 
 // GetPendingJourneyFile returns and clears a journey path the OS asked us to open
@@ -113,13 +103,14 @@ func (a *App) GetPendingJourneyFile() string {
 	return path
 }
 
-// shutdown is called when the app is closing
-func (a *App) shutdown(ctx context.Context) {
+// ServiceShutdown is called by Wails when the app is closing
+func (a *App) ServiceShutdown() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if a.db != nil {
 		a.db.Close()
 	}
+	return nil
 }
 
 // reopenDB closes any existing read-only connection and opens a fresh one
@@ -279,17 +270,17 @@ func (a *App) DownloadGTFS(url string) error {
 	ctx, finish := a.beginOp()
 	defer finish()
 
-	prog := func(p gtfsimport.Progress) { runtime.EventsEmit(a.ctx, "gtfs:download:progress", p) }
+	prog := func(p gtfsimport.Progress) { a.app.Event.Emit("gtfs:download:progress", p) }
 	err := gtfsimport.Download(ctx, url, a.feedPath, prog)
 	if errors.Is(err, context.Canceled) {
-		runtime.EventsEmit(a.ctx, "gtfs:download:cancelled", nil)
+		a.app.Event.Emit("gtfs:download:cancelled")
 		return nil
 	}
 	if err != nil {
-		runtime.EventsEmit(a.ctx, "gtfs:download:error", err.Error())
+		a.app.Event.Emit("gtfs:download:error", err.Error())
 		return err
 	}
-	runtime.EventsEmit(a.ctx, "gtfs:download:done", nil)
+	a.app.Event.Emit("gtfs:download:done")
 	return nil
 }
 
@@ -304,12 +295,13 @@ func (a *App) ImportGTFS() error {
 // for feeds that cannot be downloaded directly (e.g. DELFI/opendata-ÖPNV). The
 // user's file is left in place.
 func (a *App) ImportGTFSFromFile() error {
-	path, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "GTFS-Feed (ZIP) öffnen",
-		Filters: []runtime.FileFilter{
+	path, err := a.app.Dialog.OpenFileWithOptions(&application.OpenFileDialogOptions{
+		Title:          "GTFS-Feed (ZIP) öffnen",
+		CanChooseFiles: true,
+		Filters: []application.FileFilter{
 			{DisplayName: "GTFS ZIP (*.zip)", Pattern: "*.zip"},
 		},
-	})
+	}).PromptForSingleSelection()
 	if err != nil {
 		return fmt.Errorf("dialog error: %w", err)
 	}
@@ -325,24 +317,24 @@ func (a *App) importFeed(zipPath string, removeOnSuccess bool) error {
 	ctx, finish := a.beginOp()
 	defer finish()
 
-	prog := func(p gtfsimport.Progress) { runtime.EventsEmit(a.ctx, "gtfs:import:progress", p) }
+	prog := func(p gtfsimport.Progress) { a.app.Event.Emit("gtfs:import:progress", p) }
 	err := gtfsimport.New(prog).Import(ctx, zipPath, a.dbPath)
 	if errors.Is(err, context.Canceled) {
-		runtime.EventsEmit(a.ctx, "gtfs:import:cancelled", nil)
+		a.app.Event.Emit("gtfs:import:cancelled")
 		return nil
 	}
 	if err != nil {
-		runtime.EventsEmit(a.ctx, "gtfs:import:error", err.Error())
+		a.app.Event.Emit("gtfs:import:error", err.Error())
 		return err
 	}
 	if err := a.reopenDB(); err != nil {
-		runtime.EventsEmit(a.ctx, "gtfs:import:error", err.Error())
+		a.app.Event.Emit("gtfs:import:error", err.Error())
 		return err
 	}
 	if removeOnSuccess {
 		os.Remove(zipPath)
 	}
-	runtime.EventsEmit(a.ctx, "gtfs:import:done", nil)
+	a.app.Event.Emit("gtfs:import:done")
 	return nil
 }
 
@@ -516,16 +508,16 @@ func (a *App) SaveJourney(journey models.JourneyData) (string, error) {
 	journey.Version = 1
 
 	// Show save dialog
-	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
-		Title:           "Reise speichern",
-		DefaultFilename: a.journeyFileName(journey, journeyFileExt),
-		Filters: []runtime.FileFilter{
+	filePath, err := a.app.Dialog.SaveFileWithOptions(&application.SaveFileDialogOptions{
+		Title:    "Reise speichern",
+		Filename: a.journeyFileName(journey, journeyFileExt),
+		Filters: []application.FileFilter{
 			{
 				DisplayName: "GTFS Journey Files (*" + journeyFileExt + ")",
 				Pattern:     "*" + journeyFileExt,
 			},
 		},
-	})
+	}).PromptForSingleSelection()
 	if err != nil {
 		return "", fmt.Errorf("dialog error: %w", err)
 	}
@@ -565,15 +557,16 @@ type LoadJourneyResult struct {
 func (a *App) LoadJourney() (*LoadJourneyResult, error) {
 	// Show open dialog. We still accept the legacy ".journey" extension so files
 	// exported by older versions keep opening.
-	filePath, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "Reise laden",
-		Filters: []runtime.FileFilter{
+	filePath, err := a.app.Dialog.OpenFileWithOptions(&application.OpenFileDialogOptions{
+		Title:          "Reise laden",
+		CanChooseFiles: true,
+		Filters: []application.FileFilter{
 			{
 				DisplayName: "GTFS Journey Files (*" + journeyFileExt + ")",
 				Pattern:     "*" + journeyFileExt + ";*.journey",
 			},
 		},
-	})
+	}).PromptForSingleSelection()
 	if err != nil {
 		return nil, fmt.Errorf("dialog error: %w", err)
 	}
@@ -625,16 +618,16 @@ func (a *App) readJourneyFile(filePath string) (*LoadJourneyResult, error) {
 // Returns the saved file path, or empty string if cancelled.
 func (a *App) ExportJourneyToICS(journey models.JourneyData) (string, error) {
 	// Show save dialog
-	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
-		Title:           "Reise als ICS exportieren",
-		DefaultFilename: a.journeyFileName(journey, ".ics"),
-		Filters: []runtime.FileFilter{
+	filePath, err := a.app.Dialog.SaveFileWithOptions(&application.SaveFileDialogOptions{
+		Title:    "Reise als ICS exportieren",
+		Filename: a.journeyFileName(journey, ".ics"),
+		Filters: []application.FileFilter{
 			{
 				DisplayName: "iCalendar Files (*.ics)",
 				Pattern:     "*.ics",
 			},
 		},
-	})
+	}).PromptForSingleSelection()
 	if err != nil {
 		return "", fmt.Errorf("dialog error: %w", err)
 	}
@@ -808,16 +801,16 @@ func (a *App) ExportJourneyToICS(journey models.JourneyData) (string, error) {
 // Returns the saved file path, or empty string if cancelled.
 func (a *App) ExportJourneyToPDF(journey models.JourneyData) (string, error) {
 	// Show save dialog
-	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
-		Title:           "Reise als PDF exportieren",
-		DefaultFilename: a.journeyFileName(journey, ".pdf"),
-		Filters: []runtime.FileFilter{
+	filePath, err := a.app.Dialog.SaveFileWithOptions(&application.SaveFileDialogOptions{
+		Title:    "Reise als PDF exportieren",
+		Filename: a.journeyFileName(journey, ".pdf"),
+		Filters: []application.FileFilter{
 			{
 				DisplayName: "PDF Files (*.pdf)",
 				Pattern:     "*.pdf",
 			},
 		},
-	})
+	}).PromptForSingleSelection()
 	if err != nil {
 		return "", fmt.Errorf("dialog error: %w", err)
 	}

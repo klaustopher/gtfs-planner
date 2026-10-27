@@ -4,10 +4,10 @@ import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTimes, faTrash } from '@fortawesome/free-solid-svg-icons'
 import { useSettings } from '../hooks/useSettings'
-import { GetAppVersion, GetDatabaseInfo, GetDatabaseStatus, DeleteDatabase } from '../../wailsjs/go/main/App'
+import { GetAppVersion, GetDatabaseInfo, GetDatabaseStatus, DeleteDatabase } from '../../bindings/gtfs-planner/app'
 import { useConfirm } from '../hooks/useConfirm'
 import { formatDateDisplay } from '../utils/time'
-import type { main } from '../../wailsjs/go/models'
+import type * as main from '../../bindings/gtfs-planner/models'
 import './SettingsModal.css'
 
 interface SettingsModalProps {

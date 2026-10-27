@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { models } from '../../wailsjs/go/models'
-import { ExportJourneyToICS, ExportJourneyToPDF, GetTripDetails } from '../../wailsjs/go/main/App'
+import * as models from '../../bindings/gtfs-planner/internal/models'
+import { ExportJourneyToICS, ExportJourneyToPDF, GetTripDetails } from '../../bindings/gtfs-planner/app'
 import { getTransportTypeLabel } from '../utils/transportType'
 import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -97,6 +97,7 @@ export default function JourneyExportModal({
         try {
           const serviceDate = extractServiceDate(trip.departureDateTime)
           const tripDetails = await GetTripDetails(trip.tripId, serviceDate)
+          if (!tripDetails) throw new Error('trip details unavailable')
 
           // Find platform codes for boarding and alighting stops
           let departurePlatform = ''

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { GetUserLocation } from '../../wailsjs/go/main/App'
+import { GetUserLocation } from '../../bindings/gtfs-planner/app'
 
 export interface MapLocation {
   longitude: number

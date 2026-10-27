@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft, faRightToBracket } from '@fortawesome/free-solid-svg-icons'
-import { models } from '../../wailsjs/go/models'
+import * as models from '../../bindings/gtfs-planner/internal/models'
 import { formatTimeDisplay } from '../utils/time'
 import TripListItem from './TripListItem'
 

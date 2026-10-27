@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
-import { GetTripDetails } from '../../wailsjs/go/main/App'
-import { models } from '../../wailsjs/go/models'
+import { GetTripDetails } from '../../bindings/gtfs-planner/app'
+import * as models from '../../bindings/gtfs-planner/internal/models'
 import type { SavedTrip } from '../App'
 import { journeyLegColor } from '../components/map/geojson'
 
@@ -20,7 +20,7 @@ export interface JourneyMarker {
   lat: number
   lon: number
   // Dominant transport category of the station, for the map marker icon.
-  stationCategory?: number
+  stationCategory?: number | null
   // Arrival info (undefined for start marker)
   arrivalTime?: string
   arrivalPlatform?: string
@@ -178,7 +178,7 @@ export function useJourneyView(
 
       const results = await Promise.all(promises)
       for (const result of results) {
-        if (result) {
+        if (result?.details) {
           details.set(result.tripId, result.details)
         }
       }

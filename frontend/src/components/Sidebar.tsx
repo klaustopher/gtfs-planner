@@ -1,4 +1,4 @@
-import { models } from '../../wailsjs/go/models'
+import * as models from '../../bindings/gtfs-planner/internal/models'
 import { SavedTrip } from '../App'
 import { useTranslation } from 'react-i18next'
 import SettingsModal from './SettingsModal'

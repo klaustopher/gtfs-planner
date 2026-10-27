@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { GetStops } from '../../../wailsjs/go/main/App'
-import { models } from '../../../wailsjs/go/models'
+import { GetStops } from '../../../bindings/gtfs-planner/app'
+import * as models from '../../../bindings/gtfs-planner/internal/models'
 
 export interface Bounds {
   north: number

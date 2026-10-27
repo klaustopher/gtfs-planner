@@ -1,10 +1,9 @@
 name: Release
 
 # Builds installable artifacts for all supported platforms on a version tag.
-# Linux is built twice because webkit2gtk 4.0 (older distros) and 4.1 (Arch,
-# Ubuntu 24.04+, Fedora) are not ABI-compatible and a binary is tied to one of
-# them. Run via a `v*` tag to publish a (draft) release, or via the manual
-# "Run workflow" button to just produce artifacts without releasing.
+# Linux binaries link against GTK4 + WebKitGTK 6.0. Run via a `v*` tag to
+# publish a (draft) release, or via the manual "Run workflow" button to just
+# produce artifacts without releasing.
 
 on:
   push:
@@ -26,7 +25,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  WAILS_VERSION: v2.16.0
+  WAILS_VERSION: v3.0.0
 
 jobs:
   # Code signing + notarization run only when the MACOS_* secrets are configured;
@@ -59,9 +58,9 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
       - name: Build universal app
-        run: wails build -platform darwin/universal -clean
+        run: wails3 task darwin:package:universal
 
       - name: Detect signing secrets
         id: signing
@@ -83,7 +82,7 @@ jobs:
           SIGN_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
         run: |
           set -euo pipefail
-          APP=$(ls -d build/bin/*.app | head -1)
+          APP=bin/gtfs-planner.app
           codesign --force --deep --timestamp --options runtime \
             --entitlements build/darwin/entitlements.plist \
             --sign "$SIGN_IDENTITY" "$APP"
@@ -91,9 +90,8 @@ jobs:
 
       - name: Package DMG
         run: |
-          APP=$(ls -d build/bin/*.app | head -1)
-          DMG="gtfs-planner_${VERSION}_macOS_universal.dmg"
-          hdiutil create -volname "GTFS Planner" -srcfolder "$APP" -ov -format UDZO "$DMG"
+          wails3 task darwin:create:dmg
+          mv bin/gtfs-planner.dmg "gtfs-planner_${VERSION}_macOS_universal.dmg"
 
       - name: Sign, notarize and staple DMG
         if: steps.signing.outputs.enabled == 'true'
@@ -122,11 +120,10 @@ jobs:
           if-no-files-found: error
 
   # Native build on each arch — go-sqlite3 + WebKitGTK need cgo, so a native
-  # runner is far simpler than cross-compiling. WebKitGTK 4.0 and 4.1 are not
-  # ABI-compatible, hence the two variants per arch. arm64 uses GitHub's free
-  # *-arm runners (public repos).
+  # runner is far simpler than cross-compiling. arm64 uses GitHub's free *-arm
+  # runners (public repos).
   linux:
-    name: Linux (${{ matrix.arch }}, webkit2gtk ${{ matrix.webkit }})
+    name: Linux (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     env:
       VERSION: ${{ inputs.version || github.ref_name }}
@@ -134,10 +131,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { runner: ubuntu-22.04,     arch: amd64, webkit: "4.0", tags: "",           apt: libwebkit2gtk-4.0-dev }
-          - { runner: ubuntu-22.04-arm, arch: arm64, webkit: "4.0", tags: "",           apt: libwebkit2gtk-4.0-dev }
-          - { runner: ubuntu-24.04,     arch: amd64, webkit: "4.1", tags: "webkit2_41", apt: libwebkit2gtk-4.1-dev }
-          - { runner: ubuntu-24.04-arm, arch: arm64, webkit: "4.1", tags: "webkit2_41", apt: libwebkit2gtk-4.1-dev }
+          - { runner: ubuntu-24.04,     arch: amd64 }
+          - { runner: ubuntu-24.04-arm, arch: arm64 }
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -152,19 +147,19 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev ${{ matrix.apt }}
+          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev
       - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
       - name: Build
-        run: wails build -clean ${{ matrix.tags && format('-tags {0}', matrix.tags) || '' }}
+        run: wails3 build
       - name: Package tarball
         run: |
-          OUT="gtfs-planner_${VERSION}_linux_${{ matrix.arch }}_webkit2gtk-${{ matrix.webkit }}.tar.gz"
-          chmod +x build/bin/gtfs-planner
-          tar -czf "$OUT" -C build/bin gtfs-planner
+          OUT="gtfs-planner_${VERSION}_linux_${{ matrix.arch }}.tar.gz"
+          chmod +x bin/gtfs-planner
+          tar -czf "$OUT" -C bin gtfs-planner
       - uses: actions/upload-artifact@v7
         with:
-          name: linux-${{ matrix.arch }}-webkit${{ matrix.webkit }}
+          name: linux-${{ matrix.arch }}
           path: gtfs-planner_*_linux_*.tar.gz
           if-no-files-found: error
 
@@ -187,19 +182,17 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
       - name: Install NSIS
         shell: bash
         run: |
           choco install nsis -y --no-progress
           echo 'C:\Program Files (x86)\NSIS' >> "$GITHUB_PATH"
       - name: Build (NSIS installer)
-        run: wails build -clean -nsis
+        run: wails3 package
       - name: Rename installer
         shell: bash
-        run: |
-          INSTALLER=$(ls build/bin/*installer.exe | head -1)
-          cp "$INSTALLER" "gtfs-planner_${VERSION}_windows_amd64_installer.exe"
+        run: cp bin/gtfs-planner-amd64-installer.exe "gtfs-planner_${VERSION}_windows_amd64_installer.exe"
       - uses: actions/upload-artifact@v7
         with:
           name: windows

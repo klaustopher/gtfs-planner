@@ -4,7 +4,7 @@ This document provides technical information for developers working on GTFS Plan
 
 ## Technology Stack
 
-- **Backend:** Go 1.25 with [Wails](https://wails.io/) v2.16.0 (desktop framework)
+- **Backend:** Go 1.25 with [Wails](https://v3.wails.io/) v3.0.0 (desktop framework)
 - **Frontend:** React 19 + TypeScript 7 + Vite 8
 - **Map:** MapLibre GL 6.10 with react-map-gl 8.1
 - **Database:** SQLite (read-only mode)
@@ -50,8 +50,9 @@ gtfs-planner/
 │   ├── .oxlintrc.json      # Lint rules
 │   ├── vite.config.ts      # Vite + Vitest configuration
 │   ├── package.json
-│   └── wailsjs/            # Auto-generated Wails bindings
-└── build/                  # Build configuration
+│   └── bindings/           # Auto-generated Wails bindings (committed)
+├── Taskfile.yml            # Build/package tasks driven by wails3
+└── build/                  # config.yml (app metadata, file associations) + per-platform assets/Taskfiles
 ```
 
 The GTFS database and downloaded feed are stored outside the repo in a
@@ -61,10 +62,12 @@ platform-specific data directory (see `internal/paths`); there is no config file
 
 ```bash
 # Development
-wails dev                    # Start dev server with hot reload
+wails3 dev                   # Start dev server with hot reload
 
-# Building
-wails build                  # Build production executable
+# Building (Taskfile-driven; output in bin/)
+wails3 build                 # Build production executable
+wails3 package               # .app (macOS) / NSIS installer (Windows)
+wails3 task darwin:package:universal  # Universal macOS .app (release)
 
 # Testing
 go test ./...                # Run all Go tests
@@ -80,9 +83,11 @@ npm run lint                 # oxlint
 npm test                     # Vitest, single run
 npm run test:watch           # Vitest in watch mode
 
-# Generate Wails bindings (after changing Go methods)
-wails generate module
+# Generate Wails bindings (after changing Go methods; builds also regenerate them)
+wails3 generate bindings -clean=true -ts
 ```
+
+Linux builds need `libgtk-4-dev` and `libwebkitgtk-6.0-dev` (GTK4 + WebKitGTK 6.0).
 
 GTFS data management (download/import/delete) is done in-app via the setup
 dialog and settings — there is no longer a separate CLI.
@@ -92,7 +97,7 @@ dialog and settings — there is no longer a separate CLI.
 Versioning and the changelog are managed with [knope](https://knope.tech)
 (`brew install knope-dev/tap/knope`). The single source of truth for the
 version is the set of versioned files (`frontend/package.json`,
-`wails.json`'s `info.productVersion` and `appVersion` in `version.go`); they
+`build/config.yml`'s `info.version` and `appVersion` in `version.go`); they
 must always agree. `version.go` is what the Settings dialog displays.
 
 1. **Describe each change** as you work — for anything user-facing, run:
@@ -217,7 +222,12 @@ GetUserLocation() / GetAbsolutePath(relativePath string)
 - `useTrips.ts` - Fetches upcoming trips for selected station
 - `useRoutes.ts` - Fetches route geometries
 
-**Wails JS Bindings:** Auto-generated at `frontend/wailsjs/go/main/App.ts`
+**Wails JS Bindings:** Auto-generated (committed) under `frontend/bindings/`:
+methods in `bindings/gtfs-planner/app.ts`, Go models in
+`bindings/gtfs-planner/internal/models` (imported as `import * as models`) and
+`bindings/gtfs-planner/models` (main-package types, imported as `main`). Go
+pointer returns are typed `T | null`. Runtime APIs (`Events`, `Browser`) come
+from `@wailsio/runtime`; event handlers receive a `WailsEvent` and read `.data`.
 
 ## Data Flow
 
@@ -357,8 +367,8 @@ frontend (see `.github/workflows/ci.yml`).
 ### Adding a New Wails Binding
 
 1. Add method to `App` struct in `app.go`
-2. Run `wails generate module`
-3. Import from `wailsjs/go/main/App` in frontend
+2. Run `wails3 generate bindings -clean=true -ts`
+3. Import from `bindings/gtfs-planner/app` in frontend
 
 ### Adding New Data to Trips
 
@@ -412,7 +422,15 @@ frontend (see `.github/workflows/ci.yml`).
 
 ## Configuration
 
-Edit `wails.json` for build configuration. See [Wails documentation](https://wails.io/docs/reference/project-config) for options.
+App metadata (name, bundle id, version, copyright) and the `.gtfs-journey`
+file association live in `build/config.yml`. After changing `info` or
+`fileAssociations` there, run `wails3 task common:update:build-assets` to
+regenerate the plists, NSIS includes and manifests (existing plist keys such as
+`NSLocationWhenInUseUsageDescription` are merged, not lost). That command also
+recreates `build/ios/`, which this desktop-only app doesn't use; delete it.
+It also deletes `build/darwin/entitlements.plist` (hardened-runtime
+entitlements the release signing step needs for notarization), so restore it
+with `git checkout -- build/darwin/entitlements.plist` afterwards.
 
 There is no GTFS config file. The database and downloaded feed live in a
 platform-specific data directory resolved by `internal/paths`:

@@ -3,9 +3,9 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTimes, faDownload, faFileImport, faFolderOpen, faArrowUpRightFromSquare } from '@fortawesome/free-solid-svg-icons'
-import { DownloadGTFS, ImportGTFS, ImportGTFSFromFile, CancelGTFS } from '../../wailsjs/go/main/App'
-import { EventsOn, BrowserOpenURL } from '../../wailsjs/runtime/runtime'
-import type { main } from '../../wailsjs/go/models'
+import { DownloadGTFS, ImportGTFS, ImportGTFSFromFile, CancelGTFS } from '../../bindings/gtfs-planner/app'
+import { Browser, Events } from '@wailsio/runtime'
+import type * as main from '../../bindings/gtfs-planner/models'
 import './GtfsSetupModal.css'
 
 // The four free GTFS feeds offered by gtfs.de (data provided by DELFI e.V.).
@@ -75,20 +75,20 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
       return
     }
     const unsubscribers = [
-      EventsOn('gtfs:download:progress', (p: GtfsProgress) => {
+      Events.On('gtfs:download:progress', ({ data: p }: { data: GtfsProgress }) => {
         setDownloadPct(p.total > 0 ? p.current / p.total : 0)
         setEta(etaFrom(p.current, p.total, opStartRef.current))
       }),
-      EventsOn('gtfs:download:done', () => setPhase('downloaded')),
-      EventsOn('gtfs:download:error', (msg: string) => {
+      Events.On('gtfs:download:done', () => setPhase('downloaded')),
+      Events.On('gtfs:download:error', ({ data: msg }: { data: string }) => {
         setError(msg)
         setPhase('idle')
       }),
-      EventsOn('gtfs:download:cancelled', () => {
+      Events.On('gtfs:download:cancelled', () => {
         setPhase('idle')
         setDownloadPct(0)
       }),
-      EventsOn('gtfs:import:progress', (p: GtfsProgress) => {
+      Events.On('gtfs:import:progress', ({ data: p }: { data: GtfsProgress }) => {
         if (p.message === 'normalize' || p.message === 'index' || p.message === 'categories') {
           const label =
             p.message === 'normalize'
@@ -108,15 +108,15 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
         })
         setEta(etaFrom(p.current, p.total, opStartRef.current))
       }),
-      EventsOn('gtfs:import:done', () => {
+      Events.On('gtfs:import:done', () => {
         setPhase('idle')
         onImported()
       }),
-      EventsOn('gtfs:import:error', (msg: string) => {
+      Events.On('gtfs:import:error', ({ data: msg }: { data: string }) => {
         setError(msg)
         setPhase('idle')
       }),
-      EventsOn('gtfs:import:cancelled', () => {
+      Events.On('gtfs:import:cancelled', () => {
         setPhase('idle')
         setImportProg({ pct: 0, label: '', tail: false })
       }),
@@ -254,7 +254,7 @@ export default function GtfsSetupModal({ isOpen, status, onClose, onImported }: 
             <button
               type="button"
               className="gtfs-setup-modal__link"
-              onClick={() => BrowserOpenURL(GTFS_DE_INFO_URL)}
+              onClick={() => Browser.OpenURL(GTFS_DE_INFO_URL)}
             >
               {t('gtfsSetup.online.learnMore')} <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
             </button>
