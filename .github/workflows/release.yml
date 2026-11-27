@@ -47,12 +47,12 @@ jobs:
     env:
       VERSION: ${{ inputs.version || github.ref_name }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v7.1.0
         with:
           go-version-file: go.mod
           cache: true
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -71,7 +71,7 @@ jobs:
 
       - name: Import signing certificate
         if: steps.signing.outputs.enabled == 'true'
-        uses: apple-actions/import-codesign-certs@v7
+        uses: apple-actions/import-codesign-certs@v7.2.0
         with:
           p12-file-base64: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           p12-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -113,7 +113,7 @@ jobs:
           xcrun stapler staple "$DMG"
           rm -f notary_key.p8
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: macos
           path: gtfs-planner_*_macOS_universal.dmg
@@ -134,12 +134,12 @@ jobs:
           - { runner: ubuntu-24.04,     arch: amd64 }
           - { runner: ubuntu-24.04-arm, arch: arm64 }
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v7.1.0
         with:
           go-version-file: go.mod
           cache: true
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -157,7 +157,7 @@ jobs:
           OUT="gtfs-planner_${VERSION}_linux_${{ matrix.arch }}.tar.gz"
           chmod +x bin/gtfs-planner
           tar -czf "$OUT" -C bin gtfs-planner
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: linux-${{ matrix.arch }}
           path: gtfs-planner_*_linux_*.tar.gz
@@ -171,12 +171,12 @@ jobs:
       CGO_ENABLED: "1" # go-sqlite3 needs cgo; the runner ships MinGW gcc + NSIS
       VERSION: ${{ inputs.version || github.ref_name }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v7.1.0
         with:
           go-version-file: go.mod
           cache: true
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -193,7 +193,7 @@ jobs:
       - name: Rename installer
         shell: bash
         run: cp bin/gtfs-planner-amd64-installer.exe "gtfs-planner_${VERSION}_windows_amd64_installer.exe"
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: windows
           path: gtfs-planner_*_windows_amd64_installer.exe
@@ -207,9 +207,9 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       - name: Download all artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.2
         with:
           path: dist
           merge-multiple: true
@@ -222,7 +222,7 @@ jobs:
           if [ ! -s notes.md ]; then echo "No CHANGELOG.md section for $VERSION" >&2; exit 1; fi
           echo "--- release notes ---"; cat notes.md
       - name: Create draft release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@v3.0.4
         with:
           files: dist/**
           draft: true
