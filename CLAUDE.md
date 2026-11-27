@@ -8,7 +8,7 @@ GTFS Planner is a desktop application for visualizing GTFS (General Transit Feed
 
 ## Technology Stack
 
-- **Backend:** Go 1.25 with Wails v3.0.0 (desktop framework)
+- **Backend:** Go 1.25 with Wails v3.1.0 (desktop framework)
 - **Frontend:** React 19 + TypeScript 7 + Vite 8
 - **Map:** MapLibre GL 6.10 with react-map-gl 8.1
 - **Database:** SQLite (read-only mode)

@@ -25,7 +25,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  WAILS_VERSION: v3.0.0
+  WAILS_VERSION: v3.1.0
 
 jobs:
   # Code signing + notarization run only when the MACOS_* secrets are configured;
