@@ -24,9 +24,6 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  WAILS_VERSION: v3.1.0
-
 jobs:
   # Code signing + notarization run only when the MACOS_* secrets are configured;
   # otherwise an unsigned .dmg is produced (opens via right-click → Open).
@@ -58,7 +55,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v3)
       - name: Build universal app
         run: wails3 task darwin:package:universal
 
@@ -149,7 +146,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev
       - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v3)
       - name: Build
         run: wails3 build
       - name: Package tarball
@@ -182,7 +179,8 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
+        shell: bash
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v3)
       - name: Install NSIS
         shell: bash
         run: |
